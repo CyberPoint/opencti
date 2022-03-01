@@ -48,18 +48,18 @@ const useStyles = makeStyles((theme) => ({
 const noTopBarLocations = ['/dashboard'];
 
 interface IndexProps {
-  location: Object,
-  me: Object,
+  me: Object;
+  location: Location;
 }
 
-const Index = React.memo((props: IndexProps) => {
+const Index = React.memo((props: any) => {
   const theme = useTheme();
   const {me, location} = props;
   
   const classes = useStyles(theme);
   return (
     <div className={classes.root}>
-      {!noTopBarLocations.includes(location.pathname) && <TopBar />}
+      {!noTopBarLocations.includes(location?.pathname) && <TopBar />}
       <LeftBar />
       <Message />
       <main className={classes.content} style={{ paddingRight: 24 }}>
