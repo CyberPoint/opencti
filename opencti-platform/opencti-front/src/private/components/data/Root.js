@@ -4,7 +4,7 @@ import Connectors from './Connectors';
 import Entities from './Entities';
 import Tasks from './Tasks';
 import Taxii from './Taxii';
-import { BoundaryRoute } from '../Error';
+import { BoundaryRoute } from '../BoundaryRoute';
 import RootConnector from './connectors/Root';
 import Stream from './Stream';
 import Sync from './Sync';

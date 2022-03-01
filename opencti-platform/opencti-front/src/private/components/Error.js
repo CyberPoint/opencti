@@ -1,7 +1,7 @@
 import React from 'react';
-import { compose, includes, dissoc, map } from 'ramda';
+import { compose, includes, map } from 'ramda';
 import * as PropTypes from 'prop-types';
-import { Route, withRouter } from 'react-router-dom';
+import { withRouter } from 'react-router-dom';
 import Alert from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
 import ErrorNotFound from '../../components/ErrorNotFound';
@@ -60,33 +60,6 @@ export const wrapBound = (WrappedComponent) => {
     }
   }
   return Wrapper;
-};
-
-// eslint-disable-next-line max-len
-export const BoundaryRoute = (props) => {
-  if (props.component) {
-    const route = dissoc('component', props);
-    return <Route component={wrapBound(props.component)} {...route} />;
-  }
-  if (props.render) {
-    const route = dissoc('render', props);
-    return (
-      <Route
-        render={(routeProps) => {
-          const comp = props.render(routeProps);
-          return (
-            <ErrorBoundary display={<SimpleError />}>{comp}</ErrorBoundary>
-          );
-        }}
-        {...route}
-      />
-    );
-  }
-  return <Route {...props} />;
-};
-
-BoundaryRoute.propTypes = {
-  display: PropTypes.object,
 };
 
 // 404

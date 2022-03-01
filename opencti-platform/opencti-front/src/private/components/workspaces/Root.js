@@ -4,7 +4,7 @@ import Dashboards from './Dashboards';
 import Investigations from './Investigations';
 import RootDashboard from './dashboards/Root';
 import RootInvestigation from './investigations/Root';
-import { BoundaryRoute } from '../Error';
+import { BoundaryRoute } from '../BoundaryRoute';
 
 const Root = () => (
   <Switch>
