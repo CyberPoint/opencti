@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import * as PropTypes from 'prop-types';
 import { Switch, Redirect } from 'react-router-dom';
-import { BoundaryRoute } from '../Error';
+import { BoundaryRoute } from '../BoundaryRoute';
 import Reports from './Reports';
 import RootReport from './reports/Root';
 import Notes from './Notes';

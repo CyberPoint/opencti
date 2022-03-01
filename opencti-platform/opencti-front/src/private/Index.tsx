@@ -1,5 +1,4 @@
 import React from 'react';
-import * as PropTypes from 'prop-types';
 import { Route, Switch, withRouter } from 'react-router-dom';
 import makeStyles from '@mui/styles/makeStyles';
 import { compose } from 'ramda';
@@ -19,8 +18,10 @@ import RootData from './components/data/Root';
 import RootWorkspaces from './components/workspaces/Root';
 import Profile from './components/Profile';
 import Message from '../components/Message';
-import { NoMatch, BoundaryRoute } from './components/Error';
+import { NoMatch } from './components/Error';
+import { BoundaryRoute } from './components/BoundaryRoute';
 import StixCoreObjectOrStixCoreRelationship from './components/StixCoreObjectOrStixCoreRelationship';
+import { useTheme } from '@mui/styles';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -46,8 +47,16 @@ const useStyles = makeStyles((theme) => ({
 
 const noTopBarLocations = ['/dashboard'];
 
-const Index = ({ me, location }) => {
-  const classes = useStyles();
+interface IndexProps {
+  location: Object,
+  me: Object,
+}
+
+const Index = React.memo((props: IndexProps) => {
+  const theme = useTheme();
+  const {me, location} = props;
+  
+  const classes = useStyles(theme);
   return (
     <div className={classes.root}>
       {!noTopBarLocations.includes(location.pathname) && <TopBar />}
@@ -60,19 +69,19 @@ const Index = ({ me, location }) => {
           <BoundaryRoute
             exact
             path="/dashboard/search"
-            render={(routeProps) => <Search {...routeProps} me={me} />}
+            render={(routeProps: JSX.IntrinsicAttributes) => <Search {...routeProps} me={me} />}
           />
           <BoundaryRoute
             exact
             path="/dashboard/id/:id"
-            render={(routeProps) => (
+            render={(routeProps: JSX.IntrinsicAttributes) => (
               <StixCoreObjectOrStixCoreRelationship {...routeProps} me={me} />
             )}
           />
           <BoundaryRoute
             exact
             path="/dashboard/search/:keyword"
-            render={(routeProps) => <Search {...routeProps} me={me} />}
+            render={(routeProps: JSX.IntrinsicAttributes) => <Search {...routeProps} me={me} />}
           />
           <BoundaryRoute path="/dashboard/analysis" component={RootAnalysis} />
           <BoundaryRoute path="/dashboard/events" component={RootEvents} />
@@ -89,7 +98,7 @@ const Index = ({ me, location }) => {
           <BoundaryRoute
             exact
             path="/dashboard/profile"
-            render={(routeProps) => <Profile {...routeProps} me={me} />}
+            render={(routeProps: JSX.IntrinsicAttributes) => <Profile {...routeProps} me={me} />}
           />
           <BoundaryRoute
             path="/dashboard/import"
@@ -101,12 +110,7 @@ const Index = ({ me, location }) => {
       </main>
     </div>
   );
-};
+});
 
-Index.propTypes = {
-  classes: PropTypes.object,
-  location: PropTypes.object,
-  me: PropTypes.object,
-};
 
 export default compose(withRouter)(Index);

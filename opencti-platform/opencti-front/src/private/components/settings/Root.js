@@ -13,7 +13,7 @@ import Attributes from './Attributes';
 import Labels from './Labels';
 import Workflow from './Workflow';
 import Retention from './Retention';
-import { BoundaryRoute } from '../Error';
+import { BoundaryRoute } from '../BoundaryRoute';
 import Security, { SETTINGS } from '../../../utils/Security';
 
 const Root = () => (
