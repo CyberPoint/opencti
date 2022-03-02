@@ -14,17 +14,18 @@ import RootArtifact from './artifacts/Root';
 class Root extends Component {
   render() {
     const { me } = this.props;
-    const observablesIdRoute = (routeProps) => <RootStixCyberObservable {...routeProps} me={me} />
-    const artifactsObservablesIdRoute = (routeProps) => <RootArtifact {...routeProps} me={me} />
-    const observationsIndicatorIdRoute = (routeProps) => <RootIndicator {...routeProps} me={me} />
-    const infrastructureIdRoute = (routeProps) => <RootInfrastructure {...routeProps} me={me} />
+    const dashboardObservationsRoute = React.memo(() => { return(<Redirect to="/dashboard/observations/observables" />)});
+    const observablesIdRoute = React.memo((routeProps) => { return(<RootStixCyberObservable {...routeProps} me={me} />)});
+    const artifactsObservablesIdRoute = React.memo((routeProps) => { return(<RootArtifact {...routeProps} me={me} />)});
+    const observationsIndicatorIdRoute = React.memo((routeProps) => { return(<RootIndicator {...routeProps} me={me} />)});
+    const infrastructureIdRoute = React.memo((routeProps) => { return(<RootInfrastructure {...routeProps} me={me} />)});
 
     return (
       <Switch>
         <BoundaryRoute
           exact
           path="/dashboard/observations"
-          render={() => <Redirect to="/dashboard/observations/observables" />}
+          render={dashboardObservationsRoute}
         />
         <BoundaryRoute
           exact

@@ -55,11 +55,10 @@ interface IndexProps {
 const Index = React.memo((props: any) => {
   const theme = useTheme();
   const {me, location} = props;
-  const dashboardSearchRoute = (routeProps: JSX.IntrinsicAttributes) => <Search {...routeProps} me={me} />
-  const dashboardIdRoute = (routeProps: JSX.IntrinsicAttributes) => <StixCoreObjectOrStixCoreRelationship {...routeProps} me={me} />
-  const searchKeywordRoute = (routeProps: JSX.IntrinsicAttributes) => <Search {...routeProps} me={me} />
-  const dashboardProfileRoute = (routeProps: JSX.IntrinsicAttributes) => <Profile {...routeProps} me={me} />
-  
+  const dashboardSearchRoute = React.memo((routeProps) => { return(<Search {...routeProps} me={me} />)});
+  const dashboardIdRoute = React.memo((routeProps) => { return(<StixCoreObjectOrStixCoreRelationship {...routeProps} me={me} />)});
+  const searchKeywordRoute = React.memo((routeProps) => { return(<Search {...routeProps} me={me} />)});
+  const dashboardProfileRoute = React.memo((routeProps) => { return(<Profile {...routeProps} me={me} />)});
   
   const classes = useStyles(theme);
   return (
