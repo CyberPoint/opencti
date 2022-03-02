@@ -21,12 +21,22 @@ import RootIndividual from './individuals/Root';
 class Root extends Component {
   render() {
     const { me } = this.props;
+    const entitiesRoute = <Redirect to="/dashboard/entities/sectors" />;
+    const entitiesSectorsRoute = (routeProps) => <RootSector {...routeProps} me={me} />
+    const entitiesRegionsRoute = (routeProps) => <RootRegion {...routeProps} me={me} />
+    const entitiesCountriesRoute = (routeProps) => <RootCountry {...routeProps} me={me} />
+    const entitiesCitiesRoute = (routeProps) => <RootCity {...routeProps} me={me} />
+    const entitiesPositionsRoute = (routeProps) => <RootPosition {...routeProps} me={me} />
+    const entitiesOrganizationsRoute = (routeProps) => <RootOrganization {...routeProps} me={me} />
+    const entitiesSystemsRoute = (routeProps) => <RootSystem {...routeProps} me={me} />
+    const entitiesIndividualsRoute = (routeProps) => <RootIndividual {...routeProps} me={me} />
+
     return (
       <Switch>
         <BoundaryRoute
           exact
           path="/dashboard/entities"
-          render={() => <Redirect to="/dashboard/entities/sectors" />}
+          render={entitiesRoute}
         />
         <BoundaryRoute
           exact
@@ -35,7 +45,7 @@ class Root extends Component {
         />
         <BoundaryRoute
           path="/dashboard/entities/sectors/:sectorId"
-          render={(routeProps) => <RootSector {...routeProps} me={me} />}
+          render={entitiesSectorsRoute}
         />
         <BoundaryRoute
           exact
@@ -44,11 +54,11 @@ class Root extends Component {
         />
         <BoundaryRoute
           path="/dashboard/entities/regions/:regionId"
-          render={(routeProps) => <RootRegion {...routeProps} me={me} />}
+          render={entitiesRegionsRoute}
         />
         <BoundaryRoute
           path="/dashboard/entities/countries/:countryId"
-          render={(routeProps) => <RootCountry {...routeProps} me={me} />}
+          render={entitiesCountriesRoute}
         />
         <BoundaryRoute
           exact
@@ -57,7 +67,7 @@ class Root extends Component {
         />
         <BoundaryRoute
           path="/dashboard/entities/cities/:cityId"
-          render={(routeProps) => <RootCity {...routeProps} me={me} />}
+          render={entitiesCitiesRoute}
         />
         <BoundaryRoute
           exact
@@ -66,7 +76,7 @@ class Root extends Component {
         />
         <BoundaryRoute
           path="/dashboard/entities/positions/:positionId"
-          render={(routeProps) => <RootPosition {...routeProps} me={me} />}
+          render={entitiesPositionsRoute}
         />
         <BoundaryRoute
           exact
@@ -75,7 +85,7 @@ class Root extends Component {
         />
         <BoundaryRoute
           path="/dashboard/entities/organizations/:organizationId"
-          render={(routeProps) => <RootOrganization {...routeProps} me={me} />}
+          render={entitiesOrganizationsRoute}
         />
         <BoundaryRoute
           exact
@@ -84,7 +94,7 @@ class Root extends Component {
         />
         <BoundaryRoute
           path="/dashboard/entities/systems/:systemId"
-          render={(routeProps) => <RootSystem {...routeProps} me={me} />}
+          render={entitiesSystemsRoute}
         />
         <BoundaryRoute
           exact
@@ -93,7 +103,7 @@ class Root extends Component {
         />
         <BoundaryRoute
           path="/dashboard/entities/individuals/:individualId"
-          render={(routeProps) => <RootIndividual {...routeProps} me={me} />}
+          render={entitiesIndividualsRoute}
         />
       </Switch>
     );

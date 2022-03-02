@@ -12,12 +12,16 @@ import StixSightingRelationship from './stix_sighting_relationships/StixSighting
 class Root extends Component {
   render() {
     const { me } = this.props;
+    const dashboardEventsRoute = () => <Redirect to="/dashboard/events/incidents" />
+    const incidentsIdRoute = (routeProps) => <RootIncident {...routeProps} me={me} />
+    const observedDataIdRoute = (routeProps) => <RootObservedData {...routeProps} me={me} />
+
     return (
       <Switch>
         <BoundaryRoute
           exact
           path="/dashboard/events"
-          render={() => <Redirect to="/dashboard/events/incidents" />}
+          render={dashboardEventsRoute}
         />
         <BoundaryRoute
           exact
@@ -26,7 +30,7 @@ class Root extends Component {
         />
         <BoundaryRoute
           path="/dashboard/events/incidents/:incidentId"
-          render={(routeProps) => <RootIncident {...routeProps} me={me} />}
+          render={incidentsIdRoute}
         />
         <BoundaryRoute
           exact
@@ -35,7 +39,7 @@ class Root extends Component {
         />
         <BoundaryRoute
           path="/dashboard/events/observed_data/:observedDataId"
-          render={(routeProps) => <RootObservedData {...routeProps} me={me} />}
+          render={observedDataIdRoute}
         />
         <BoundaryRoute
           exact

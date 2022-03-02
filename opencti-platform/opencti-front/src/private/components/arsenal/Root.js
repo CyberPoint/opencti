@@ -16,12 +16,19 @@ import CoursesOfAction from './CoursesOfAction';
 class Root extends Component {
   render() {
     const { me } = this.props;
+    const arsenalRoute = () => <Redirect to="/dashboard/arsenal/malwares" />;
+    const malwaresIdRoute = (routeProps) => <RootMalware {...routeProps} me={me} />;
+    const attackPatternsIdRoute = (routeProps) => <RootAttackPattern {...routeProps} me={me} />;
+    const couseOfActionIdRoute = (routeProps) => <RootCourseOfAction {...routeProps} me={me} />;
+    const toolsIdRoute = (routeProps) => <RootTool {...routeProps} me={me} />;
+    const vulnerabilityIdRoute = (routeProps) => <RootVulnerabilities {...routeProps} me={me} />
+    
     return (
       <Switch>
         <BoundaryRoute
           exact
           path="/dashboard/arsenal"
-          render={() => <Redirect to="/dashboard/arsenal/malwares" />}
+          render={arsenalRoute}
         />
         <BoundaryRoute
           exact
@@ -30,7 +37,7 @@ class Root extends Component {
         />
         <BoundaryRoute
           path="/dashboard/arsenal/malwares/:malwareId"
-          render={(routeProps) => <RootMalware {...routeProps} me={me} />}
+          render={malwaresIdRoute}
         />
         <BoundaryRoute
           exact
@@ -39,7 +46,7 @@ class Root extends Component {
         />
         <BoundaryRoute
           path="/dashboard/arsenal/attack_patterns/:attackPatternId"
-          render={(routeProps) => <RootAttackPattern {...routeProps} me={me} />}
+          render={attackPatternsIdRoute}
         />
         <BoundaryRoute
           exact
@@ -48,9 +55,7 @@ class Root extends Component {
         />
         <BoundaryRoute
           path="/dashboard/arsenal/courses_of_action/:courseOfActionId"
-          render={(routeProps) => (
-            <RootCourseOfAction {...routeProps} me={me} />
-          )}
+          render={couseOfActionIdRoute}
         />
         <BoundaryRoute
           exact
@@ -59,7 +64,7 @@ class Root extends Component {
         />
         <BoundaryRoute
           path="/dashboard/arsenal/tools/:toolId"
-          render={(routeProps) => <RootTool {...routeProps} me={me} />}
+          render={toolsIdRoute}
         />
         <BoundaryRoute
           exact
@@ -68,9 +73,7 @@ class Root extends Component {
         />
         <BoundaryRoute
           path="/dashboard/arsenal/vulnerabilities/:vulnerabilityId"
-          render={(routeProps) => (
-            <RootVulnerabilities {...routeProps} me={me} />
-          )}
+          render={vulnerabilityIdRoute}
         />
       </Switch>
     );

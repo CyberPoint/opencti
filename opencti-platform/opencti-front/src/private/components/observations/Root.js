@@ -14,6 +14,11 @@ import RootArtifact from './artifacts/Root';
 class Root extends Component {
   render() {
     const { me } = this.props;
+    const observablesIdRoute = (routeProps) => <RootStixCyberObservable {...routeProps} me={me} />
+    const artifactsObservablesIdRoute = (routeProps) => <RootArtifact {...routeProps} me={me} />
+    const observationsIndicatorIdRoute = (routeProps) => <RootIndicator {...routeProps} me={me} />
+    const infrastructureIdRoute = (routeProps) => <RootInfrastructure {...routeProps} me={me} />
+
     return (
       <Switch>
         <BoundaryRoute
@@ -28,9 +33,7 @@ class Root extends Component {
         />
         <BoundaryRoute
           path="/dashboard/observations/observables/:observableId"
-          render={(routeProps) => (
-            <RootStixCyberObservable {...routeProps} me={me} />
-          )}
+          render={observablesIdRoute}
         />
         <BoundaryRoute
           exact
@@ -39,7 +42,7 @@ class Root extends Component {
         />
         <BoundaryRoute
           path="/dashboard/observations/artifacts/:observableId"
-          render={(routeProps) => <RootArtifact {...routeProps} me={me} />}
+          render={artifactsObservablesIdRoute}
         />
         <BoundaryRoute
           exact
@@ -48,7 +51,7 @@ class Root extends Component {
         />
         <BoundaryRoute
           path="/dashboard/observations/indicators/:indicatorId"
-          render={(routeProps) => <RootIndicator {...routeProps} me={me} />}
+          render={observationsIndicatorIdRoute}
         />
         <BoundaryRoute
           exact
@@ -57,9 +60,7 @@ class Root extends Component {
         />
         <BoundaryRoute
           path="/dashboard/observations/infrastructures/:infrastructureId"
-          render={(routeProps) => (
-            <RootInfrastructure {...routeProps} me={me} />
-          )}
+          render={infrastructureIdRoute}
         />
       </Switch>
     );

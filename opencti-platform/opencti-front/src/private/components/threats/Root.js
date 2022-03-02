@@ -12,12 +12,17 @@ import RootCampaign from './campaigns/Root';
 class Root extends Component {
   render() {
     const { me } = this.props;
+    const dashboardThreatsRoute = () => <Redirect to="/dashboard/threats/threat_actors" />
+    const threatActorIdRoute = (routeProps) => <RootThreatActor {...routeProps} me={me} />
+    const intrusionSetIdRoute = (routeProps) => <RootIntrusionSet {...routeProps} me={me} />
+    const campaignIdRoute = (routeProps) => <RootCampaign {...routeProps} me={me} />
+
     return (
       <Switch>
         <BoundaryRoute
           exact
           path="/dashboard/threats"
-          render={() => <Redirect to="/dashboard/threats/threat_actors" />}
+          render={dashboardThreatsRoute}
         />
         <BoundaryRoute
           exact
@@ -26,7 +31,7 @@ class Root extends Component {
         />
         <BoundaryRoute
           path="/dashboard/threats/threat_actors/:threatActorId"
-          render={(routeProps) => <RootThreatActor {...routeProps} me={me} />}
+          render={threatActorIdRoute}
         />
         <BoundaryRoute
           exact
@@ -35,7 +40,7 @@ class Root extends Component {
         />
         <BoundaryRoute
           path="/dashboard/threats/intrusion_sets/:intrusionSetId"
-          render={(routeProps) => <RootIntrusionSet {...routeProps} me={me} />}
+          render={intrusionSetIdRoute}
         />
         <BoundaryRoute
           exact
@@ -44,7 +49,7 @@ class Root extends Component {
         />
         <BoundaryRoute
           path="/dashboard/threats/campaigns/:campaignId"
-          render={(routeProps) => <RootCampaign {...routeProps} me={me} />}
+          render={campaignIdRoute}
         />
       </Switch>
     );
