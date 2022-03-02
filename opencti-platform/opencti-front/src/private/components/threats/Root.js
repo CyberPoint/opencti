@@ -12,10 +12,10 @@ import RootCampaign from './campaigns/Root';
 class Root extends Component {
   render() {
     const { me } = this.props;
-    const dashboardThreatsRoute = () => <Redirect to="/dashboard/threats/threat_actors" />
-    const threatActorIdRoute = (routeProps) => <RootThreatActor {...routeProps} me={me} />
-    const intrusionSetIdRoute = (routeProps) => <RootIntrusionSet {...routeProps} me={me} />
-    const campaignIdRoute = (routeProps) => <RootCampaign {...routeProps} me={me} />
+    const dashboardThreatsRoute = React.memo(() => { return(<Redirect to="/dashboard/threats/threat_actors" />)});
+    const threatActorIdRoute = React.memo((routeProps) => { return(<RootThreatActor {...routeProps} me={me} />)});
+    const intrusionSetIdRoute = React.memo((routeProps) => { return(<RootIntrusionSet {...routeProps} me={me} />)});
+    const campaignIdRoute = React.memo((routeProps) => { return(<RootCampaign {...routeProps} me={me} />)});
 
     return (
       <Switch>

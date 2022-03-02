@@ -14,12 +14,12 @@ import RootExternalReference from './external_references/Root';
 class Root extends Component {
   render() {
     const { me } = this.props;
-    const analysisRoute = () => <Redirect to="/dashboard/analysis/reports" />
-    const reportsRoute = (routeProps) => <Reports {...routeProps} me={me} displayCreate={true} />
-    const reportsIdRoute = (routeProps) => <RootReport {...routeProps} me={me} />
-    const notesRoute = (routeProps) => <RootNote {...routeProps} me={me} />
-    const opinionsRoute = (routeProps) => <RootOpinion {...routeProps} me={me} />
-    const externalReferencesRoute = (routeProps) => <RootExternalReference {...routeProps} me={me} />
+    const analysisRoute = React.memo(() => {return(<Redirect to="/dashboard/analysis/reports" />)});
+    const reportsRoute = React.memo((routeProps) => { return(<Reports {...routeProps} me={me} displayCreate={true} />)});
+    const reportsIdRoute = React.memo((routeProps) => { return(<RootReport {...routeProps} me={me} />)});
+    const notesRoute = React.memo((routeProps) => { return(<RootNote {...routeProps} me={me} />)});
+    const opinionsRoute = React.memo((routeProps) => { return(<RootOpinion {...routeProps} me={me} />)});
+    const externalReferencesRoute = React.memo((routeProps) => { return(<RootExternalReference {...routeProps} me={me} />)});
 
     return (
       <Switch>
