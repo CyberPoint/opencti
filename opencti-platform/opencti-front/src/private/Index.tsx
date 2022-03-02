@@ -55,6 +55,11 @@ interface IndexProps {
 const Index = React.memo((props: any) => {
   const theme = useTheme();
   const {me, location} = props;
+  const dashboardSearchRoute = (routeProps: JSX.IntrinsicAttributes) => <Search {...routeProps} me={me} />
+  const dashboardIdRoute = (routeProps: JSX.IntrinsicAttributes) => <StixCoreObjectOrStixCoreRelationship {...routeProps} me={me} />
+  const searchKeywordRoute = (routeProps: JSX.IntrinsicAttributes) => <Search {...routeProps} me={me} />
+  const dashboardProfileRoute = (routeProps: JSX.IntrinsicAttributes) => <Profile {...routeProps} me={me} />
+  
   
   const classes = useStyles(theme);
   return (
@@ -69,19 +74,17 @@ const Index = React.memo((props: any) => {
           <BoundaryRoute
             exact
             path="/dashboard/search"
-            render={(routeProps: JSX.IntrinsicAttributes) => <Search {...routeProps} me={me} />}
+            render={dashboardSearchRoute}
           />
           <BoundaryRoute
             exact
             path="/dashboard/id/:id"
-            render={(routeProps: JSX.IntrinsicAttributes) => (
-              <StixCoreObjectOrStixCoreRelationship {...routeProps} me={me} />
-            )}
+            render={dashboardIdRoute}
           />
           <BoundaryRoute
             exact
             path="/dashboard/search/:keyword"
-            render={(routeProps: JSX.IntrinsicAttributes) => <Search {...routeProps} me={me} />}
+            render={searchKeywordRoute}
           />
           <BoundaryRoute path="/dashboard/analysis" component={RootAnalysis} />
           <BoundaryRoute path="/dashboard/events" component={RootEvents} />
@@ -98,7 +101,7 @@ const Index = React.memo((props: any) => {
           <BoundaryRoute
             exact
             path="/dashboard/profile"
-            render={(routeProps: JSX.IntrinsicAttributes) => <Profile {...routeProps} me={me} />}
+            render={dashboardProfileRoute}
           />
           <BoundaryRoute
             path="/dashboard/import"

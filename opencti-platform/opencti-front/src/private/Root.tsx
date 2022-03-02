@@ -1,6 +1,6 @@
 import React from 'react';
 import * as R from 'ramda';
-import { graphql, useLazyLoadQuery } from 'react-relay';
+import { graphql, useLazyLoadQuery, Variables } from 'react-relay';
 import CssBaseline from '@mui/material/CssBaseline';
 import { StyledEngineProvider } from '@mui/material/styles';
 import { ConnectedIntlProvider } from '../components/AppIntlProvider';
@@ -39,28 +39,28 @@ const rootPrivateQuery = graphql`
     about {
       version
     }
-  }
-`;
+  }`;
 
-const isFeatureEnable = (settings, id) => {
+const isFeatureEnable = (settings: { platform_feature_flags: never[]; }, id: string) => {
   const flags = settings.platform_feature_flags || [];
-  const feature = R.find((f) => f.id === id, flags);
+  const feature = R.find((f: { id: any; enable: boolean; }) => f.id === id, flags);
   return feature !== undefined && feature.enable === true;
 };
-const isModuleEnable = (settings, id) => {
+const isModuleEnable = (settings: { platform_modules: never[]; }, id: string) => {
   const modules = settings.platform_modules || [];
-  const module = R.find((f) => f.id === id, modules);
+  const module = R.find((f: { id: any; enable: boolean; }) => f.id === id, modules);
   return module !== undefined && module.enable === true;
 };
-const buildHelper = (settings) => ({
-  isModuleEnable: (id) => isModuleEnable(settings, id),
+const buildHelper = (settings: any) => ({
+  isModuleEnable: (id: any) => isModuleEnable(settings, id),
   isRuleEngineEnable: () => isModuleEnable(settings, 'RULE_ENGINE'),
-  isFeatureEnable: (id) => isFeatureEnable(settings, id),
+  isFeatureEnable: (id: any) => isFeatureEnable(settings, id),
   isRuntimeFieldEnable: () => isFeatureEnable(settings, 'RUNTIME_SORTING'),
 });
 
 const Root = () => {
-  const data = useLazyLoadQuery(rootPrivateQuery);
+  const variables: Variables = [];
+  const data: any = useLazyLoadQuery(rootPrivateQuery, variables);
   const { me, settings } = data;
   const helper = buildHelper(settings);
   return (

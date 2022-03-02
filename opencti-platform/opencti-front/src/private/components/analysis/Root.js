@@ -14,23 +14,28 @@ import RootExternalReference from './external_references/Root';
 class Root extends Component {
   render() {
     const { me } = this.props;
+    const analysisRoute = () => <Redirect to="/dashboard/analysis/reports" />
+    const reportsRoute = (routeProps) => <Reports {...routeProps} me={me} displayCreate={true} />
+    const reportsIdRoute = (routeProps) => <RootReport {...routeProps} me={me} />
+    const notesRoute = (routeProps) => <RootNote {...routeProps} me={me} />
+    const opinionsRoute = (routeProps) => <RootOpinion {...routeProps} me={me} />
+    const externalReferencesRoute = (routeProps) => <RootExternalReference {...routeProps} me={me} />
+
     return (
       <Switch>
         <BoundaryRoute
           exact
           path="/dashboard/analysis"
-          render={() => <Redirect to="/dashboard/analysis/reports" />}
+          render={analysisRoute}
         />
         <BoundaryRoute
           exact
           path="/dashboard/analysis/reports"
-          render={(routeProps) => (
-            <Reports {...routeProps} me={me} displayCreate={true} />
-          )}
+          render={reportsRoute}
         />
         <BoundaryRoute
           path="/dashboard/analysis/reports/:reportId"
-          render={(routeProps) => <RootReport {...routeProps} me={me} />}
+          render={reportsIdRoute}
         />
         <BoundaryRoute
           exact
@@ -39,7 +44,7 @@ class Root extends Component {
         />
         <BoundaryRoute
           path="/dashboard/analysis/notes/:noteId"
-          render={(routeProps) => <RootNote {...routeProps} me={me} />}
+          render={notesRoute}
         />
         <BoundaryRoute
           exact
@@ -48,7 +53,7 @@ class Root extends Component {
         />
         <BoundaryRoute
           path="/dashboard/analysis/opinions/:opinionId"
-          render={(routeProps) => <RootOpinion {...routeProps} me={me} />}
+          render={opinionsRoute}
         />
         <BoundaryRoute
           exact
@@ -57,9 +62,7 @@ class Root extends Component {
         />
         <BoundaryRoute
           path="/dashboard/analysis/external_references/:externalReferenceId"
-          render={(routeProps) => (
-            <RootExternalReference {...routeProps} me={me} />
-          )}
+          render={externalReferencesRoute}
         />
       </Switch>
     );
