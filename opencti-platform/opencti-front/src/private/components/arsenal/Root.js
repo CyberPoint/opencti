@@ -16,12 +16,12 @@ import CoursesOfAction from './CoursesOfAction';
 class Root extends Component {
   render() {
     const { me } = this.props;
-    const arsenalRoute = () => <Redirect to="/dashboard/arsenal/malwares" />;
-    const malwaresIdRoute = (routeProps) => <RootMalware {...routeProps} me={me} />;
-    const attackPatternsIdRoute = (routeProps) => <RootAttackPattern {...routeProps} me={me} />;
-    const couseOfActionIdRoute = (routeProps) => <RootCourseOfAction {...routeProps} me={me} />;
-    const toolsIdRoute = (routeProps) => <RootTool {...routeProps} me={me} />;
-    const vulnerabilityIdRoute = (routeProps) => <RootVulnerabilities {...routeProps} me={me} />
+    const arsenalRoute = React.memo(() => {return(<Redirect to="/dashboard/arsenal/malwares" />)});
+    const malwaresIdRoute = React.memo(() => {return(<RootMalware {...routeProps} me={me} />)});
+    const attackPatternsIdRoute = React.memo((routeProps) => {return(<RootAttackPattern {...routeProps} me={me} />)});
+    const couseOfActionIdRoute = React.memo((routeProps) => {return(<RootCourseOfAction {...routeProps} me={me} />)});
+    const toolsIdRoute = React.memo((routeProps) => {return(<RootTool {...routeProps} me={me} />)});
+    const vulnerabilityIdRoute = React.memo((routeProps) => {return(<RootVulnerabilities {...routeProps} me={me} />)});
     
     return (
       <Switch>
