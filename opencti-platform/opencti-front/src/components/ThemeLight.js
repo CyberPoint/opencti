@@ -17,6 +17,7 @@ export default (
       paper: paper || '#f3f6f9',
       nav: nav || '#f9feff',
       accent: accent || '#d3eaff',
+      shadow: 'rgba(0, 0, 0, .05)',
     },
   },
   typography: {
@@ -72,6 +73,13 @@ export default (
     },
   },
   components: {
+    MuiTooltip: {
+      styleOverrides: {
+        tooltip: {
+          backgroundColor: 'rgba(0,0,0,0.7)',
+        },
+      },
+    },
     MuiCssBaseline: {
       styleOverrides: {
         body: {
@@ -109,7 +117,7 @@ export default (
           'input:-webkit-autofill': {
             WebkitAnimation: 'autofill 0s forwards',
             animation: 'autofill 0s forwards',
-            WebkitTextFillColor: '#ffffff !important',
+            WebkitTextFillColor: '#000000 !important',
             caretColor: 'transparent !important',
             WebkitBoxShadow:
               '0 0 0 1000px rgba(4, 8, 17, 0.88) inset !important',
@@ -118,10 +126,12 @@ export default (
           },
           pre: {
             background: `${accent || '#c0dfff'} !important`,
+            color: '#000000 !important',
           },
           code: {
             fontFamily: 'Consolas, monaco, monospace',
             background: `${accent || '#c0dfff'} !important`,
+            color: '#000000 !important',
             padding: 3,
             fontSize: 12,
             fontWeight: 400,

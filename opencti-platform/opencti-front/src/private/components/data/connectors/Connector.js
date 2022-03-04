@@ -73,7 +73,7 @@ const styles = (theme) => ({
     float: 'left',
     margin: '0 10px 10px 0',
     backgroundColor: theme.palette.background.accent,
-    color: '#ffffff',
+    color: theme.palette.text.primary,
   },
   number: {
     fontWeight: 600,
@@ -416,7 +416,7 @@ class ConnectorComponent extends Component {
             </Button>
             <Button
               onClick={this.submitResetState.bind(this)}
-              color="primary"
+              color="secondary"
               disabled={this.state.resetting}
             >
               {t('Reset')}
@@ -444,14 +444,14 @@ class ConnectorComponent extends Component {
             </Button>
             <Button
               onClick={this.submitClearWorks.bind(this)}
-              color="primary"
+              color="secondary"
               disabled={this.state.clearing}
             >
               {t('Clear')}
             </Button>
           </DialogActions>
         </Dialog>
-        <Typography variant="h4" gutterBottom={true} style={{ marginTop: 35 }}>
+        <Typography variant="h4" gutterBottom={true} style={{ marginTop: 60 }}>
           {t('In progress works')}
         </Typography>
         <QueryRenderer
