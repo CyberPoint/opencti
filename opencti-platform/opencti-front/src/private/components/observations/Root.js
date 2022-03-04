@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import * as PropTypes from 'prop-types';
 import { Switch, Redirect } from 'react-router-dom';
-import BoundaryRoute  from '../BoundaryRoute';
+import BoundaryRoute from '../BoundaryRoute';
 import StixCyberObservables from './StixCyberObservables';
 import RootStixCyberObservable from './stix_cyber_observables/Root';
 import Artifacts from './Artifacts';

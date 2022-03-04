@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import * as PropTypes from 'prop-types';
 import { Switch, Redirect } from 'react-router-dom';
-import BoundaryRoute  from '../BoundaryRoute';
+import BoundaryRoute from '../BoundaryRoute';
 import ThreatActors from './ThreatActors';
 import RootThreatActor from './threat_actors/Root';
 import IntrusionSets from './IntrusionSets';
