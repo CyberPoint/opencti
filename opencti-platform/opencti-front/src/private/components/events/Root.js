@@ -12,43 +12,30 @@ import StixSightingRelationship from './stix_sighting_relationships/StixSighting
 class Root extends Component {
   render() {
     const { me } = this.props;
-    const dashboardEventsRoute = React.memo(() => { return(<Redirect to="/dashboard/events/incidents" />)});
-    const observedDataIdRoute = React.memo((routeProps) => { return(<RootObservedData {...routeProps} me={me} />)});
-    const incidentsIdRoute = React.memo((routeProps) => { return(<RootIncident {...routeProps} me={me} />)});
+    const dashboardEventsRoute = React.memo(() => <Redirect to='/dashboard/events/incidents' />);
+    const observedDataIdRoute = React.memo((routeProps) => (
+      <RootObservedData {...routeProps} me={me} />
+    ));
+    const incidentsIdRoute = React.memo((routeProps) => <RootIncident {...routeProps} me={me} />);
 
     return (
       <Switch>
+        <BoundaryRoute exact path='/dashboard/events' render={dashboardEventsRoute} />
+        <BoundaryRoute exact path='/dashboard/events/incidents' component={Incidents} />
+        <BoundaryRoute path='/dashboard/events/incidents/:incidentId' render={incidentsIdRoute} />
+        <BoundaryRoute exact path='/dashboard/events/observed_data' component={ObservedDatas} />
         <BoundaryRoute
-          exact
-          path="/dashboard/events"
-          render={dashboardEventsRoute}
-        />
-        <BoundaryRoute
-          exact
-          path="/dashboard/events/incidents"
-          component={Incidents}
-        />
-        <BoundaryRoute
-          path="/dashboard/events/incidents/:incidentId"
-          render={incidentsIdRoute}
-        />
-        <BoundaryRoute
-          exact
-          path="/dashboard/events/observed_data"
-          component={ObservedDatas}
-        />
-        <BoundaryRoute
-          path="/dashboard/events/observed_data/:observedDataId"
+          path='/dashboard/events/observed_data/:observedDataId'
           render={observedDataIdRoute}
         />
         <BoundaryRoute
           exact
-          path="/dashboard/events/sightings"
+          path='/dashboard/events/sightings'
           component={StixSightingRelationships}
         />
         <BoundaryRoute
           exact
-          path="/dashboard/events/sightings/:sightingId"
+          path='/dashboard/events/sightings/:sightingId'
           component={StixSightingRelationship}
         />
       </Switch>

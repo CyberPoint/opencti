@@ -7,6 +7,7 @@ import { ConnectedIntlProvider } from '../components/AppIntlProvider';
 import { ConnectedThemeProvider } from '../components/AppThemeProvider';
 import Index from './Index';
 import { UserContext } from '../utils/Security';
+import { Settings, User } from '../generated/graphql';
 
 const rootPrivateQuery = graphql`
   query RootPrivateQuery {
@@ -39,42 +40,62 @@ const rootPrivateQuery = graphql`
     about {
       version
     }
-  }`;
+  }
+`;
 
-const isFeatureEnable = (settings: { platform_feature_flags: never[]; }, id: string) => {
+type SettingsFlag = {
+  id?: string;
+  enable?: boolean;
+};
+
+type Data = {
+  me: User;
+  settings: Settings;
+};
+
+const isFeatureEnabled = (settings: Settings, id: string) => {
   const flags = settings.platform_feature_flags || [];
-  const feature = R.find((f: { id: any; enable: boolean; }) => f.id === id, flags);
+  const feature: null | undefined | SettingsFlag = R.find(
+    (f: { id: string; enable: boolean }) => f.id === id,
+    flags,
+  );
   return feature !== undefined && feature.enable === true;
 };
-const isModuleEnable = (settings: { platform_modules: never[]; }, id: string) => {
+const isModuleEnabled = (settings: Settings, id: string) => {
   const modules = settings.platform_modules || [];
-  const module = R.find((f: { id: any; enable: boolean; }) => f.id === id, modules);
+  const module: null | undefined | SettingsFlag = R.find(
+    (f: { id: any; enable: boolean }) => f.id === id,
+    modules,
+  );
   return module !== undefined && module.enable === true;
 };
-const buildHelper = (settings: any) => ({
-  isModuleEnable: (id: any) => isModuleEnable(settings, id),
-  isRuleEngineEnable: () => isModuleEnable(settings, 'RULE_ENGINE'),
-  isFeatureEnable: (id: any) => isFeatureEnable(settings, id),
-  isRuntimeFieldEnable: () => isFeatureEnable(settings, 'RUNTIME_SORTING'),
+const buildHelper = (settings: Settings) => ({
+  isModuleEnable: (id: string) => isModuleEnabled(settings, id),
+  isRuleEngineEnable: () => isModuleEnabled(settings, 'RULE_ENGINE'),
+  isFeatureEnable: (id: string) => isFeatureEnabled(settings, id),
+  isRuntimeFieldEnable: () => isFeatureEnabled(settings, 'RUNTIME_SORTING'),
 });
 
 const Root = () => {
   const variables: Variables = [];
-  const data: any = useLazyLoadQuery(rootPrivateQuery, variables);
-  const { me, settings } = data;
-  const helper = buildHelper(settings);
-  return (
-    <UserContext.Provider value={{ me, settings, helper }}>
-      <StyledEngineProvider injectFirst={true}>
-        <ConnectedThemeProvider settings={settings}>
-          <CssBaseline />
-          <ConnectedIntlProvider settings={settings}>
-            <Index me={me} />
-          </ConnectedIntlProvider>
-        </ConnectedThemeProvider>
-      </StyledEngineProvider>
-    </UserContext.Provider>
-  );
+  const dataResponse: Data = useLazyLoadQuery(rootPrivateQuery, variables) as Data;
+  const { me, settings } = dataResponse;
+  if (settings && me) {
+    const helper = buildHelper(settings);
+    return (
+      <UserContext.Provider value={{ me, settings, helper }}>
+        <StyledEngineProvider injectFirst={true}>
+          <ConnectedThemeProvider settings={settings}>
+            <CssBaseline />
+            <ConnectedIntlProvider settings={settings}>
+              <Index me={me} />
+            </ConnectedIntlProvider>
+          </ConnectedThemeProvider>
+        </StyledEngineProvider>
+      </UserContext.Provider>
+    );
+  }
+  return <></>;
 };
 
 export default Root;

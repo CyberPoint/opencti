@@ -12,45 +12,32 @@ import RootCampaign from './campaigns/Root';
 class Root extends Component {
   render() {
     const { me } = this.props;
-    const dashboardThreatsRoute = React.memo(() => { return(<Redirect to="/dashboard/threats/threat_actors" />)});
-    const threatActorIdRoute = React.memo((routeProps) => { return(<RootThreatActor {...routeProps} me={me} />)});
-    const intrusionSetIdRoute = React.memo((routeProps) => { return(<RootIntrusionSet {...routeProps} me={me} />)});
-    const campaignIdRoute = React.memo((routeProps) => { return(<RootCampaign {...routeProps} me={me} />)});
+    const dashboardThreatsRoute = React.memo(() => (
+      <Redirect to='/dashboard/threats/threat_actors' />
+    ));
+    const threatActorIdRoute = React.memo((routeProps) => (
+      <RootThreatActor {...routeProps} me={me} />
+    ));
+    const intrusionSetIdRoute = React.memo((routeProps) => (
+      <RootIntrusionSet {...routeProps} me={me} />
+    ));
+    const campaignIdRoute = React.memo((routeProps) => <RootCampaign {...routeProps} me={me} />);
 
     return (
       <Switch>
+        <BoundaryRoute exact path='/dashboard/threats' render={dashboardThreatsRoute} />
+        <BoundaryRoute exact path='/dashboard/threats/threat_actors' component={ThreatActors} />
         <BoundaryRoute
-          exact
-          path="/dashboard/threats"
-          render={dashboardThreatsRoute}
-        />
-        <BoundaryRoute
-          exact
-          path="/dashboard/threats/threat_actors"
-          component={ThreatActors}
-        />
-        <BoundaryRoute
-          path="/dashboard/threats/threat_actors/:threatActorId"
+          path='/dashboard/threats/threat_actors/:threatActorId'
           render={threatActorIdRoute}
         />
+        <BoundaryRoute exact path='/dashboard/threats/intrusion_sets' component={IntrusionSets} />
         <BoundaryRoute
-          exact
-          path="/dashboard/threats/intrusion_sets"
-          component={IntrusionSets}
-        />
-        <BoundaryRoute
-          path="/dashboard/threats/intrusion_sets/:intrusionSetId"
+          path='/dashboard/threats/intrusion_sets/:intrusionSetId'
           render={intrusionSetIdRoute}
         />
-        <BoundaryRoute
-          exact
-          path="/dashboard/threats/campaigns"
-          component={Campaigns}
-        />
-        <BoundaryRoute
-          path="/dashboard/threats/campaigns/:campaignId"
-          render={campaignIdRoute}
-        />
+        <BoundaryRoute exact path='/dashboard/threats/campaigns' component={Campaigns} />
+        <BoundaryRoute path='/dashboard/threats/campaigns/:campaignId' render={campaignIdRoute} />
       </Switch>
     );
   }

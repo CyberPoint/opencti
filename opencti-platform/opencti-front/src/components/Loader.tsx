@@ -42,39 +42,39 @@ interface LoaderProps {
 }
 
 const Loader = React.memo((props: LoaderProps) => {
-    const classes = useStyles(props);
-    const { variant, withRightPadding } = props;
-    return (
+  const classes = useStyles(props);
+  const { variant, withRightPadding } = props;
+  return (
+    <div
+      className={
+        variant === 'inElement'
+          ? classes.containerInElement
+          : classes.container
+      }
+      style={
+        variant === 'inElement'
+          ? { paddingRight: withRightPadding ? 200 : 0 }
+          : {}
+      }
+    >
       <div
         className={
-          variant === 'inElement'
-            ? classes.containerInElement
-            : classes.container
+          variant === 'inElement' ? classes.loaderInElement : classes.loader
         }
         style={
-          variant === 'inElement'
-            ? { paddingRight: withRightPadding ? 200 : 0 }
+          variant !== 'inElement'
+            ? { paddingRight: withRightPadding ? 100 : 0 }
             : {}
         }
       >
-        <div
-          className={
-            variant === 'inElement' ? classes.loaderInElement : classes.loader
-          }
-          style={
-            variant !== 'inElement'
-              ? { paddingRight: withRightPadding ? 100 : 0 }
-              : {}
-          }
-        >
-          <CircularProgress
-            size={variant === 'inElement' ? 40 : 80}
-            thickness={1}
-            className={classes.loaderCircle}
-          />
-        </div>
+        <CircularProgress
+          size={variant === 'inElement' ? 40 : 80}
+          thickness={1}
+          className={classes.loaderCircle}
+        />
       </div>
-    );
+    </div>
+  );
 });
 
 export default Loader;

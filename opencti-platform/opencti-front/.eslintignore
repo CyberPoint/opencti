@@ -4,3 +4,4 @@
 /builder/dev/build
 /builder/prod/build
 __generated__
+src/generated

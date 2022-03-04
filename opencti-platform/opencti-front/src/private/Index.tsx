@@ -2,6 +2,7 @@ import React from 'react';
 import { Route, Switch, withRouter } from 'react-router-dom';
 import makeStyles from '@mui/styles/makeStyles';
 import { compose } from 'ramda';
+import { useTheme } from '@mui/styles';
 import TopBar from './components/nav/TopBar';
 import LeftBar from './components/nav/LeftBar';
 import Dashboard from './components/Dashboard';
@@ -21,7 +22,6 @@ import Message from '../components/Message';
 import { NoMatch } from './components/Error';
 import { BoundaryRoute } from './components/BoundaryRoute';
 import StixCoreObjectOrStixCoreRelationship from './components/StixCoreObjectOrStixCoreRelationship';
-import { useTheme } from '@mui/styles';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -47,72 +47,45 @@ const useStyles = makeStyles((theme) => ({
 
 const noTopBarLocations = ['/dashboard'];
 
-interface IndexProps {
-  me: Object;
-  location: Location;
-}
-
 const Index = React.memo((props: any) => {
   const theme = useTheme();
-  const {me, location} = props;
-  const dashboardSearchRoute = React.memo((routeProps) => { return(<Search {...routeProps} me={me} />)});
-  const dashboardIdRoute = React.memo((routeProps) => { return(<StixCoreObjectOrStixCoreRelationship {...routeProps} me={me} />)});
-  const searchKeywordRoute = React.memo((routeProps) => { return(<Search {...routeProps} me={me} />)});
-  const dashboardProfileRoute = React.memo((routeProps) => { return(<Profile {...routeProps} me={me} />)});
-  
+  const { me, location } = props;
+  const dashboardSearchRoute = React.memo((routeProps) => <Search {...routeProps} me={me} />);
+  const dashboardIdRoute = React.memo((routeProps) => (
+    <StixCoreObjectOrStixCoreRelationship {...routeProps} me={me} />
+  ));
+  const searchKeywordRoute = React.memo((routeProps) => <Search {...routeProps} me={me} />);
+  const dashboardProfileRoute = React.memo((routeProps) => <Profile {...routeProps} me={me} />);
+
   const classes = useStyles(theme);
   return (
     <div className={classes.root}>
-      {!noTopBarLocations.includes(location?.pathname) && <TopBar />}
+      {!noTopBarLocations.includes(location.pathname || '') && <TopBar />}
       <LeftBar />
       <Message />
       <main className={classes.content} style={{ paddingRight: 24 }}>
         <div className={classes.toolbar} />
         <Switch>
-          <BoundaryRoute exact path="/dashboard" component={Dashboard} />
-          <BoundaryRoute
-            exact
-            path="/dashboard/search"
-            render={dashboardSearchRoute}
-          />
-          <BoundaryRoute
-            exact
-            path="/dashboard/id/:id"
-            render={dashboardIdRoute}
-          />
-          <BoundaryRoute
-            exact
-            path="/dashboard/search/:keyword"
-            render={searchKeywordRoute}
-          />
-          <BoundaryRoute path="/dashboard/analysis" component={RootAnalysis} />
-          <BoundaryRoute path="/dashboard/events" component={RootEvents} />
-          <Route path="/dashboard/observations" component={RootObservations} />
-          <BoundaryRoute path="/dashboard/threats" component={RootThreats} />
-          <BoundaryRoute path="/dashboard/arsenal" component={RootArsenal} />
-          <BoundaryRoute path="/dashboard/entities" component={RootEntities} />
-          <BoundaryRoute path="/dashboard/data" render={RootData} />
-          <BoundaryRoute
-            path="/dashboard/workspaces"
-            component={RootWorkspaces}
-          />
-          <BoundaryRoute path="/dashboard/settings" component={RootSettings} />
-          <BoundaryRoute
-            exact
-            path="/dashboard/profile"
-            render={dashboardProfileRoute}
-          />
-          <BoundaryRoute
-            path="/dashboard/import"
-            component={RootImport}
-            me={me}
-          />
+          <BoundaryRoute exact path='/dashboard' component={Dashboard} />
+          <BoundaryRoute exact path='/dashboard/search' render={dashboardSearchRoute} />
+          <BoundaryRoute exact path='/dashboard/id/:id' render={dashboardIdRoute} />
+          <BoundaryRoute exact path='/dashboard/search/:keyword' render={searchKeywordRoute} />
+          <BoundaryRoute path='/dashboard/analysis' component={RootAnalysis} />
+          <BoundaryRoute path='/dashboard/events' component={RootEvents} />
+          <Route path='/dashboard/observations' component={RootObservations} />
+          <BoundaryRoute path='/dashboard/threats' component={RootThreats} />
+          <BoundaryRoute path='/dashboard/arsenal' component={RootArsenal} />
+          <BoundaryRoute path='/dashboard/entities' component={RootEntities} />
+          <BoundaryRoute path='/dashboard/data' render={RootData} />
+          <BoundaryRoute path='/dashboard/workspaces' component={RootWorkspaces} />
+          <BoundaryRoute path='/dashboard/settings' component={RootSettings} />
+          <BoundaryRoute exact path='/dashboard/profile' render={dashboardProfileRoute} />
+          <BoundaryRoute path='/dashboard/import' component={RootImport} me={me} />
           <Route component={NoMatch} />
         </Switch>
       </main>
     </div>
   );
 });
-
 
 export default compose(withRouter)(Index);

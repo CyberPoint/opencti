@@ -60,9 +60,17 @@
     "typeface-ibm-plex-sans": "1.1.13",
     "typeface-roboto": "1.1.13",
     "uuid": "8.3.2",
-    "yup": "0.32.11"
+    "yup": "^0.32.11"
   },
   "devDependencies": {
+    "@graphql-codegen/cli": "2.6.2",
+    "@graphql-codegen/introspection": "2.1.1",
+    "@graphql-codegen/typescript": "2.4.5",
+    "@graphql-codegen/typescript-document-nodes": "2.2.5",
+    "@graphql-codegen/typescript-graphql-files-modules": "2.1.1",
+    "@graphql-codegen/typescript-operations": "2.3.2",
+    "@graphql-codegen/typescript-react-apollo": "3.2.8",
+    "@graphql-codegen/typescript-resolvers": "^2.5.2",
     "@types/jest": "27.4.1",
     "@types/node": "17.0.21",
     "@types/ramda": "^0.28.0",
@@ -103,7 +111,8 @@
     "start": "yarn relay && node builder/dev/dev.js",
     "lint": "cross-env DEBUG=eslint:cli-engine TIMING=1 eslint --max-warnings 0 --cache -c .eslintrc.json src",
     "control": "yarn audit --groups dependencies --summary",
-    "test": "jest --coverage"
+    "test": "jest --coverage",
+    "build:types": "graphql-codegen --config graphql-codegen.yml"
   },
   "resolutions": {
     "node-sass": "7.0.1",
