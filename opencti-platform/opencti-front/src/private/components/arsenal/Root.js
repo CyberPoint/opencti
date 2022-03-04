@@ -13,66 +13,50 @@ import Vulnerabilities from './Vulnerabilities';
 import RootVulnerabilities from './vulnerabilities/Root';
 import CoursesOfAction from './CoursesOfAction';
 
-class Root extends Component {
+class RootArsenal extends Component {
   render() {
     const { me } = this.props;
-    const arsenalRoute = React.memo(() => {return(<Redirect to="/dashboard/arsenal/malwares" />)});
-    const malwaresIdRoute = React.memo(() => {return(<RootMalware {...routeProps} me={me} />)});
-    const attackPatternsIdRoute = React.memo((routeProps) => {return(<RootAttackPattern {...routeProps} me={me} />)});
-    const couseOfActionIdRoute = React.memo((routeProps) => {return(<RootCourseOfAction {...routeProps} me={me} />)});
-    const toolsIdRoute = React.memo((routeProps) => {return(<RootTool {...routeProps} me={me} />)});
-    const vulnerabilityIdRoute = React.memo((routeProps) => {return(<RootVulnerabilities {...routeProps} me={me} />)});
-    
+    const arsenalRoute = React.memo(() => <Redirect to='/dashboard/arsenal/malwares' />);
+    const malwaresIdRoute = React.memo((props) => <RootMalware {...props.routeProps} me={me} />);
+    const attackPatternsIdRoute = React.memo((props) => (
+      <RootAttackPattern {...props.routeProps} me={me} />
+    ));
+    const couseOfActionIdRoute = React.memo((props) => (
+      <RootCourseOfAction {...props.routeProps} me={me} />
+    ));
+    const toolsIdRoute = React.memo((props) => <RootTool {...props.routeProps} me={me} />);
+    const vulnerabilityIdRoute = React.memo((props) => (
+      <RootVulnerabilities {...props.routeProps} me={me} />
+    ));
+
     return (
       <Switch>
+        <BoundaryRoute exact path='/dashboard/arsenal' render={arsenalRoute} />
+        <BoundaryRoute exact path='/dashboard/arsenal/malwares' component={Malwares} />
+        <BoundaryRoute path='/dashboard/arsenal/malwares/:malwareId' render={malwaresIdRoute} />
+        <BoundaryRoute exact path='/dashboard/arsenal/attack_patterns' component={AttackPatterns} />
         <BoundaryRoute
-          exact
-          path="/dashboard/arsenal"
-          render={arsenalRoute}
-        />
-        <BoundaryRoute
-          exact
-          path="/dashboard/arsenal/malwares"
-          component={Malwares}
-        />
-        <BoundaryRoute
-          path="/dashboard/arsenal/malwares/:malwareId"
-          render={malwaresIdRoute}
-        />
-        <BoundaryRoute
-          exact
-          path="/dashboard/arsenal/attack_patterns"
-          component={AttackPatterns}
-        />
-        <BoundaryRoute
-          path="/dashboard/arsenal/attack_patterns/:attackPatternId"
+          path='/dashboard/arsenal/attack_patterns/:attackPatternId'
           render={attackPatternsIdRoute}
         />
         <BoundaryRoute
           exact
-          path="/dashboard/arsenal/courses_of_action"
+          path='/dashboard/arsenal/courses_of_action'
           component={CoursesOfAction}
         />
         <BoundaryRoute
-          path="/dashboard/arsenal/courses_of_action/:courseOfActionId"
+          path='/dashboard/arsenal/courses_of_action/:courseOfActionId'
           render={couseOfActionIdRoute}
         />
+        <BoundaryRoute exact path='/dashboard/arsenal/tools' component={Tools} />
+        <BoundaryRoute path='/dashboard/arsenal/tools/:toolId' render={toolsIdRoute} />
         <BoundaryRoute
           exact
-          path="/dashboard/arsenal/tools"
-          component={Tools}
-        />
-        <BoundaryRoute
-          path="/dashboard/arsenal/tools/:toolId"
-          render={toolsIdRoute}
-        />
-        <BoundaryRoute
-          exact
-          path="/dashboard/arsenal/vulnerabilities"
+          path='/dashboard/arsenal/vulnerabilities'
           component={Vulnerabilities}
         />
         <BoundaryRoute
-          path="/dashboard/arsenal/vulnerabilities/:vulnerabilityId"
+          path='/dashboard/arsenal/vulnerabilities/:vulnerabilityId'
           render={vulnerabilityIdRoute}
         />
       </Switch>
@@ -80,8 +64,8 @@ class Root extends Component {
   }
 }
 
-Root.propTypes = {
+RootArsenal.propTypes = {
   me: PropTypes.object,
 };
 
-export default Root;
+export default RootArsenal;

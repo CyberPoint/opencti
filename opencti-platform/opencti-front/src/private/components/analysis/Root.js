@@ -14,12 +14,16 @@ import RootExternalReference from './external_references/Root';
 class Root extends Component {
   render() {
     const { me } = this.props;
-    const analysisRoute = React.memo(() => {return(<Redirect to="/dashboard/analysis/reports" />)});
-    const reportsRoute = React.memo((routeProps) => { return(<Reports {...routeProps} me={me} displayCreate={true} />)});
-    const reportsIdRoute = React.memo((routeProps) => { return(<RootReport {...routeProps} me={me} />)});
-    const notesRoute = React.memo((routeProps) => { return(<RootNote {...routeProps} me={me} />)});
-    const opinionsRoute = React.memo((routeProps) => { return(<RootOpinion {...routeProps} me={me} />)});
-    const externalReferencesRoute = React.memo((routeProps) => { return(<RootExternalReference {...routeProps} me={me} />)});
+    const analysisRoute = React.memo(() => (<Redirect to="/dashboard/analysis/reports" />));
+    const reportsRoute = React.memo((routeProps) => (
+      <Reports {...routeProps} me={me} displayCreate={true} />
+    ));
+    const reportsIdRoute = React.memo((routeProps) => (<RootReport {...routeProps} me={me} />));
+    const notesRoute = React.memo((routeProps) => (<RootNote {...routeProps} me={me} />));
+    const opinionsRoute = React.memo((routeProps) => (<RootOpinion {...routeProps} me={me} />));
+    const externalReferencesRoute = React.memo((routeProps) => (
+      <RootExternalReference {...routeProps} me={me} />
+    ));
 
     return (
       <Switch>

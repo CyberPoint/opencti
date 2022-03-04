@@ -21,15 +21,25 @@ import RootIndividual from './individuals/Root';
 class Root extends Component {
   render() {
     const { me } = this.props;
-    const entitiesRoute = React.memo(() => { return(<Redirect to="/dashboard/entities/sectors" />)});
-    const entitiesSectorsRoute = React.memo((routeProps) => { return(<RootSector {...routeProps} me={me} />)});
-    const entitiesRegionsRoute = React.memo((routeProps) => { return(<RootRegion {...routeProps} me={me} />)});
-    const entitiesCountriesRoute = React.memo((routeProps) => { return(<RootCountry {...routeProps} me={me} />)});
-    const entitiesCitiesRoute = React.memo((routeProps) => { return(<RootCity {...routeProps} me={me} />)});
-    const entitiesPositionsRoute = React.memo((routeProps) => { return(<RootPosition {...routeProps} me={me} />)});
-    const entitiesOrganizationsRoute = React.memo((routeProps) => { return(<RootOrganization {...routeProps} me={me} />)});
-    const entitiesSystemsRoute = React.memo((routeProps) => { return(<RootSystem {...routeProps} me={me} />)});
-    const entitiesIndividualsRoute = React.memo((routeProps) => { return(<RootIndividual {...routeProps} me={me} />)});
+    const entitiesRoute = React.memo(() => (<Redirect to="/dashboard/entities/sectors" />));
+    const entitiesSectorsRoute = React.memo((routeProps) => (
+      <RootSector {...routeProps} me={me} />
+    ));
+    const entitiesRegionsRoute = React.memo((routeProps) => (
+      <RootRegion {...routeProps} me={me} />));
+    const entitiesCountriesRoute = React.memo((routeProps) => (
+      <RootCountry {...routeProps} me={me} />));
+    const entitiesCitiesRoute = React.memo((routeProps) => (
+      <RootCity {...routeProps} me={me} />));
+    const entitiesPositionsRoute = React.memo((routeProps) => (
+      <RootPosition {...routeProps} me={me} />));
+    const entitiesOrganizationsRoute = React.memo((routeProps) => (
+      <RootOrganization {...routeProps} me={me} />));
+    const entitiesSystemsRoute = React.memo((routeProps) => (
+      <RootSystem {...routeProps} me={me} />));
+    const entitiesIndividualsRoute = React.memo((routeProps) => (
+      <RootIndividual {...routeProps} me={me} />
+    ));
 
     return (
       <Switch>
