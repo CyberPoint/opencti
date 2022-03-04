@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import * as PropTypes from 'prop-types';
 import { Switch, Redirect } from 'react-router-dom';
-import { BoundaryRoute } from '../BoundaryRoute';
+import BoundaryRoute  from '../BoundaryRoute';
 import Sectors from './Sectors';
 import RootSector from './sectors/Root';
 import Countries from './Countries';

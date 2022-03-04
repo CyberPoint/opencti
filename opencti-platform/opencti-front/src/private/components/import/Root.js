@@ -1,6 +1,6 @@
 import React from 'react';
 import { Switch } from 'react-router-dom';
-import { BoundaryRoute } from '../BoundaryRoute';
+import BoundaryRoute  from '../BoundaryRoute';
 import Import from './Import';
 import PendingFile from './PendingFile';
 
