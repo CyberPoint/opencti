@@ -6,7 +6,6 @@
     "lib": ["es2019"],
     "strict": true,
     "allowJs": true,
-    "noImplicitAny": true,
     "noFallthroughCasesInSwitch": true,
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
