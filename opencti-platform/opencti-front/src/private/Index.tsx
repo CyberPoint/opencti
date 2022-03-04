@@ -20,7 +20,7 @@ import RootWorkspaces from './components/workspaces/Root';
 import Profile from './components/Profile';
 import Message from '../components/Message';
 import { NoMatch } from './components/Error';
-import BoundaryRoute  from './components/BoundaryRoute';
+import BoundaryRoute from './components/BoundaryRoute';
 import StixCoreObjectOrStixCoreRelationship from './components/StixCoreObjectOrStixCoreRelationship';
 
 const useStyles = makeStyles((theme) => ({

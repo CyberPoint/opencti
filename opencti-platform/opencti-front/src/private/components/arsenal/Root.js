@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import * as PropTypes from 'prop-types';
 import { Switch, Redirect } from 'react-router-dom';
-import BoundaryRoute  from '../BoundaryRoute';
+import BoundaryRoute from '../BoundaryRoute';
 import Malwares from './Malwares';
 import RootMalware from './malwares/Root';
 import AttackPatterns from './AttackPatterns';
