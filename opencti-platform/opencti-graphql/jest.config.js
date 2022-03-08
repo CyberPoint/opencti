@@ -20,5 +20,6 @@ module.exports = {
     '/src/index.js',
     '/src/indexer.js',
     '/src/initialization.js',
+    '/src/types.ts',
   ],
 };
