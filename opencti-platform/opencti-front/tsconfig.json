@@ -10,9 +10,7 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "strict": false, // Need to permit `any` in some edge cases, 
-    // Example: async calls that start as `unknown` and have a different type on success
-    "noImplicitAny": false,
+    "strict": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "module": "esnext",
