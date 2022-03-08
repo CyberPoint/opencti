@@ -4,7 +4,7 @@
     "target": "es6",
     "module": "es6",
     "lib": ["es2019"],
-    "strict": false,
+    "strict": true,
     "allowJs": true,
     "noFallthroughCasesInSwitch": true,
     "moduleResolution": "node",

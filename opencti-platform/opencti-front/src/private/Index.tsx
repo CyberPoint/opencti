@@ -46,7 +46,7 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const noTopBarLocations = ['/dashboard'];
-
+// eslint-disable-next-line  @typescript-eslint/no-explicit-any
 const Index = React.memo((props: any) => {
   const theme = useTheme();
   const { me, location } = props;

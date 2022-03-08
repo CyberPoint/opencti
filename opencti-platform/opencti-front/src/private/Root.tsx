@@ -64,6 +64,7 @@ const isFeatureEnabled = (settings: Settings, id: string) => {
 const isModuleEnabled = (settings: Settings, id: string) => {
   const modules = settings.platform_modules || [];
   const module: null | undefined | SettingsFlag = R.find(
+    // eslint-disable-next-line  @typescript-eslint/no-explicit-any
     (f: { id: any; enable: boolean }) => f.id === id,
     modules,
   );

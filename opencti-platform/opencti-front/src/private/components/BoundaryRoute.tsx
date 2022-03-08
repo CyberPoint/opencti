@@ -8,6 +8,7 @@ import { User } from '../../generated/graphql';
 interface BoundaryParams {
   exact?: boolean;
   component?: ReactJSXElement;
+  // eslint-disable-next-line  @typescript-eslint/no-explicit-any
   render?: any;
   path?: string;
   me?: User;
