@@ -7,7 +7,8 @@ import { ConnectedIntlProvider } from '../components/AppIntlProvider';
 import { ConnectedThemeProvider } from '../components/AppThemeProvider';
 import Index from './Index';
 import { UserContext } from '../utils/Security';
-import { Settings, User } from '../generated/graphql';
+import { Module, Settings, User } from '../generated/graphql';
+import { Maybe } from 'graphql/jsutils/Maybe';
 
 const rootPrivateQuery = graphql`
   query RootPrivateQuery {
@@ -53,22 +54,24 @@ type Data = {
   settings: Settings;
 };
 
+
+
 const isFeatureEnabled = (settings: Settings, id: string) => {
   const flags = settings.platform_feature_flags || [];
-  const feature: null | undefined | SettingsFlag = R.find(
-    (f: { id: string; enable: boolean }) => f.id === id,
+  const feature: null | undefined | SettingsFlag | Maybe<Module>[] = R.find(
+    (f: SettingsFlag | Maybe<Module>) => f?.id === id,
     flags,
   );
-  return feature !== undefined && feature.enable === true;
+  return feature !== undefined && feature?.enable === true;
 };
 const isModuleEnabled = (settings: Settings, id: string) => {
   const modules = settings.platform_modules || [];
-  const module: null | undefined | SettingsFlag = R.find(
+  const module: null | undefined | SettingsFlag |  Maybe<Module>[] = R.find(
     // eslint-disable-next-line  @typescript-eslint/no-explicit-any
-    (f: { id: any; enable: boolean }) => f.id === id,
+    (f: Settings | Maybe<Module>) => f?.id === id,
     modules,
   );
-  return module !== undefined && module.enable === true;
+  return module !== undefined && module?.enable === true;
 };
 const buildHelper = (settings: Settings) => ({
   isModuleEnable: (id: string) => isModuleEnabled(settings, id),

@@ -11,12 +11,18 @@ const config = {
     ],
     testEnvironment: "jsdom",
     transform: {
+        "^.+\\.tsx?$": "ts-jest",
         "^.+\\.(js|jsx|mjs|cjs|ts|tsx)$": "<rootDir>/jest/jest.relay.transform.js",
-        "^(?!.*\\.(js|jsx|mjs|cjs|ts|tsx|css|json)$)": "<rootDir>/jest/jest.file.transform.js"
+        "^(?!.*\\.(js|jsx|mjs|cjs|ts|tsx|json)$)": "<rootDir>/jest/jest.file.transform.js"
     },
+    moduleNameMapper: {
+        "\\.(css|less)$": "identity-obj-proxy"
+      },
     transformIgnorePatterns: [
         "^.+\\.module\\.(css|sass|scss)$"
-    ]
+    ],
+    // Module file extensions for importing
+    moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
 };
 
 module.exports = config;

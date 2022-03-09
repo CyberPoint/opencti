@@ -1,8 +1,6 @@
 import React from 'react';
 import { Route, Switch, withRouter } from 'react-router-dom';
-import makeStyles from '@mui/styles/makeStyles';
 import { compose } from 'ramda';
-import { useTheme } from '@mui/styles';
 import TopBar from './components/nav/TopBar';
 import LeftBar from './components/nav/LeftBar';
 import Dashboard from './components/Dashboard';
@@ -22,8 +20,10 @@ import Message from '../components/Message';
 import { NoMatch } from './components/Error';
 import BoundaryRoute from './components/BoundaryRoute';
 import StixCoreObjectOrStixCoreRelationship from './components/StixCoreObjectOrStixCoreRelationship';
+import { makeStyles } from '@mui/styles';
+import { Theme } from '@mui/material/styles';
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles((theme: Theme) => ({
   root: {
     minWidth: 1280,
     height: '100%',
@@ -48,7 +48,6 @@ const useStyles = makeStyles((theme) => ({
 const noTopBarLocations = ['/dashboard'];
 // eslint-disable-next-line  @typescript-eslint/no-explicit-any
 const Index = React.memo((props: any) => {
-  const theme = useTheme();
   const { me, location } = props;
   const dashboardSearchRoute = React.memo((routeProps) => <Search {...routeProps} me={me} />);
   const dashboardIdRoute = React.memo((routeProps) => (
@@ -57,7 +56,7 @@ const Index = React.memo((props: any) => {
   const searchKeywordRoute = React.memo((routeProps) => <Search {...routeProps} me={me} />);
   const dashboardProfileRoute = React.memo((routeProps) => <Profile {...routeProps} me={me} />);
 
-  const classes = useStyles(theme);
+  const classes = useStyles();
   return (
     <div className={classes.root}>
       {!noTopBarLocations.includes(location.pathname || '') && <TopBar />}
