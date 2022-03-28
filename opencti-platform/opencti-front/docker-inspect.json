@@ -1,0 +1,1692 @@
+[
+    {
+        "Id": "cb5ae4c11075112cffaa8f45bfbba7492fc76ae51ca805a416b42adbfb123295",
+        "Created": "2022-03-09T14:42:14.368180921Z",
+        "Path": "/sbin/tini",
+        "Args": [
+            "--",
+            "node",
+            "build/index.js"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 5006,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2022-03-10T17:25:25.387433135Z",
+            "FinishedAt": "2022-03-10T17:25:23.462200468Z"
+        },
+        "Image": "sha256:b3822bb871cb5723fd392db16f2644d9954d0c9832ef42948b75369c1a2477d1",
+        "ResolvConfPath": "/var/lib/docker/containers/cb5ae4c11075112cffaa8f45bfbba7492fc76ae51ca805a416b42adbfb123295/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/cb5ae4c11075112cffaa8f45bfbba7492fc76ae51ca805a416b42adbfb123295/hostname",
+        "HostsPath": "/var/lib/docker/containers/cb5ae4c11075112cffaa8f45bfbba7492fc76ae51ca805a416b42adbfb123295/hosts",
+        "LogPath": "/var/lib/docker/containers/cb5ae4c11075112cffaa8f45bfbba7492fc76ae51ca805a416b42adbfb123295/cb5ae4c11075112cffaa8f45bfbba7492fc76ae51ca805a416b42adbfb123295-json.log",
+        "Name": "/opencti-docker-opencti-1",
+        "RestartCount": 5,
+        "Driver": "overlay2",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "opencti-docker_default",
+            "PortBindings": {
+                "8080/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "8080"
+                    }
+                ]
+            },
+            "RestartPolicy": {
+                "Name": "always",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": [],
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": null,
+            "BlkioDeviceReadBps": null,
+            "BlkioDeviceWriteBps": null,
+            "BlkioDeviceReadIOps": null,
+            "BlkioDeviceWriteIOps": null,
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": null,
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "KernelMemory": 0,
+            "KernelMemoryTCP": 0,
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": null,
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/asound",
+                "/proc/acpi",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "GraphDriver": {
+            "Data": {
+                "LowerDir": "/var/lib/docker/overlay2/660d5041f8d5c3d6b9d9c9b504fbffd57bf83f4eabe811104fc577eff438e40e-init/diff:/var/lib/docker/overlay2/488acaecf78ddc558edd26f0945ab41474dff3e3864b2c906588689a9c11fcaa/diff:/var/lib/docker/overlay2/77333b38365ff64c47715cd71e7ddfabe6a3066d6ba3b6ee1c145a5de6df6601/diff:/var/lib/docker/overlay2/59c5c990a77deb42e0c36193d76ca31b078de726b036ee9aa9f03d7c19a15f5f/diff:/var/lib/docker/overlay2/e68e732855a1b538a66f89b4a5c2a065fad0f9438018877a55d2c474c52af144/diff:/var/lib/docker/overlay2/c1513cd7c7ce5760137d13eee04f3ce928d5ae1981c63d56efd9c816b1ab35cc/diff:/var/lib/docker/overlay2/814734202fbfc259320e8468eb67dce2e21570501ce0a7f10a2a0e6f919a20a7/diff:/var/lib/docker/overlay2/86f2d0b245c276ace08af193e75dbbd9c796b969107a7e9e3710db27ec016321/diff:/var/lib/docker/overlay2/884204b85d6634b83b4ed815c52927010623671baa1f694a226c2a8a34168c3e/diff:/var/lib/docker/overlay2/a592866c2bd8843c350f27ebadfc0eee2c0da60363bd16fc95294a41953678bf/diff:/var/lib/docker/overlay2/727568db0ae21fa376895e4d31136d36c04360e1aed6aa9642229c4816c73c5d/diff:/var/lib/docker/overlay2/9ec9ca8fdf64ee7d1030be2cd15362c930173ea7cc55bb0332dd9daab39db457/diff:/var/lib/docker/overlay2/de559dba6adb25e2e9562545dee9a8612175d42f047a3c923bf4d79612c80d75/diff:/var/lib/docker/overlay2/c32d9e10f21785a4ed2f0dbc8e7a1326e431816c99a5fc5960b2e69bc70a773b/diff:/var/lib/docker/overlay2/6a50bdc577509e7e48b82eca2fca76d753d9a52d38d6bc01cd133fb960816097/diff:/var/lib/docker/overlay2/5b727998c287719aeb091891d4309e2845057f04989616eb61b4c990c5604093/diff:/var/lib/docker/overlay2/e48695f4768767f34d3248b1228c7f8544fbae45d35a44df80525f34ecd4dfde/diff",
+                "MergedDir": "/var/lib/docker/overlay2/660d5041f8d5c3d6b9d9c9b504fbffd57bf83f4eabe811104fc577eff438e40e/merged",
+                "UpperDir": "/var/lib/docker/overlay2/660d5041f8d5c3d6b9d9c9b504fbffd57bf83f4eabe811104fc577eff438e40e/diff",
+                "WorkDir": "/var/lib/docker/overlay2/660d5041f8d5c3d6b9d9c9b504fbffd57bf83f4eabe811104fc577eff438e40e/work"
+            },
+            "Name": "overlay2"
+        },
+        "Mounts": [],
+        "Config": {
+            "Hostname": "cb5ae4c11075",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "ExposedPorts": {
+                "8080/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "APP__ADMIN__TOKEN=BA96C14A-D3F3-4201-AA79-E561600C781E",
+                "MINIO__ENDPOINT=minio",
+                "MINIO__USE_SSL=false",
+                "SMTP__PORT=25",
+                "RABBITMQ__PASSWORD=guest",
+                "RABBITMQ__MANAGEMENT_SSL=false",
+                "RABBITMQ__HOSTNAME=rabbitmq",
+                "MINIO__PORT=9000",
+                "REDIS__PORT=6379",
+                "REDIS__HOSTNAME=redis",
+                "APP__PORT=8080",
+                "APP__ADMIN__PASSWORD=guest",
+                "NODE_OPTIONS=--max-old-space-size=8096",
+                "RABBITMQ__USERNAME=guest",
+                "MINIO__ACCESS_KEY=5861EC1C-3F36-4E5C-A1D1-CE11C31EDB9E",
+                "APP__APP_LOGS__LOGS_LEVEL=error",
+                "MINIO__SECRET_KEY=CCC6A275-F879-4E90-8C05-215230C3B1D4",
+                "SMTP__HOSTNAME=",
+                "RABBITMQ__PORT_MANAGEMENT=15672",
+                "ELASTICSEARCH__URL=http://elasticsearch:9200",
+                "RABBITMQ__PORT=5672",
+                "APP__ADMIN__EMAIL=admin@opencti.io",
+                "PROVIDERS__LOCAL__STRATEGY=LocalStrategy",
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "NODE_VERSION=16.6.0",
+                "YARN_VERSION=1.22.5",
+                "PYTHONUNBUFFERED=1",
+                "NODE_ENV=production"
+            ],
+            "Cmd": [
+                "node",
+                "build/index.js"
+            ],
+            "Image": "opencti/platform:5.1.4",
+            "Volumes": null,
+            "WorkingDir": "/opt/opencti",
+            "Entrypoint": [
+                "/sbin/tini",
+                "--"
+            ],
+            "OnBuild": null,
+            "Labels": {
+                "com.docker.compose.config-hash": "46da7bb0a023306c262ed95abae5581dde9bbb2f790ec2471191e24886afa556",
+                "com.docker.compose.container-number": "1",
+                "com.docker.compose.depends_on": "redis,elasticsearch,minio,rabbitmq",
+                "com.docker.compose.image": "sha256:b3822bb871cb5723fd392db16f2644d9954d0c9832ef42948b75369c1a2477d1",
+                "com.docker.compose.oneoff": "False",
+                "com.docker.compose.project": "opencti-docker",
+                "com.docker.compose.project.config_files": "/Users/mschreiber/Work/CPI/opencti-docker/docker-compose-dev2.yml",
+                "com.docker.compose.project.working_dir": "/Users/mschreiber/Work/CPI/opencti-docker",
+                "com.docker.compose.service": "opencti",
+                "com.docker.compose.version": "2.2.3"
+            }
+        },
+        "NetworkSettings": {
+            "Bridge": "",
+            "SandboxID": "69aa1244668ce24a5c00de3cfbc29651942f8166898f413255a8e2c5fd2458ff",
+            "HairpinMode": false,
+            "LinkLocalIPv6Address": "",
+            "LinkLocalIPv6PrefixLen": 0,
+            "Ports": {
+                "8080/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "8080"
+                    }
+                ]
+            },
+            "SandboxKey": "/var/run/docker/netns/69aa1244668c",
+            "SecondaryIPAddresses": null,
+            "SecondaryIPv6Addresses": null,
+            "EndpointID": "",
+            "Gateway": "",
+            "GlobalIPv6Address": "",
+            "GlobalIPv6PrefixLen": 0,
+            "IPAddress": "",
+            "IPPrefixLen": 0,
+            "IPv6Gateway": "",
+            "MacAddress": "",
+            "Networks": {
+                "opencti-docker_default": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": [
+                        "opencti-docker-opencti-1",
+                        "opencti",
+                        "cb5ae4c11075"
+                    ],
+                    "NetworkID": "dbe82b3fa8f8e094bfbdaefd8fa60cbb6f5dd33fa66b29353e56a51e6e2579e8",
+                    "EndpointID": "c2eb8c9f75a4caca0bf24d8f04a45a88541f2e2d4295ad12ea4a887f6452d3c9",
+                    "Gateway": "172.18.0.1",
+                    "IPAddress": "172.18.0.4",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:ac:12:00:04",
+                    "DriverOpts": null
+                }
+            }
+        }
+    },
+    {
+        "Id": "184aee9f0ab451e5eee2e55ac5e910e90085365ee546f8b17f3f168a8cf82842",
+        "Created": "2022-03-09T14:42:14.363121546Z",
+        "Path": "/bin/tini",
+        "Args": [
+            "--",
+            "/usr/local/bin/kibana-docker"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 2225,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2022-03-10T17:25:05.853063834Z",
+            "FinishedAt": "2022-03-10T17:25:04.6871415Z"
+        },
+        "Image": "sha256:e24d96e394a045991673bc27f115b90fb8d6da965ff53bb22b29e01036b8ebb9",
+        "ResolvConfPath": "/var/lib/docker/containers/184aee9f0ab451e5eee2e55ac5e910e90085365ee546f8b17f3f168a8cf82842/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/184aee9f0ab451e5eee2e55ac5e910e90085365ee546f8b17f3f168a8cf82842/hostname",
+        "HostsPath": "/var/lib/docker/containers/184aee9f0ab451e5eee2e55ac5e910e90085365ee546f8b17f3f168a8cf82842/hosts",
+        "LogPath": "/var/lib/docker/containers/184aee9f0ab451e5eee2e55ac5e910e90085365ee546f8b17f3f168a8cf82842/184aee9f0ab451e5eee2e55ac5e910e90085365ee546f8b17f3f168a8cf82842-json.log",
+        "Name": "/kibana",
+        "RestartCount": 0,
+        "Driver": "overlay2",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "opencti-docker_default",
+            "PortBindings": {
+                "5601/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "5601"
+                    }
+                ]
+            },
+            "RestartPolicy": {
+                "Name": "unless-stopped",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": [],
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": null,
+            "BlkioDeviceReadBps": null,
+            "BlkioDeviceWriteBps": null,
+            "BlkioDeviceReadIOps": null,
+            "BlkioDeviceWriteIOps": null,
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": null,
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "KernelMemory": 0,
+            "KernelMemoryTCP": 0,
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": null,
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/asound",
+                "/proc/acpi",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "GraphDriver": {
+            "Data": {
+                "LowerDir": "/var/lib/docker/overlay2/245da129b6772f5433806abe793d40fca7eb44ee56660ace00c2655da29980f6-init/diff:/var/lib/docker/overlay2/06b67c7a3d4ab449f0111ab0c0118cea69b5a4ad1b6b711459e36c469f5d1d41/diff:/var/lib/docker/overlay2/027677cb0b91bc4a54aa048a6be78175cac1a49bf9bfaedf1b27da079d40ee9c/diff:/var/lib/docker/overlay2/6b6e60063d66aaf0a775c6f25fbeec54637e524b4b2a41334bc1603c948f07b2/diff:/var/lib/docker/overlay2/b1a0520870c60244de10ae80127c5b035c833e2ce62332fc8b079ec34df82a3c/diff:/var/lib/docker/overlay2/1cacfb2362fe95553b19b47ed80b3036a7407fafcc192f756414a793365965fb/diff:/var/lib/docker/overlay2/fed311542a8596cb8682d6569e1c239c24810b69e7d617ae4e7a8b157e2c4451/diff:/var/lib/docker/overlay2/e1f8d9c5f5816c123ec9eb97cef848a0c1d6b3d1ba32b58dfc662874c9562edf/diff:/var/lib/docker/overlay2/85588e63d5b2fed6f361094657063b55592497527fd6285dd9b193a3d2b15a89/diff:/var/lib/docker/overlay2/49e02cda09e7290f938bf35a8e4176836f4bedaa2d9ea5bed6d67f884a7e405e/diff:/var/lib/docker/overlay2/3fd55d72522b3df27a100ab9b764a460bf1b24007f5b4e9f78b4542c6b621e99/diff:/var/lib/docker/overlay2/208b2f296651186e269200c4c5b37b551ea72b3e563df71599bd63177a177cb6/diff:/var/lib/docker/overlay2/b9977fca139c71ea2a76ff783d77a304b29598a7e87f7b04e32fa170a619af8e/diff:/var/lib/docker/overlay2/35e6236b8f750d02cf2d68e897709be78005631e716aef96d3641fc404aae406/diff",
+                "MergedDir": "/var/lib/docker/overlay2/245da129b6772f5433806abe793d40fca7eb44ee56660ace00c2655da29980f6/merged",
+                "UpperDir": "/var/lib/docker/overlay2/245da129b6772f5433806abe793d40fca7eb44ee56660ace00c2655da29980f6/diff",
+                "WorkDir": "/var/lib/docker/overlay2/245da129b6772f5433806abe793d40fca7eb44ee56660ace00c2655da29980f6/work"
+            },
+            "Name": "overlay2"
+        },
+        "Mounts": [],
+        "Config": {
+            "Hostname": "184aee9f0ab4",
+            "Domainname": "",
+            "User": "kibana",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "ExposedPorts": {
+                "5601/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "ELASTICSEARCH_HOSTS=http://elasticsearch:9200",
+                "PATH=/usr/share/kibana/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "ELASTIC_CONTAINER=true"
+            ],
+            "Cmd": [
+                "/usr/local/bin/kibana-docker"
+            ],
+            "Image": "docker.elastic.co/kibana/kibana:7.17.0",
+            "Volumes": null,
+            "WorkingDir": "/usr/share/kibana",
+            "Entrypoint": [
+                "/bin/tini",
+                "--"
+            ],
+            "OnBuild": null,
+            "Labels": {
+                "com.docker.compose.config-hash": "a728c4ec8b93b58c4e7e898d66578b3813145a68fce383d65a4463267cd9b375",
+                "com.docker.compose.container-number": "1",
+                "com.docker.compose.depends_on": "elasticsearch",
+                "com.docker.compose.oneoff": "False",
+                "com.docker.compose.project": "opencti-docker",
+                "com.docker.compose.project.config_files": "/Users/mschreiber/Work/CPI/opencti-docker/docker-compose-dev2.yml",
+                "com.docker.compose.project.working_dir": "/Users/mschreiber/Work/CPI/opencti-docker",
+                "com.docker.compose.service": "kibana",
+                "com.docker.compose.version": "2.2.3",
+                "org.label-schema.build-date": "2022-01-28T10:51:45.485Z",
+                "org.label-schema.license": "Elastic License",
+                "org.label-schema.name": "Kibana",
+                "org.label-schema.schema-version": "1.0",
+                "org.label-schema.url": "https://www.elastic.co/products/kibana",
+                "org.label-schema.usage": "https://www.elastic.co/guide/en/kibana/reference/index.html",
+                "org.label-schema.vcs-ref": "60a9838d21b6420bbdb5a4d07099111b74c68ceb",
+                "org.label-schema.vcs-url": "https://github.com/elastic/kibana",
+                "org.label-schema.vendor": "Elastic",
+                "org.label-schema.version": "7.17.0",
+                "org.opencontainers.image.created": "2022-01-28T10:51:45.485Z",
+                "org.opencontainers.image.documentation": "https://www.elastic.co/guide/en/kibana/reference/index.html",
+                "org.opencontainers.image.licenses": "Elastic License",
+                "org.opencontainers.image.revision": "60a9838d21b6420bbdb5a4d07099111b74c68ceb",
+                "org.opencontainers.image.source": "https://github.com/elastic/kibana",
+                "org.opencontainers.image.title": "Kibana",
+                "org.opencontainers.image.url": "https://www.elastic.co/products/kibana",
+                "org.opencontainers.image.vendor": "Elastic",
+                "org.opencontainers.image.version": "7.17.0"
+            }
+        },
+        "NetworkSettings": {
+            "Bridge": "",
+            "SandboxID": "dcd6da3efc6d8da0947e9e29d5df60a31e2c8939499f0dd4849e6f83af78a4ff",
+            "HairpinMode": false,
+            "LinkLocalIPv6Address": "",
+            "LinkLocalIPv6PrefixLen": 0,
+            "Ports": {
+                "5601/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "5601"
+                    }
+                ]
+            },
+            "SandboxKey": "/var/run/docker/netns/dcd6da3efc6d",
+            "SecondaryIPAddresses": null,
+            "SecondaryIPv6Addresses": null,
+            "EndpointID": "",
+            "Gateway": "",
+            "GlobalIPv6Address": "",
+            "GlobalIPv6PrefixLen": 0,
+            "IPAddress": "",
+            "IPPrefixLen": 0,
+            "IPv6Gateway": "",
+            "MacAddress": "",
+            "Networks": {
+                "opencti-docker_default": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": [
+                        "kibana",
+                        "kibana",
+                        "184aee9f0ab4"
+                    ],
+                    "NetworkID": "dbe82b3fa8f8e094bfbdaefd8fa60cbb6f5dd33fa66b29353e56a51e6e2579e8",
+                    "EndpointID": "4c0711357511e2fdedebcc506208487b66f18ba2ba47dcbf2b34564dcaabc6d0",
+                    "Gateway": "172.18.0.1",
+                    "IPAddress": "172.18.0.3",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:ac:12:00:03",
+                    "DriverOpts": null
+                }
+            }
+        }
+    },
+    {
+        "Id": "337bf4689b33367df0f0fee0b0e2ee4698096d4f7c7a14a206b34c17e15d638a",
+        "Created": "2022-03-09T14:42:13.605820795Z",
+        "Path": "/bin/tini",
+        "Args": [
+            "--",
+            "/usr/local/bin/docker-entrypoint.sh",
+            "eswrapper"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 2469,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2022-03-10T17:25:05.953789918Z",
+            "FinishedAt": "2022-03-10T17:25:04.690817792Z"
+        },
+        "Image": "sha256:acc21d367dc945eb5f7050e2ceb3ff9f433243f44bb1f2da509954bb8c86cd04",
+        "ResolvConfPath": "/var/lib/docker/containers/337bf4689b33367df0f0fee0b0e2ee4698096d4f7c7a14a206b34c17e15d638a/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/337bf4689b33367df0f0fee0b0e2ee4698096d4f7c7a14a206b34c17e15d638a/hostname",
+        "HostsPath": "/var/lib/docker/containers/337bf4689b33367df0f0fee0b0e2ee4698096d4f7c7a14a206b34c17e15d638a/hosts",
+        "LogPath": "/var/lib/docker/containers/337bf4689b33367df0f0fee0b0e2ee4698096d4f7c7a14a206b34c17e15d638a/337bf4689b33367df0f0fee0b0e2ee4698096d4f7c7a14a206b34c17e15d638a-json.log",
+        "Name": "/opencti-docker-elasticsearch-1",
+        "RestartCount": 0,
+        "Driver": "overlay2",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "opencti-docker_default",
+            "PortBindings": {
+                "9200/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "9200"
+                    }
+                ],
+                "9300/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "9300"
+                    }
+                ]
+            },
+            "RestartPolicy": {
+                "Name": "always",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": [],
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": null,
+            "BlkioDeviceReadBps": null,
+            "BlkioDeviceWriteBps": null,
+            "BlkioDeviceReadIOps": null,
+            "BlkioDeviceWriteIOps": null,
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": null,
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "KernelMemory": 0,
+            "KernelMemoryTCP": 0,
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": [
+                {
+                    "Name": "nofile",
+                    "Hard": 65536,
+                    "Soft": 65536
+                },
+                {
+                    "Name": "memlock",
+                    "Hard": -1,
+                    "Soft": -1
+                }
+            ],
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "Mounts": [
+                {
+                    "Type": "volume",
+                    "Source": "opencti-docker_esdata",
+                    "Target": "/usr/share/elasticsearch/data",
+                    "VolumeOptions": {}
+                }
+            ],
+            "MaskedPaths": [
+                "/proc/asound",
+                "/proc/acpi",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "GraphDriver": {
+            "Data": {
+                "LowerDir": "/var/lib/docker/overlay2/9be0ccc1a91b115a7094288acfd1ac21b528e06849758353e46dc57b6425c682-init/diff:/var/lib/docker/overlay2/60410220f8caa15015c0b5a2c2a2d706650262575f64dcd97f60150d43b9dcec/diff:/var/lib/docker/overlay2/c4fc7e800d52037ffdb5edc03ca80592d17d5a875e1ed4b89c14a0c0b480deae/diff:/var/lib/docker/overlay2/f96cd13920d490aa09635ce34c3cf38eff93de45032496c98dbf23638488b3b1/diff:/var/lib/docker/overlay2/745f95b8115d5507eaa4b2c31ddd979170c2e2ab66c0e2fa466bd2a6e08e4c1e/diff:/var/lib/docker/overlay2/f057ffdbed1df0be24651e93ec32c16f0b5c46b7442997176a841c8c15fed416/diff:/var/lib/docker/overlay2/37d9669d390eaf89871c3cf25b3a18e7481a373302853e68addd8183fc047b13/diff:/var/lib/docker/overlay2/1f71039698b3099b9177f2445777c8778b8f5c58f9826f5a78a631f8b11f6c59/diff:/var/lib/docker/overlay2/ff11f992f18f1caa5654ee56aa983cbeeea670cfe14650cd52f12e1f234487d4/diff:/var/lib/docker/overlay2/35e6236b8f750d02cf2d68e897709be78005631e716aef96d3641fc404aae406/diff",
+                "MergedDir": "/var/lib/docker/overlay2/9be0ccc1a91b115a7094288acfd1ac21b528e06849758353e46dc57b6425c682/merged",
+                "UpperDir": "/var/lib/docker/overlay2/9be0ccc1a91b115a7094288acfd1ac21b528e06849758353e46dc57b6425c682/diff",
+                "WorkDir": "/var/lib/docker/overlay2/9be0ccc1a91b115a7094288acfd1ac21b528e06849758353e46dc57b6425c682/work"
+            },
+            "Name": "overlay2"
+        },
+        "Mounts": [
+            {
+                "Type": "volume",
+                "Name": "opencti-docker_esdata",
+                "Source": "/var/lib/docker/volumes/opencti-docker_esdata/_data",
+                "Destination": "/usr/share/elasticsearch/data",
+                "Driver": "local",
+                "Mode": "z",
+                "RW": true,
+                "Propagation": ""
+            }
+        ],
+        "Config": {
+            "Hostname": "337bf4689b33",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "ExposedPorts": {
+                "9200/tcp": {},
+                "9300/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "discovery.type=single-node",
+                "xpack.ml.enabled=false",
+                "PATH=/usr/share/elasticsearch/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "ELASTIC_CONTAINER=true"
+            ],
+            "Cmd": [
+                "eswrapper"
+            ],
+            "Image": "docker.elastic.co/elasticsearch/elasticsearch:7.17.0",
+            "Volumes": {
+                "/usr/share/elasticsearch/data": {}
+            },
+            "WorkingDir": "/usr/share/elasticsearch",
+            "Entrypoint": [
+                "/bin/tini",
+                "--",
+                "/usr/local/bin/docker-entrypoint.sh"
+            ],
+            "OnBuild": null,
+            "Labels": {
+                "com.docker.compose.config-hash": "8805e4a1908b97264711ecbd2a5bc87aa84812aa00eb46631b15d3cd262631f2",
+                "com.docker.compose.container-number": "1",
+                "com.docker.compose.depends_on": "",
+                "com.docker.compose.oneoff": "False",
+                "com.docker.compose.project": "opencti-docker",
+                "com.docker.compose.project.config_files": "/Users/mschreiber/Work/CPI/opencti-docker/docker-compose-dev2.yml",
+                "com.docker.compose.project.working_dir": "/Users/mschreiber/Work/CPI/opencti-docker",
+                "com.docker.compose.service": "elasticsearch",
+                "com.docker.compose.version": "2.2.3",
+                "org.label-schema.build-date": "2022-01-28T12:05:44.004252578Z",
+                "org.label-schema.license": "Elastic-License-2.0",
+                "org.label-schema.name": "Elasticsearch",
+                "org.label-schema.schema-version": "1.0",
+                "org.label-schema.url": "https://www.elastic.co/products/elasticsearch",
+                "org.label-schema.usage": "https://www.elastic.co/guide/en/elasticsearch/reference/index.html",
+                "org.label-schema.vcs-ref": "bee86328705acaa9a6daede7140defd4d9ec56bd",
+                "org.label-schema.vcs-url": "https://github.com/elastic/elasticsearch",
+                "org.label-schema.vendor": "Elastic",
+                "org.label-schema.version": "7.17.0",
+                "org.opencontainers.image.created": "2022-01-28T12:05:44.004252578Z",
+                "org.opencontainers.image.documentation": "https://www.elastic.co/guide/en/elasticsearch/reference/index.html",
+                "org.opencontainers.image.licenses": "Elastic-License-2.0",
+                "org.opencontainers.image.revision": "bee86328705acaa9a6daede7140defd4d9ec56bd",
+                "org.opencontainers.image.source": "https://github.com/elastic/elasticsearch",
+                "org.opencontainers.image.title": "Elasticsearch",
+                "org.opencontainers.image.url": "https://www.elastic.co/products/elasticsearch",
+                "org.opencontainers.image.vendor": "Elastic",
+                "org.opencontainers.image.version": "7.17.0"
+            }
+        },
+        "NetworkSettings": {
+            "Bridge": "",
+            "SandboxID": "07b806f75035cdbc22b6185207d04ba76b851f9f1a5e108633bba2b81e765973",
+            "HairpinMode": false,
+            "LinkLocalIPv6Address": "",
+            "LinkLocalIPv6PrefixLen": 0,
+            "Ports": {
+                "9200/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "9200"
+                    }
+                ],
+                "9300/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "9300"
+                    }
+                ]
+            },
+            "SandboxKey": "/var/run/docker/netns/07b806f75035",
+            "SecondaryIPAddresses": null,
+            "SecondaryIPv6Addresses": null,
+            "EndpointID": "",
+            "Gateway": "",
+            "GlobalIPv6Address": "",
+            "GlobalIPv6PrefixLen": 0,
+            "IPAddress": "",
+            "IPPrefixLen": 0,
+            "IPv6Gateway": "",
+            "MacAddress": "",
+            "Networks": {
+                "opencti-docker_default": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": [
+                        "opencti-docker-elasticsearch-1",
+                        "elasticsearch",
+                        "337bf4689b33"
+                    ],
+                    "NetworkID": "dbe82b3fa8f8e094bfbdaefd8fa60cbb6f5dd33fa66b29353e56a51e6e2579e8",
+                    "EndpointID": "917a4b431695f84f496720d142342d2cd2f74197e1c700d7b4818c1b12c6cdd8",
+                    "Gateway": "172.18.0.1",
+                    "IPAddress": "172.18.0.6",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:ac:12:00:06",
+                    "DriverOpts": null
+                }
+            }
+        }
+    },
+    {
+        "Id": "e8412b388e186474b820ff70047e4e4aa8c272154221c9f5ada558ee75c43371",
+        "Created": "2022-03-09T14:42:13.590065004Z",
+        "Path": "docker-entrypoint.sh",
+        "Args": [
+            "redis-server"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 2356,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2022-03-10T17:25:05.924525668Z",
+            "FinishedAt": "2022-03-10T17:25:04.691423542Z"
+        },
+        "Image": "sha256:6f72dd2e7b806b2a2cb34fadd00a7209d32aa35e8c942acddd09f2842159b8ba",
+        "ResolvConfPath": "/var/lib/docker/containers/e8412b388e186474b820ff70047e4e4aa8c272154221c9f5ada558ee75c43371/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/e8412b388e186474b820ff70047e4e4aa8c272154221c9f5ada558ee75c43371/hostname",
+        "HostsPath": "/var/lib/docker/containers/e8412b388e186474b820ff70047e4e4aa8c272154221c9f5ada558ee75c43371/hosts",
+        "LogPath": "/var/lib/docker/containers/e8412b388e186474b820ff70047e4e4aa8c272154221c9f5ada558ee75c43371/e8412b388e186474b820ff70047e4e4aa8c272154221c9f5ada558ee75c43371-json.log",
+        "Name": "/opencti-docker-redis-1",
+        "RestartCount": 0,
+        "Driver": "overlay2",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "opencti-docker_default",
+            "PortBindings": {},
+            "RestartPolicy": {
+                "Name": "always",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": [],
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": null,
+            "BlkioDeviceReadBps": null,
+            "BlkioDeviceWriteBps": null,
+            "BlkioDeviceReadIOps": null,
+            "BlkioDeviceWriteIOps": null,
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": null,
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "KernelMemory": 0,
+            "KernelMemoryTCP": 0,
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": null,
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "Mounts": [
+                {
+                    "Type": "volume",
+                    "Source": "opencti-docker_redisdata",
+                    "Target": "/data",
+                    "VolumeOptions": {}
+                }
+            ],
+            "MaskedPaths": [
+                "/proc/asound",
+                "/proc/acpi",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "GraphDriver": {
+            "Data": {
+                "LowerDir": "/var/lib/docker/overlay2/7d9db2420f6911a8d38288cc989c2b96d42e1d951e2056b71c06d7898cf7f33e-init/diff:/var/lib/docker/overlay2/f6ab0a2b15ee987d51072501704284e96236d583989a4a2111110ba164b94d72/diff:/var/lib/docker/overlay2/6108689ca3be0c04ae33ca2550ff2f1ba98088fe179c677693b2d53910cd387f/diff:/var/lib/docker/overlay2/57a5766ad0c1a517d8714d3a3fefae65ca0d7ebaf8ccbd41d60a8dfa3ca99cad/diff:/var/lib/docker/overlay2/1a44b7e78b7fc3b00b67e11f7ab6517010bf630423df37e3e9f3127db61562b6/diff:/var/lib/docker/overlay2/a35071986541b65d981c2cc173912aac993793a6a9b01c1890dd2d2b8f2a7b15/diff:/var/lib/docker/overlay2/3b7956b56952625b30d3f629022298ec082c543f34b2d74e0f370705f2234391/diff",
+                "MergedDir": "/var/lib/docker/overlay2/7d9db2420f6911a8d38288cc989c2b96d42e1d951e2056b71c06d7898cf7f33e/merged",
+                "UpperDir": "/var/lib/docker/overlay2/7d9db2420f6911a8d38288cc989c2b96d42e1d951e2056b71c06d7898cf7f33e/diff",
+                "WorkDir": "/var/lib/docker/overlay2/7d9db2420f6911a8d38288cc989c2b96d42e1d951e2056b71c06d7898cf7f33e/work"
+            },
+            "Name": "overlay2"
+        },
+        "Mounts": [
+            {
+                "Type": "volume",
+                "Name": "opencti-docker_redisdata",
+                "Source": "/var/lib/docker/volumes/opencti-docker_redisdata/_data",
+                "Destination": "/data",
+                "Driver": "local",
+                "Mode": "z",
+                "RW": true,
+                "Propagation": ""
+            }
+        ],
+        "Config": {
+            "Hostname": "e8412b388e18",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "ExposedPorts": {
+                "6379/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "GOSU_VERSION=1.12",
+                "REDIS_VERSION=6.2.6",
+                "REDIS_DOWNLOAD_URL=http://download.redis.io/releases/redis-6.2.6.tar.gz",
+                "REDIS_DOWNLOAD_SHA=5b2b8b7a50111ef395bf1c1d5be11e6e167ac018125055daa8b5c2317ae131ab"
+            ],
+            "Cmd": [
+                "redis-server"
+            ],
+            "Image": "redis:6.2.6",
+            "Volumes": {
+                "/data": {}
+            },
+            "WorkingDir": "/data",
+            "Entrypoint": [
+                "docker-entrypoint.sh"
+            ],
+            "OnBuild": null,
+            "Labels": {
+                "com.docker.compose.config-hash": "b031f6be5c0ff6ccfdfaba8537c9b08fd33807ac019cf9fb2a87fcd2e07cc192",
+                "com.docker.compose.container-number": "1",
+                "com.docker.compose.depends_on": "",
+                "com.docker.compose.image": "sha256:6f72dd2e7b806b2a2cb34fadd00a7209d32aa35e8c942acddd09f2842159b8ba",
+                "com.docker.compose.oneoff": "False",
+                "com.docker.compose.project": "opencti-docker",
+                "com.docker.compose.project.config_files": "/Users/mschreiber/Work/CPI/opencti-docker/docker-compose-dev2.yml",
+                "com.docker.compose.project.working_dir": "/Users/mschreiber/Work/CPI/opencti-docker",
+                "com.docker.compose.service": "redis",
+                "com.docker.compose.version": "2.2.3"
+            }
+        },
+        "NetworkSettings": {
+            "Bridge": "",
+            "SandboxID": "62c491907c0903ca6f7dd500bf4c061a49cac3d38f87296cfb52324c7bf76ccf",
+            "HairpinMode": false,
+            "LinkLocalIPv6Address": "",
+            "LinkLocalIPv6PrefixLen": 0,
+            "Ports": {
+                "6379/tcp": null
+            },
+            "SandboxKey": "/var/run/docker/netns/62c491907c09",
+            "SecondaryIPAddresses": null,
+            "SecondaryIPv6Addresses": null,
+            "EndpointID": "",
+            "Gateway": "",
+            "GlobalIPv6Address": "",
+            "GlobalIPv6PrefixLen": 0,
+            "IPAddress": "",
+            "IPPrefixLen": 0,
+            "IPv6Gateway": "",
+            "MacAddress": "",
+            "Networks": {
+                "opencti-docker_default": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": [
+                        "opencti-docker-redis-1",
+                        "redis",
+                        "e8412b388e18"
+                    ],
+                    "NetworkID": "dbe82b3fa8f8e094bfbdaefd8fa60cbb6f5dd33fa66b29353e56a51e6e2579e8",
+                    "EndpointID": "038d3786e6a2ec37fbd7b2dd5fac5e70e967ab2b69c46d76f5cef8fec25e1faa",
+                    "Gateway": "172.18.0.1",
+                    "IPAddress": "172.18.0.5",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:ac:12:00:05",
+                    "DriverOpts": null
+                }
+            }
+        }
+    },
+    {
+        "Id": "0a9e9d7eaf9297abbb9e83143cb7136acc91356d8cbe2463704800b54efb6889",
+        "Created": "2022-03-09T14:42:13.588483045Z",
+        "Path": "docker-entrypoint.sh",
+        "Args": [
+            "rabbitmq-server"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 2493,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2022-03-10T17:25:05.983311084Z",
+            "FinishedAt": "2022-03-10T17:25:04.693445917Z"
+        },
+        "Image": "sha256:71d79ecde8c853ede0afaa61d8799f9699b33f14b417e1bc961a9a687d8b7ce0",
+        "ResolvConfPath": "/var/lib/docker/containers/0a9e9d7eaf9297abbb9e83143cb7136acc91356d8cbe2463704800b54efb6889/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/0a9e9d7eaf9297abbb9e83143cb7136acc91356d8cbe2463704800b54efb6889/hostname",
+        "HostsPath": "/var/lib/docker/containers/0a9e9d7eaf9297abbb9e83143cb7136acc91356d8cbe2463704800b54efb6889/hosts",
+        "LogPath": "/var/lib/docker/containers/0a9e9d7eaf9297abbb9e83143cb7136acc91356d8cbe2463704800b54efb6889/0a9e9d7eaf9297abbb9e83143cb7136acc91356d8cbe2463704800b54efb6889-json.log",
+        "Name": "/opencti-docker-rabbitmq-1",
+        "RestartCount": 0,
+        "Driver": "overlay2",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "opencti-docker_default",
+            "PortBindings": {
+                "15672/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "15672"
+                    }
+                ],
+                "5672/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "5672"
+                    }
+                ]
+            },
+            "RestartPolicy": {
+                "Name": "always",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": [],
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": null,
+            "BlkioDeviceReadBps": null,
+            "BlkioDeviceWriteBps": null,
+            "BlkioDeviceReadIOps": null,
+            "BlkioDeviceWriteIOps": null,
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": null,
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "KernelMemory": 0,
+            "KernelMemoryTCP": 0,
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": null,
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "Mounts": [
+                {
+                    "Type": "volume",
+                    "Source": "opencti-docker_amqpdata",
+                    "Target": "/var/lib/rabbitmq",
+                    "VolumeOptions": {}
+                }
+            ],
+            "MaskedPaths": [
+                "/proc/asound",
+                "/proc/acpi",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "GraphDriver": {
+            "Data": {
+                "LowerDir": "/var/lib/docker/overlay2/b568b7a55553d34a503e60430df74bf0fe306e921d20533cc71092f70dcb990b-init/diff:/var/lib/docker/overlay2/7221d5e06b9c252f1f28788e595bbf2e717d6828946e783e15d6fcc88f2e994f/diff:/var/lib/docker/overlay2/c50eb4ce8fc778f2172bbc7e5ffb9ffdc34fe7424e0403b8c62f941014ea6acb/diff:/var/lib/docker/overlay2/2aee492b7ac770dca41ac30ddb12a7ea5a2bc743c2073ed10db2bc341f3d70ef/diff:/var/lib/docker/overlay2/1975f49bb216b3fbdb865c55c644615c94d84729e0c47432b8dc1da1d1b5f511/diff:/var/lib/docker/overlay2/42dff5010312e9a7e0ef231fb10437e400002c26c5d3472bae468887b6eb576b/diff:/var/lib/docker/overlay2/e08d458b4e1e976dd22085fbdb0f022cc29d65f4e992d8663f0d9e2e6a059289/diff:/var/lib/docker/overlay2/e4a84348a7e7f4e01e1bfc2f706706ae08cf6c136c42f0fe0e38c24b22ef737e/diff:/var/lib/docker/overlay2/8372d525bde5d9f0c34ea5beaeb694f5886421162af3d325a7c1b881545c4b9b/diff:/var/lib/docker/overlay2/9b92c65ba55155adb12141af0fb9ad8097bb5a6e928aa14149b46825b4b65571/diff:/var/lib/docker/overlay2/c011a96af3e15338c1bd98a138a4599d5735db07403e35bb717ed65e30a50439/diff",
+                "MergedDir": "/var/lib/docker/overlay2/b568b7a55553d34a503e60430df74bf0fe306e921d20533cc71092f70dcb990b/merged",
+                "UpperDir": "/var/lib/docker/overlay2/b568b7a55553d34a503e60430df74bf0fe306e921d20533cc71092f70dcb990b/diff",
+                "WorkDir": "/var/lib/docker/overlay2/b568b7a55553d34a503e60430df74bf0fe306e921d20533cc71092f70dcb990b/work"
+            },
+            "Name": "overlay2"
+        },
+        "Mounts": [
+            {
+                "Type": "volume",
+                "Name": "opencti-docker_amqpdata",
+                "Source": "/var/lib/docker/volumes/opencti-docker_amqpdata/_data",
+                "Destination": "/var/lib/rabbitmq",
+                "Driver": "local",
+                "Mode": "z",
+                "RW": true,
+                "Propagation": ""
+            }
+        ],
+        "Config": {
+            "Hostname": "0a9e9d7eaf92",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "ExposedPorts": {
+                "15671/tcp": {},
+                "15672/tcp": {},
+                "15691/tcp": {},
+                "15692/tcp": {},
+                "25672/tcp": {},
+                "4369/tcp": {},
+                "5671/tcp": {},
+                "5672/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "RABBITMQ_DEFAULT_PASS=guest",
+                "RABBITMQ_DEFAULT_USER=guest",
+                "PATH=/opt/rabbitmq/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "OPENSSL_VERSION=1.1.1m",
+                "OPENSSL_SOURCE_SHA256=f89199be8b23ca45fc7cb9f1d8d3ee67312318286ad030f5316aca6462db6c96",
+                "OPENSSL_PGP_KEY_IDS=0x8657ABB260F056B1E5190839D9C4D26D0E604491 0x5B2545DAB21995F4088CEFAA36CEE4DEB00CFE33 0xED230BEC4D4F2518B9D7DF41F0DB4D21C1D35231 0xC1F33DD8CE1D4CC613AF14DA9195C48241FBF7DD 0x7953AC1FBC3DC8B3B292393ED5E9E43F7DF9EE8C 0xE5E52560DD91C556DDBDA5D02064C53641C25E5D",
+                "OTP_VERSION=24.2.2",
+                "OTP_SOURCE_SHA256=a87bcbdcdd1b99de7038030123b2d655d46d6e698a9143608618bdbec6ebbee7",
+                "RABBITMQ_DATA_DIR=/var/lib/rabbitmq",
+                "RABBITMQ_VERSION=3.9.13",
+                "RABBITMQ_PGP_KEY_ID=0x0A9AF2115F4687BD29803A206B73A36E6026DFCA",
+                "RABBITMQ_HOME=/opt/rabbitmq",
+                "RABBITMQ_LOGS=-",
+                "HOME=/var/lib/rabbitmq",
+                "LANG=C.UTF-8",
+                "LANGUAGE=C.UTF-8",
+                "LC_ALL=C.UTF-8"
+            ],
+            "Cmd": [
+                "rabbitmq-server"
+            ],
+            "Image": "rabbitmq:3.9-management",
+            "Volumes": {
+                "/var/lib/rabbitmq": {}
+            },
+            "WorkingDir": "",
+            "Entrypoint": [
+                "docker-entrypoint.sh"
+            ],
+            "OnBuild": null,
+            "Labels": {
+                "com.docker.compose.config-hash": "b4c3a9e78d593aa4fd77dca986406c7ae3572fca486aa7bc013597c0aaa45206",
+                "com.docker.compose.container-number": "1",
+                "com.docker.compose.depends_on": "",
+                "com.docker.compose.image": "sha256:71d79ecde8c853ede0afaa61d8799f9699b33f14b417e1bc961a9a687d8b7ce0",
+                "com.docker.compose.oneoff": "False",
+                "com.docker.compose.project": "opencti-docker",
+                "com.docker.compose.project.config_files": "/Users/mschreiber/Work/CPI/opencti-docker/docker-compose-dev2.yml",
+                "com.docker.compose.project.working_dir": "/Users/mschreiber/Work/CPI/opencti-docker",
+                "com.docker.compose.service": "rabbitmq",
+                "com.docker.compose.version": "2.2.3"
+            }
+        },
+        "NetworkSettings": {
+            "Bridge": "",
+            "SandboxID": "aa4e70e8130b2094a3304d45dcbb9168fb1f38560fdeb030dc1a49260714b331",
+            "HairpinMode": false,
+            "LinkLocalIPv6Address": "",
+            "LinkLocalIPv6PrefixLen": 0,
+            "Ports": {
+                "15671/tcp": null,
+                "15672/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "15672"
+                    }
+                ],
+                "15691/tcp": null,
+                "15692/tcp": null,
+                "25672/tcp": null,
+                "4369/tcp": null,
+                "5671/tcp": null,
+                "5672/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "5672"
+                    }
+                ]
+            },
+            "SandboxKey": "/var/run/docker/netns/aa4e70e8130b",
+            "SecondaryIPAddresses": null,
+            "SecondaryIPv6Addresses": null,
+            "EndpointID": "",
+            "Gateway": "",
+            "GlobalIPv6Address": "",
+            "GlobalIPv6PrefixLen": 0,
+            "IPAddress": "",
+            "IPPrefixLen": 0,
+            "IPv6Gateway": "",
+            "MacAddress": "",
+            "Networks": {
+                "opencti-docker_default": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": [
+                        "opencti-docker-rabbitmq-1",
+                        "rabbitmq",
+                        "0a9e9d7eaf92"
+                    ],
+                    "NetworkID": "dbe82b3fa8f8e094bfbdaefd8fa60cbb6f5dd33fa66b29353e56a51e6e2579e8",
+                    "EndpointID": "a6aeff4bd718387d163fe089f18cc64c0b8683a4b35cc8acb537652ce932c8e9",
+                    "Gateway": "172.18.0.1",
+                    "IPAddress": "172.18.0.7",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:ac:12:00:07",
+                    "DriverOpts": null
+                }
+            }
+        }
+    },
+    {
+        "Id": "95cdfdd6a48756c7ec7c649967115a1285da6377de273e9b8d21ea75d792d216",
+        "Created": "2022-03-09T14:42:13.587636379Z",
+        "Path": "/usr/bin/docker-entrypoint.sh",
+        "Args": [
+            "server",
+            "/data"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 2208,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2022-03-10T17:25:05.860430418Z",
+            "FinishedAt": "2022-03-10T17:25:04.687339417Z",
+            "Health": {
+                "Status": "healthy",
+                "FailingStreak": 0,
+                "Log": [
+                    {
+                        "Start": "2022-03-09T16:34:33.145694637Z",
+                        "End": "2022-03-09T16:34:33.211203429Z",
+                        "ExitCode": 0,
+                        "Output": "  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                                 Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\n"
+                    },
+                    {
+                        "Start": "2022-03-09T16:35:03.226355929Z",
+                        "End": "2022-03-09T16:35:03.336595887Z",
+                        "ExitCode": 0,
+                        "Output": "  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                                 Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\n"
+                    },
+                    {
+                        "Start": "2022-03-10T17:25:35.882069793Z",
+                        "End": "2022-03-10T17:25:35.984489376Z",
+                        "ExitCode": 0,
+                        "Output": "  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                                 Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\n"
+                    },
+                    {
+                        "Start": "2022-03-10T17:26:05.987879043Z",
+                        "End": "2022-03-10T17:26:06.043145126Z",
+                        "ExitCode": 0,
+                        "Output": "  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                                 Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\n"
+                    },
+                    {
+                        "Start": "2022-03-10T17:26:36.052014084Z",
+                        "End": "2022-03-10T17:26:36.110601334Z",
+                        "ExitCode": 0,
+                        "Output": "  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                                 Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\n"
+                    }
+                ]
+            }
+        },
+        "Image": "sha256:d6242e73eab7cfef68845850ab0cf5bf05f5cc921f93d6ca55917b12f3ec111f",
+        "ResolvConfPath": "/var/lib/docker/containers/95cdfdd6a48756c7ec7c649967115a1285da6377de273e9b8d21ea75d792d216/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/95cdfdd6a48756c7ec7c649967115a1285da6377de273e9b8d21ea75d792d216/hostname",
+        "HostsPath": "/var/lib/docker/containers/95cdfdd6a48756c7ec7c649967115a1285da6377de273e9b8d21ea75d792d216/hosts",
+        "LogPath": "/var/lib/docker/containers/95cdfdd6a48756c7ec7c649967115a1285da6377de273e9b8d21ea75d792d216/95cdfdd6a48756c7ec7c649967115a1285da6377de273e9b8d21ea75d792d216-json.log",
+        "Name": "/opencti-docker-minio-1",
+        "RestartCount": 0,
+        "Driver": "overlay2",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "opencti-docker_default",
+            "PortBindings": {
+                "9000/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "9000"
+                    }
+                ],
+                "9001/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "9001"
+                    }
+                ]
+            },
+            "RestartPolicy": {
+                "Name": "always",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": [],
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": null,
+            "BlkioDeviceReadBps": null,
+            "BlkioDeviceWriteBps": null,
+            "BlkioDeviceReadIOps": null,
+            "BlkioDeviceWriteIOps": null,
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": null,
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "KernelMemory": 0,
+            "KernelMemoryTCP": 0,
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": null,
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "Mounts": [
+                {
+                    "Type": "volume",
+                    "Source": "opencti-docker_s3data",
+                    "Target": "/data",
+                    "VolumeOptions": {}
+                }
+            ],
+            "MaskedPaths": [
+                "/proc/asound",
+                "/proc/acpi",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "GraphDriver": {
+            "Data": {
+                "LowerDir": "/var/lib/docker/overlay2/64e01a7caaab556aa34f87ab42f30eeb96ebb2b05163ae85e9aae0275baf7d86-init/diff:/var/lib/docker/overlay2/50c54fdf11af444e82521d144c729c4c36cb35b0704ebb8815715b34e714e7e8/diff:/var/lib/docker/overlay2/aaf63941dbc05b76126cada7b2aa76ee34f940b9a6a86e8308e56ce942eb3253/diff:/var/lib/docker/overlay2/b4c807c36e93b3fce4fe936696f75bb21fe62939c5c7349b1c090eb431ba87ed/diff:/var/lib/docker/overlay2/1c980635e6e9b85a0f24ae470d7e86355b05088f723b1219845362692e004b97/diff:/var/lib/docker/overlay2/77054e456a2dfce32e65540fe40185874c9bc1319064513bc16c4ae659dddc19/diff:/var/lib/docker/overlay2/0d0030d342610d417b9046423c1b1793713c880aa6b9f7f82de20e0d1a5802b4/diff:/var/lib/docker/overlay2/fd6b632b11344ac6012851718cd4e3e55efdd6b7721174b9b8d40feef3722928/diff",
+                "MergedDir": "/var/lib/docker/overlay2/64e01a7caaab556aa34f87ab42f30eeb96ebb2b05163ae85e9aae0275baf7d86/merged",
+                "UpperDir": "/var/lib/docker/overlay2/64e01a7caaab556aa34f87ab42f30eeb96ebb2b05163ae85e9aae0275baf7d86/diff",
+                "WorkDir": "/var/lib/docker/overlay2/64e01a7caaab556aa34f87ab42f30eeb96ebb2b05163ae85e9aae0275baf7d86/work"
+            },
+            "Name": "overlay2"
+        },
+        "Mounts": [
+            {
+                "Type": "volume",
+                "Name": "opencti-docker_s3data",
+                "Source": "/var/lib/docker/volumes/opencti-docker_s3data/_data",
+                "Destination": "/data",
+                "Driver": "local",
+                "Mode": "z",
+                "RW": true,
+                "Propagation": ""
+            }
+        ],
+        "Config": {
+            "Hostname": "95cdfdd6a487",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "ExposedPorts": {
+                "9000/tcp": {},
+                "9001/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "MINIO_ROOT_USER=5861EC1C-3F36-4E5C-A1D1-CE11C31EDB9E",
+                "MINIO_ROOT_PASSWORD=CCC6A275-F879-4E90-8C05-215230C3B1D4",
+                "PATH=/opt/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "container=oci",
+                "MINIO_ACCESS_KEY_FILE=access_key",
+                "MINIO_SECRET_KEY_FILE=secret_key",
+                "MINIO_ROOT_USER_FILE=access_key",
+                "MINIO_ROOT_PASSWORD_FILE=secret_key",
+                "MINIO_KMS_SECRET_KEY_FILE=kms_master_key",
+                "MINIO_UPDATE_MINISIGN_PUBKEY=RWTx5Zr1tiHQLwG9keckT0c45M3AGeHD6IvimQHpyRywVWGbP1aVSGav",
+                "MINIO_CONFIG_ENV_FILE=config.env"
+            ],
+            "Cmd": [
+                "server",
+                "/data"
+            ],
+            "Healthcheck": {
+                "Test": [
+                    "CMD",
+                    "curl",
+                    "-f",
+                    "http://localhost:9000/minio/health/live"
+                ],
+                "Interval": 30000000000,
+                "Timeout": 20000000000,
+                "Retries": 3
+            },
+            "Image": "minio/minio:RELEASE.2022-02-05T04-40-59Z",
+            "Volumes": {
+                "/data": {}
+            },
+            "WorkingDir": "",
+            "Entrypoint": [
+                "/usr/bin/docker-entrypoint.sh"
+            ],
+            "OnBuild": null,
+            "Labels": {
+                "architecture": "arm64",
+                "build-date": "2022-01-27T15:59:20.875832",
+                "com.docker.compose.config-hash": "5eda8c8dc66dd2c430e15e8a2c1162601aa94a9cdee853c119ba4847d933fb25",
+                "com.docker.compose.container-number": "1",
+                "com.docker.compose.depends_on": "",
+                "com.docker.compose.oneoff": "False",
+                "com.docker.compose.project": "opencti-docker",
+                "com.docker.compose.project.config_files": "/Users/mschreiber/Work/CPI/opencti-docker/docker-compose-dev2.yml",
+                "com.docker.compose.project.working_dir": "/Users/mschreiber/Work/CPI/opencti-docker",
+                "com.docker.compose.service": "minio",
+                "com.docker.compose.version": "2.2.3",
+                "com.redhat.build-host": "arm-003.osbs.prod.upshift.rdu2.redhat.com",
+                "com.redhat.component": "ubi8-minimal-container",
+                "com.redhat.license_terms": "https://www.redhat.com/en/about/red-hat-end-user-license-agreements#UBI",
+                "description": "MinIO object storage is fundamentally different. Designed for performance and the S3 API, it is 100% open-source. MinIO is ideal for large, private cloud environments with stringent security requirements and delivers mission-critical availability across a diverse range of workloads.",
+                "distribution-scope": "public",
+                "io.k8s.description": "The Universal Base Image Minimal is a stripped down image that uses microdnf as a package manager. This base image is freely redistributable, but Red Hat only supports Red Hat technologies through subscriptions for Red Hat products. This image is maintained by Red Hat and updated regularly.",
+                "io.k8s.display-name": "Red Hat Universal Base Image 8 Minimal",
+                "io.openshift.expose-services": "",
+                "io.openshift.tags": "minimal rhel8",
+                "maintainer": "MinIO Inc \u003cdev@min.io\u003e",
+                "name": "MinIO",
+                "release": "RELEASE.2022-02-05T04-40-59Z",
+                "summary": "MinIO is a High Performance Object Storage, API compatible with Amazon S3 cloud storage service.",
+                "url": "https://access.redhat.com/containers/#/registry.access.redhat.com/ubi8-minimal/images/8.5-230",
+                "vcs-ref": "7ffc2d965ea414fc38f42d93090d967a5aee2c33",
+                "vcs-type": "git",
+                "vendor": "MinIO Inc \u003cdev@min.io\u003e",
+                "version": "RELEASE.2022-02-05T04-40-59Z"
+            }
+        },
+        "NetworkSettings": {
+            "Bridge": "",
+            "SandboxID": "8abaa5835fffaee463f06ccbfe2a549c4ca42d0d10d4bd840bce1c15f70902f2",
+            "HairpinMode": false,
+            "LinkLocalIPv6Address": "",
+            "LinkLocalIPv6PrefixLen": 0,
+            "Ports": {
+                "9000/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "9000"
+                    }
+                ],
+                "9001/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "9001"
+                    }
+                ]
+            },
+            "SandboxKey": "/var/run/docker/netns/8abaa5835fff",
+            "SecondaryIPAddresses": null,
+            "SecondaryIPv6Addresses": null,
+            "EndpointID": "",
+            "Gateway": "",
+            "GlobalIPv6Address": "",
+            "GlobalIPv6PrefixLen": 0,
+            "IPAddress": "",
+            "IPPrefixLen": 0,
+            "IPv6Gateway": "",
+            "MacAddress": "",
+            "Networks": {
+                "opencti-docker_default": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": [
+                        "opencti-docker-minio-1",
+                        "minio",
+                        "95cdfdd6a487"
+                    ],
+                    "NetworkID": "dbe82b3fa8f8e094bfbdaefd8fa60cbb6f5dd33fa66b29353e56a51e6e2579e8",
+                    "EndpointID": "05b5d3027f1e8f1fd10b82f5eca78417f3de2e6feb050e22d6af1e4c24d0cd11",
+                    "Gateway": "172.18.0.1",
+                    "IPAddress": "172.18.0.2",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:ac:12:00:02",
+                    "DriverOpts": null
+                }
+            }
+        }
+    }
+]

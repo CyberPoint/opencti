@@ -22,6 +22,7 @@ import BoundaryRoute from './components/BoundaryRoute';
 import StixCoreObjectOrStixCoreRelationship from './components/StixCoreObjectOrStixCoreRelationship';
 import { makeStyles } from '@mui/styles';
 import { Theme } from '@mui/material/styles';
+import { User } from '../generated/graphql';
 
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
@@ -45,10 +46,13 @@ const useStyles = makeStyles((theme: Theme) => ({
   toolbar: theme.mixins.toolbar,
 }));
 
+export interface IndexProps {
+  me?: User;
+}
+
 const noTopBarLocations = ['/dashboard'];
 // eslint-disable-next-line  @typescript-eslint/no-explicit-any
-const Index = React.memo((props: any) => {
-  const { me, location } = props;
+const Index = (({me}: IndexProps) => {
   const dashboardSearchRoute = React.memo((routeProps) => <Search {...routeProps} me={me} />);
   const dashboardIdRoute = React.memo((routeProps) => (
     <StixCoreObjectOrStixCoreRelationship {...routeProps} me={me} />
@@ -59,7 +63,7 @@ const Index = React.memo((props: any) => {
   const classes = useStyles();
   return (
     <div className={classes.root}>
-      {!noTopBarLocations.includes(location.pathname || '') && <TopBar />}
+      {!noTopBarLocations.includes(location.pathname) && <TopBar />}
       <LeftBar />
       <Message />
       <main className={classes.content} style={{ paddingRight: 24 }}>

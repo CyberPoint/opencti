@@ -1,7 +1,14 @@
 import React from 'react';
 import { filter, includes, map } from 'ramda';
+import { Capability, Settings, User } from '../generated/graphql';
 
-export const UserContext = React.createContext({});
+export interface UserContext {
+  me: User,
+  settings?: Settings;
+  helper: any;
+}
+
+export const UserContext = React.createContext<UserContext | undefined>(undefined)
 
 export const OPENCTI_ADMIN_UUID = '88ec0c6a-13ce-5e39-b486-354fe4a7084f';
 export const BYPASS = 'BYPASS';
@@ -22,7 +29,7 @@ export const TAXIIAPI_SETCOLLECTIONS = 'TAXIIAPI_SETCOLLECTIONS';
 export const SETTINGS_SETACCESSES = 'SETTINGS_SETACCESSES';
 export const SETTINGS_SETLABELS = 'SETTINGS_SETLABELS';
 
-export const granted = (me, capabilities, matchAll = false) => {
+export const granted = (me: User, capabilities: Capability[], matchAll = false) => {
   const userCapabilities = map((c) => c.name, me.capabilities);
   if (userCapabilities.includes(BYPASS)) return true;
   let numberOfAvailableCapabilities = 0;
@@ -42,9 +49,9 @@ export const granted = (me, capabilities, matchAll = false) => {
   return numberOfAvailableCapabilities > 0;
 };
 
-const Security = ({ needs, matchAll, children, placeholder = <span /> }) => (
+const Security = ({ needs, matchAll, children, placeholder = <span /> }): JSX.Element => (
   <UserContext.Consumer>
-    {({ me }) => {
+    {({ me }): JSX.Element => {
       if (granted(me, needs, matchAll)) return children;
       return placeholder;
     }}
