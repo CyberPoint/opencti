@@ -2,9 +2,19 @@ import React from 'react';
 import { dissoc } from 'ramda';
 import { Route } from 'react-router-dom';
 import { ErrorBoundary, SimpleError, wrapBound } from './Error';
+import { ReactJSXElement } from '@emotion/react/types/jsx-namespace';
+import { User } from '../../generated/graphql';
 
-// eslint-disable-next-line max-len @typescript-eslint/no-explicit-any
-const BoundaryRoute: any = (props: any) => {
+interface BoundaryParams {
+  exact?: boolean;
+  component?: ReactJSXElement;
+  // eslint-disable-next-line  @typescript-eslint/no-explicit-any
+  render?: any;
+  path?: string;
+  me?: User;
+}
+
+const BoundaryRoute = (props: BoundaryParams) => {
   if (props.component) {
     const route = dissoc('component', props);
     return <Route component={wrapBound(props.component)} {...route} />;

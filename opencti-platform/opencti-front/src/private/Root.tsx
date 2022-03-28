@@ -55,7 +55,6 @@ type Data = {
 };
 
 
-
 const isFeatureEnabled = (settings: Settings, id: string) => {
   const flags = settings.platform_feature_flags || [];
   const feature: null | undefined | SettingsFlag | Maybe<Module>[] = R.find(

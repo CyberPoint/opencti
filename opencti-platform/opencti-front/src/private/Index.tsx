@@ -1,6 +1,7 @@
 import React from 'react';
 import { Route, Switch, withRouter } from 'react-router-dom';
 import { compose } from 'ramda';
+import { useTheme } from '@mui/styles';
 import TopBar from './components/nav/TopBar';
 import LeftBar from './components/nav/LeftBar';
 import Dashboard from './components/Dashboard';
@@ -53,6 +54,7 @@ export interface IndexProps {
 const noTopBarLocations = ['/dashboard'];
 // eslint-disable-next-line  @typescript-eslint/no-explicit-any
 const Index = (({me}: IndexProps) => {
+  const theme = useTheme();
   const dashboardSearchRoute = React.memo((routeProps) => <Search {...routeProps} me={me} />);
   const dashboardIdRoute = React.memo((routeProps) => (
     <StixCoreObjectOrStixCoreRelationship {...routeProps} me={me} />
@@ -60,10 +62,10 @@ const Index = (({me}: IndexProps) => {
   const searchKeywordRoute = React.memo((routeProps) => <Search {...routeProps} me={me} />);
   const dashboardProfileRoute = React.memo((routeProps) => <Profile {...routeProps} me={me} />);
 
-  const classes = useStyles();
+  const classes = useStyles(theme);
   return (
     <div className={classes.root}>
-      {!noTopBarLocations.includes(location.pathname) && <TopBar />}
+      {!noTopBarLocations.includes(location.pathname || '') && <TopBar />}
       <LeftBar />
       <Message />
       <main className={classes.content} style={{ paddingRight: 24 }}>
