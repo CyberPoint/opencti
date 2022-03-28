@@ -9,6 +9,7 @@ import Index from './Index';
 import { UserContext } from '../utils/Security';
 import { Module, Settings, User } from '../generated/graphql';
 import { Maybe } from 'graphql/jsutils/Maybe';
+import { RootPrivateQuery$data } from './__generated__/RootPrivateQuery.graphql';
 
 const rootPrivateQuery = graphql`
   query RootPrivateQuery {
@@ -81,7 +82,7 @@ const buildHelper = (settings: Settings) => ({
 
 const Root = () => {
   const variables: Variables = [];
-  const dataResponse: Data = useLazyLoadQuery(rootPrivateQuery, variables) as Data;
+  const dataResponse: RootPrivateQuery$data = useLazyLoadQuery(rootPrivateQuery, variables) as RootPrivateQuery$data;
   const { me, settings } = dataResponse;
   if (settings && me) {
     const helper = buildHelper(settings);

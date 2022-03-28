@@ -15,7 +15,7 @@ import ThemeDark from './components/ThemeDark';
 
 const { Suspense } = React;
 
-const Loading = React.memo(() => (
+const Loading = () => (
   <div
     style={{
       width: '100%',
@@ -25,7 +25,7 @@ const Loading = React.memo(() => (
   >
     <Loader />
   </div>
-));
+);
 
 ReactDOM.render(
   <RelayEnvironmentProvider environment={environment}>

@@ -12,7 +12,7 @@ import StixSightingRelationship from './stix_sighting_relationships/StixSighting
 class Root extends Component {
   render() {
     const { me } = this.props;
-    const dashboardEventsRoute = React.memo(() => <Redirect to='/dashboard/events/incidents' />);
+    const dashboardEventsRoute = () => <Redirect to='/dashboard/events/incidents' />;
     const observedDataIdRoute = React.memo((routeProps) => (
       <RootObservedData {...routeProps} me={me} />
     ));

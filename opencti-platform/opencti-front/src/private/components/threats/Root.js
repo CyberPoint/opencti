@@ -12,9 +12,9 @@ import RootCampaign from './campaigns/Root';
 class Root extends Component {
   render() {
     const { me } = this.props;
-    const dashboardThreatsRoute = React.memo(() => (
+    const dashboardThreatsRoute = () => (
       <Redirect to='/dashboard/threats/threat_actors' />
-    ));
+    );
     const threatActorIdRoute = React.memo((routeProps) => (
       <RootThreatActor {...routeProps} me={me} />
     ));

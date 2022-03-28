@@ -14,7 +14,7 @@ import RootExternalReference from './external_references/Root';
 class Root extends Component {
   render() {
     const { me } = this.props;
-    const analysisRoute = React.memo(() => (<Redirect to="/dashboard/analysis/reports" />));
+    const analysisRoute = () => (<Redirect to="/dashboard/analysis/reports" />);
     const reportsRoute = React.memo((routeProps) => (
       <Reports {...routeProps} me={me} displayCreate={true} />
     ));

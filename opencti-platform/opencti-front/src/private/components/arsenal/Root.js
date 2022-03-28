@@ -16,7 +16,7 @@ import CoursesOfAction from './CoursesOfAction';
 class RootArsenal extends Component {
   render() {
     const { me } = this.props;
-    const arsenalRoute = React.memo(() => <Redirect to='/dashboard/arsenal/malwares' />);
+    const arsenalRoute = () => <Redirect to='/dashboard/arsenal/malwares' />;
     const malwaresIdRoute = React.memo((props) => <RootMalware {...props.routeProps} me={me} />);
     const attackPatternsIdRoute = React.memo((props) => (
       <RootAttackPattern {...props.routeProps} me={me} />

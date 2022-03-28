@@ -14,9 +14,9 @@ import RootArtifact from './artifacts/Root';
 class Root extends Component {
   render() {
     const { me } = this.props;
-    const dashboardObservationsRoute = React.memo(() => (
+    const dashboardObservationsRoute = () => (
       <Redirect to='/dashboard/observations/observables' />
-    ));
+    );
     const observablesIdRoute = React.memo((routeProps) => (
       <RootStixCyberObservable {...routeProps} me={me} />
     ));

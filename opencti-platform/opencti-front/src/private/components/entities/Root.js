@@ -21,7 +21,7 @@ import RootIndividual from './individuals/Root';
 class Root extends Component {
   render() {
     const { me } = this.props;
-    const entitiesRoute = React.memo(() => (<Redirect to="/dashboard/entities/sectors" />));
+    const entitiesRoute = () => (<Redirect to="/dashboard/entities/sectors" />);
     const entitiesSectorsRoute = React.memo((routeProps) => (
       <RootSector {...routeProps} me={me} />
     ));

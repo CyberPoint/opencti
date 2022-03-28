@@ -65,7 +65,7 @@ const Index = (({me}: IndexProps) => {
   const classes = useStyles(theme);
   return (
     <div className={classes.root}>
-      {!noTopBarLocations.includes(location.pathname || '') && <TopBar />}
+      {!noTopBarLocations.includes(location.pathname) && <TopBar />}
       <LeftBar />
       <Message />
       <main className={classes.content} style={{ paddingRight: 24 }}>
