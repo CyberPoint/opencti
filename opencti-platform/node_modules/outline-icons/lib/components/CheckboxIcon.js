@@ -1,0 +1,23 @@
+"use strict";
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const react_1 = __importDefault(require("react"));
+const Icon_1 = __importDefault(require("./Icon"));
+function CheckboxIcon(_a) {
+    var { checked } = _a, rest = __rest(_a, ["checked"]);
+    return (react_1.default.createElement(Icon_1.default, Object.assign({}, rest), checked ? (react_1.default.createElement("path", { d: "M8,5 L16,5 L16,5 C17.6568542,5 19,6.34314575 19,8 L19,16 C19,17.6568542 17.6568542,19 16,19 L8,19 L8,19 C6.34314575,19 5,17.6568542 5,16 L5,8 L5,8 C5,6.34314575 6.34314575,5 8,5 L8,5 Z M10.958729,12.8883948 L9.26824635,10.8598156 C8.91468227,10.4355387 8.28411757,10.3782146 7.85984067,10.7317787 C7.43556378,11.0853428 7.37823971,11.7159075 7.73180379,12.1401844 L10.2318038,15.1401844 C10.6450125,15.6360348 11.4127535,15.616362 11.8000251,15.1 L16.3000251,9.1 C16.6313959,8.6581722 16.5418529,8.03137085 16.1000251,7.7 C15.6581973,7.36862915 15.0313959,7.4581722 14.7000251,7.9 L10.958729,12.8883948 Z" })) : (react_1.default.createElement("path", { d: "M8,5 L16,5 L16,5 C17.6568542,5 19,6.34314575 19,8 L19,16 C19,17.6568542 17.6568542,19 16,19 L8,19 L8,19 C6.34314575,19 5,17.6568542 5,16 L5,8 L5,8 C5,6.34314575 6.34314575,5 8,5 L8,5 Z M8,7 C7.44771525,7 7,7.44771525 7,8 L7,16 C7,16.5522847 7.44771525,17 8,17 L16,17 C16.5522847,17 17,16.5522847 17,16 L17,8 C17,7.44771525 16.5522847,7 16,7 L8,7 Z" }))));
+}
+exports.default = CheckboxIcon;

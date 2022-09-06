@@ -1,0 +1,176 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
+
+var MuiTextField = _interopDefault(require('@material-ui/core/TextField'));
+var MuiSwitch = _interopDefault(require('@material-ui/core/Switch'));
+var invariant = _interopDefault(require('tiny-warning'));
+var MuiCheckbox = _interopDefault(require('@material-ui/core/Checkbox'));
+var FormControlLabel = _interopDefault(require('@material-ui/core/FormControlLabel'));
+var MuiSelect = _interopDefault(require('@material-ui/core/Select'));
+var formik = require('formik');
+var FormControl = _interopDefault(require('@material-ui/core/FormControl'));
+var InputLabel = _interopDefault(require('@material-ui/core/InputLabel'));
+var Input = _interopDefault(require('@material-ui/core/Input'));
+var FormHelperText = _interopDefault(require('@material-ui/core/FormHelperText'));
+var MuiRadioGroup = _interopDefault(require('@material-ui/core/RadioGroup'));
+var React = require('react');
+var MuiInputBase = _interopDefault(require('@material-ui/core/InputBase'));
+
+/*! *****************************************************************************
+Copyright (c) Microsoft Corporation. All rights reserved.
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+this file except in compliance with the License. You may obtain a copy of the
+License at http://www.apache.org/licenses/LICENSE-2.0
+
+THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED
+WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE,
+MERCHANTABLITY OR NON-INFRINGEMENT.
+
+See the Apache Version 2.0 License for specific language governing permissions
+and limitations under the License.
+***************************************************************************** */
+
+var __assign = function() {
+    __assign = Object.assign || function __assign(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
+
+function __rest(s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) if (e.indexOf(p[i]) < 0)
+            t[p[i]] = s[p[i]];
+    return t;
+}
+
+function fieldToTextField(_a) {
+    var disabled = _a.disabled, _b = _a.field, fieldOnBlur = _b.onBlur, field = __rest(_b, ["onBlur"]), _c = _a.form, isSubmitting = _c.isSubmitting, touched = _c.touched, errors = _c.errors, onBlur = _a.onBlur, helperText = _a.helperText, props = __rest(_a, ["disabled", "field", "form", "onBlur", "helperText"]);
+    var fieldError = formik.getIn(errors, field.name);
+    var showError = formik.getIn(touched, field.name) && !!fieldError;
+    return __assign(__assign({ variant: props.variant, error: showError, helperText: showError ? fieldError : helperText, disabled: disabled !== null && disabled !== void 0 ? disabled : isSubmitting, onBlur: onBlur !== null && onBlur !== void 0 ? onBlur : function (e) {
+            fieldOnBlur(e !== null && e !== void 0 ? e : field.name);
+        } }, field), props);
+}
+function TextField(_a) {
+    var children = _a.children, props = __rest(_a, ["children"]);
+    return React.createElement(MuiTextField, __assign({}, fieldToTextField(props)), children);
+}
+TextField.displayName = 'FormikMaterialUITextField';
+
+function fieldToSwitch(_a) {
+    var disabled = _a.disabled, _b = _a.field, fieldOnBlur = _b.onBlur, field = __rest(_b, ["onBlur"]), isSubmitting = _a.form.isSubmitting, type = _a.type, onBlur = _a.onBlur, props = __rest(_a, ["disabled", "field", "form", "type", "onBlur"]);
+    if (process.env.NODE_ENV !== 'production') {
+        invariant(type === 'checkbox', "property type=checkbox is missing from field " + field.name + ", this can caused unexpected behaviour");
+    }
+    return __assign(__assign({ disabled: disabled !== null && disabled !== void 0 ? disabled : isSubmitting, onBlur: onBlur !== null && onBlur !== void 0 ? onBlur : function (e) {
+            fieldOnBlur(e !== null && e !== void 0 ? e : field.name);
+        } }, field), props);
+}
+function Switch(props) {
+    return React.createElement(MuiSwitch, __assign({}, fieldToSwitch(props)));
+}
+Switch.displayName = 'FormikMaterialUISwitch';
+
+function fieldToCheckbox(_a) {
+    var disabled = _a.disabled, _b = _a.field, fieldOnBlur = _b.onBlur, field = __rest(_b, ["onBlur"]), isSubmitting = _a.form.isSubmitting, type = _a.type, onBlur = _a.onBlur, props = __rest(_a, ["disabled", "field", "form", "type", "onBlur"]);
+    var indeterminate = !Array.isArray(field.value) && field.value == null;
+    if (process.env.NODE_ENV !== 'production') {
+        invariant(type === 'checkbox', "property type=checkbox is missing from field " + field.name + ", this can caused unexpected behaviour");
+    }
+    return __assign(__assign({ disabled: disabled !== null && disabled !== void 0 ? disabled : isSubmitting, indeterminate: indeterminate, onBlur: onBlur !== null && onBlur !== void 0 ? onBlur : function (e) {
+            fieldOnBlur(e !== null && e !== void 0 ? e : field.name);
+        } }, field), props);
+}
+function Checkbox(props) {
+    return React.createElement(MuiCheckbox, __assign({}, fieldToCheckbox(props)));
+}
+Checkbox.displayName = 'FormikMaterialUICheckbox';
+
+function CheckboxWithLabel(_a) {
+    var Label = _a.Label, props = __rest(_a, ["Label"]);
+    return (React.createElement(FormControlLabel, __assign({ control: React.createElement(MuiCheckbox, __assign({}, fieldToCheckbox(props))) }, Label)));
+}
+CheckboxWithLabel.displayName = 'FormikMaterialUICheckboxWithLabel';
+
+function fieldToSelect(_a) {
+    var disabled = _a.disabled, _b = _a.field, fieldOnBlur = _b.onBlur, field = __rest(_b, ["onBlur"]), isSubmitting = _a.form.isSubmitting, onBlur = _a.onBlur, props = __rest(_a, ["disabled", "field", "form", "onBlur"]);
+    return __assign(__assign({ disabled: disabled !== null && disabled !== void 0 ? disabled : isSubmitting, onBlur: onBlur !== null && onBlur !== void 0 ? onBlur : function (e) {
+            fieldOnBlur(e !== null && e !== void 0 ? e : field.name);
+        } }, field), props);
+}
+function Select(props) {
+    return React.createElement(MuiSelect, __assign({}, fieldToSelect(props)));
+}
+Select.displayName = 'FormikMaterialUISelect';
+
+var SimpleFileUpload = function (_a) {
+    var field = _a.field, _b = _a.form, isSubmitting = _b.isSubmitting, touched = _b.touched, errors = _b.errors, setFieldValue = _b.setFieldValue, label = _a.label, _c = _a.disabled, disabled = _c === void 0 ? false : _c, inputProps = _a.InputProps, inputLabelProps = _a.InputLabelProps, formControlProps = _a.FormControlProps;
+    var error = formik.getIn(touched, field.name) && formik.getIn(errors, field.name);
+    return (React.createElement(FormControl, __assign({}, formControlProps),
+        label && (React.createElement(InputLabel, __assign({ shrink: true, error: !!error }, inputLabelProps), label)),
+        React.createElement(Input, __assign({ error: !!error, inputProps: {
+                type: 'file',
+                disabled: disabled || isSubmitting,
+                name: field.name,
+                onChange: function (event) {
+                    if (inputProps === null || inputProps === void 0 ? void 0 : inputProps.onChange) {
+                        inputProps.onChange(event);
+                    }
+                    else {
+                        var file = event.currentTarget.files[0];
+                        setFieldValue(field.name, file);
+                    }
+                },
+            } }, inputProps)),
+        error && React.createElement(FormHelperText, { error: true }, error)));
+};
+
+function fieldToRadioGroup(_a) {
+    var _b = _a.field, fieldOnBlur = _b.onBlur, field = __rest(_b, ["onBlur"]), form = _a.form, onBlur = _a.onBlur, props = __rest(_a, ["field", "form", "onBlur"]);
+    return __assign(__assign({ onBlur: onBlur !== null && onBlur !== void 0 ? onBlur : function (e) {
+            fieldOnBlur(e !== null && e !== void 0 ? e : field.name);
+        } }, field), props);
+}
+function RadioGroup(props) {
+    return React.createElement(MuiRadioGroup, __assign({}, fieldToRadioGroup(props)));
+}
+RadioGroup.displayName = 'FormikMaterialUIRadioGroup';
+
+function fieldToInputBase(_a) {
+    var disabled = _a.disabled, _b = _a.field, fieldOnBlur = _b.onBlur, field = __rest(_b, ["onBlur"]), isSubmitting = _a.form.isSubmitting, onBlur = _a.onBlur, props = __rest(_a, ["disabled", "field", "form", "onBlur"]);
+    return __assign(__assign({ disabled: disabled !== null && disabled !== void 0 ? disabled : isSubmitting, onBlur: onBlur !== null && onBlur !== void 0 ? onBlur : function (e) {
+            fieldOnBlur(e !== null && e !== void 0 ? e : field.name);
+        } }, field), props);
+}
+function InputBase(props) {
+    return React.createElement(MuiInputBase, __assign({}, fieldToInputBase(props)));
+}
+InputBase.displayName = 'FormikMaterialUIInputBase';
+
+exports.fieldToTextField = fieldToTextField;
+exports.TextField = TextField;
+exports.fieldToSwitch = fieldToSwitch;
+exports.Switch = Switch;
+exports.fieldToCheckbox = fieldToCheckbox;
+exports.Checkbox = Checkbox;
+exports.CheckboxWithLabel = CheckboxWithLabel;
+exports.fieldToSelect = fieldToSelect;
+exports.Select = Select;
+exports.SimpleFileUpload = SimpleFileUpload;
+exports.fieldToRadioGroup = fieldToRadioGroup;
+exports.RadioGroup = RadioGroup;
+exports.fieldToInputBase = fieldToInputBase;
+exports.InputBase = InputBase;
+//# sourceMappingURL=index.js.map

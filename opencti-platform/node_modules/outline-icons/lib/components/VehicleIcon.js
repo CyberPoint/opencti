@@ -1,0 +1,12 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const react_1 = __importDefault(require("react"));
+const Icon_1 = __importDefault(require("./Icon"));
+function VehicleIcon(props) {
+    return (react_1.default.createElement(Icon_1.default, Object.assign({}, props),
+        react_1.default.createElement("path", { fillRule: "evenodd", clipRule: "evenodd", d: "M4 17V13.3198C4 12.8431 4.33646 12.4327 4.80388 12.3392L6.5 12L9.25667 4.64888C9.40304 4.25857 9.77616 4 10.193 4H16.307C16.7238 4 17.097 4.25857 17.2433 4.64888L20 12V17C20 17.5523 19.5523 18 19 18H18C18 19.1046 17.1046 20 16 20C14.8954 20 14 19.1046 14 18H10.5C10.5 19.1046 9.60457 20 8.5 20C7.39543 20 6.5 19.1046 6.5 18H5C4.44772 18 4 17.5523 4 17ZM15 6V12H18L16 6H15ZM8.5 12L10.5 6H13V12H8.5Z" })));
+}
+exports.default = VehicleIcon;

@@ -1,0 +1,13 @@
+/// <reference types="react" />
+import { FieldProps } from 'formik';
+import { FormControlProps } from '@material-ui/core/FormControl';
+import { InputLabelProps } from '@material-ui/core/InputLabel';
+import { InputProps } from '@material-ui/core/Input';
+export interface SimpleFileUploadProps extends FieldProps {
+    label: string;
+    disabled?: boolean;
+    InputProps?: Omit<InputProps, 'name' | 'type' | 'label'>;
+    InputLabelProps?: InputLabelProps;
+    FormControlProps?: FormControlProps;
+}
+export declare const SimpleFileUpload: ({ field, form: { isSubmitting, touched, errors, setFieldValue }, label, disabled, InputProps: inputProps, InputLabelProps: inputLabelProps, FormControlProps: formControlProps, }: SimpleFileUploadProps) => JSX.Element;
