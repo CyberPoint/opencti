@@ -1,5 +1,5 @@
 import { getHeapStatistics } from 'v8';
-import { createEntity, loadById, updateAttribute, loadEntity } from '../database/middleware';
+import { createEntity, storeLoadById, updateAttribute, loadEntity } from '../database/middleware';
 import conf, {
   BUS_TOPICS,
   ENABLED_EXPIRED_MANAGER,
@@ -9,7 +9,7 @@ import conf, {
   PLATFORM_VERSION,
   ENABLED_SYNC_MANAGER,
   ENABLED_RETENTION_MANAGER,
-  baseUrl,
+  baseUrl, ENABLED_HISTORY_MANAGER
 } from '../config/conf';
 import { delEditContext, getRedisVersion, notify, setEditContext } from '../database/redis';
 import { searchEngineVersion, isRuntimeSortEnable } from '../database/engine';
@@ -29,6 +29,7 @@ export const getModules = () => {
   modules.push({ id: 'SUBSCRIPTION_MANAGER', enable: ENABLED_SUBSCRIPTION_MANAGER });
   modules.push({ id: 'SYNC_MANAGER', enable: ENABLED_SYNC_MANAGER });
   modules.push({ id: 'RETENTION_MANAGER', enable: ENABLED_RETENTION_MANAGER });
+  modules.push({ id: 'HISTORY_MANAGER', enable: ENABLED_HISTORY_MANAGER });
   return modules;
 };
 
@@ -65,12 +66,12 @@ export const addSettings = async (user, settings) => {
 
 export const settingsCleanContext = (user, settingsId) => {
   delEditContext(user, settingsId);
-  return loadById(user, settingsId, ENTITY_TYPE_SETTINGS).then((settings) => notify(BUS_TOPICS.Settings.EDIT_TOPIC, settings, user));
+  return storeLoadById(user, settingsId, ENTITY_TYPE_SETTINGS).then((settings) => notify(BUS_TOPICS.Settings.EDIT_TOPIC, settings, user));
 };
 
 export const settingsEditContext = (user, settingsId, input) => {
   setEditContext(user, settingsId, input);
-  return loadById(user, settingsId, ENTITY_TYPE_SETTINGS).then((settings) => notify(BUS_TOPICS.Settings.EDIT_TOPIC, settings, user));
+  return storeLoadById(user, settingsId, ENTITY_TYPE_SETTINGS).then((settings) => notify(BUS_TOPICS.Settings.EDIT_TOPIC, settings, user));
 };
 
 export const settingsEditField = async (user, settingsId, input) => {

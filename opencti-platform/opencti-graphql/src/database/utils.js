@@ -1,6 +1,6 @@
 import * as R from 'ramda';
 import moment from 'moment';
-import { DatabaseError } from '../config/errors';
+import { DatabaseError, UnsupportedError } from '../config/errors';
 import { isHistoryObject, isInternalObject } from '../schema/internalObject';
 import { isStixMetaObject } from '../schema/stixMetaObject';
 import { isStixDomainObject } from '../schema/stixDomainObject';
@@ -8,12 +8,17 @@ import { ENTITY_HASHED_OBSERVABLE_STIX_FILE, isStixCyberObservable } from '../sc
 import { isInternalRelationship } from '../schema/internalRelationship';
 import { isStixCoreRelationship } from '../schema/stixCoreRelationship';
 import { isStixSightingRelationship } from '../schema/stixSightingRelationship';
-import { isStixCyberObservableRelationship } from '../schema/stixCyberObservableRelationship';
-import { isStixMetaRelationship } from '../schema/stixMetaRelationship';
+import {
+  isStixCyberObservableRelationship,
+  STIX_CYBER_OBSERVABLE_FIELD_TO_STIX_ATTRIBUTE
+} from '../schema/stixCyberObservableRelationship';
+import { isStixMetaRelationship, META_FIELD_TO_STIX_ATTRIBUTE } from '../schema/stixMetaRelationship';
 import { isStixObject } from '../schema/stixCoreObject';
 import { EVENT_TYPE_CREATE, EVENT_TYPE_DELETE } from './rabbitmq';
 import conf from '../config/conf';
 import { now, observableValue } from '../utils/format';
+import { isStixRelationship } from '../schema/stixRelationship';
+import { isDictionaryAttribute, isJsonAttribute } from '../schema/fieldDataAdapter';
 
 export const ES_INDEX_PREFIX = conf.get('elasticsearch:index_prefix') || 'opencti';
 
@@ -21,7 +26,6 @@ export const ES_INDEX_PREFIX = conf.get('elasticsearch:index_prefix') || 'openct
 export const UPDATE_OPERATION_ADD = 'add';
 export const UPDATE_OPERATION_REPLACE = 'replace';
 export const UPDATE_OPERATION_REMOVE = 'remove';
-export const UPDATE_OPERATION_CHANGE = 'change';
 
 // Entities
 export const INDEX_HISTORY = `${ES_INDEX_PREFIX}_history`;
@@ -71,9 +75,9 @@ export const WRITE_PLATFORM_INDICES = [
 
 export const READ_STIX_INDICES = [
   READ_INDEX_STIX_DOMAIN_OBJECTS,
-  READ_INDEX_STIX_CYBER_OBSERVABLES,
   READ_INDEX_STIX_CORE_RELATIONSHIPS,
   READ_INDEX_STIX_SIGHTING_RELATIONSHIPS,
+  READ_INDEX_STIX_CYBER_OBSERVABLES,
   READ_INDEX_STIX_CYBER_OBSERVABLE_RELATIONSHIPS,
 ];
 export const READ_DATA_INDICES_WITHOUT_INFERRED = [
@@ -214,32 +218,38 @@ export const inferIndexFromConceptType = (conceptType, inferred = false) => {
 
 const extractEntityMainValue = (entityData) => {
   let mainValue;
-  if (entityData.definition) {
-    mainValue = entityData.definition;
-  } else if (entityData.value) {
-    mainValue = entityData.value;
-  } else if (entityData.attribute_abstract) {
-    mainValue = entityData.attribute_abstract;
-  } else if (entityData.opinion) {
-    mainValue = entityData.opinion;
-  } else if (entityData.observable_value) {
-    mainValue = entityData.observable_value;
-  } else if (entityData.indicator_pattern) {
-    mainValue = entityData.indicator_pattern;
-  } else if (entityData.source_name) {
-    mainValue = `${entityData.source_name}${entityData.external_id ? ` (${entityData.external_id})` : ''}`;
-  } else if (entityData.phase_name) {
-    mainValue = entityData.phase_name;
-  } else if (entityData.first_observed && entityData.last_observed) {
-    mainValue = `${moment(entityData.first_observed).utc().toISOString()} - ${moment(entityData.last_observed)
-      .utc()
-      .toISOString()}`;
-  } else if (entityData.name) {
-    mainValue = entityData.name;
-  } else if (entityData.description) {
-    mainValue = entityData.description;
-  } else {
+  if (isStixCyberObservable(entityData.entity_type)) {
     mainValue = observableValue(entityData);
+  } else if (isNotEmptyField(entityData.definition)) { // TODO Improve the entity domain main value extractor
+    mainValue = entityData.definition;
+  } else if (isNotEmptyField(entityData.value)) {
+    mainValue = entityData.value;
+  } else if (isNotEmptyField(entityData.attribute_abstract)) {
+    mainValue = entityData.attribute_abstract;
+  } else if (isNotEmptyField(entityData.opinion)) {
+    mainValue = entityData.opinion;
+  } else if (isNotEmptyField(entityData.observable_value)) {
+    mainValue = entityData.observable_value;
+  } else if (isNotEmptyField(entityData.indicator_pattern)) {
+    mainValue = entityData.indicator_pattern;
+  } else if (isNotEmptyField(entityData.source_name)) {
+    mainValue = `${entityData.source_name}${entityData.external_id ? ` (${entityData.external_id})` : ''}`;
+  } else if (isNotEmptyField(entityData.kill_chain_name)) {
+    mainValue = entityData.kill_chain_name;
+  } else if (isNotEmptyField(entityData.phase_name)) {
+    mainValue = entityData.phase_name;
+  } else if (isNotEmptyField(entityData.first_observed) && isNotEmptyField(entityData.last_observed)) {
+    const from = moment(entityData.first_observed).utc().toISOString();
+    const to = moment(entityData.last_observed).utc().toISOString();
+    mainValue = `${from} - ${to}`;
+  } else if (isNotEmptyField(entityData.name)) {
+    mainValue = entityData.name;
+  } else if (isNotEmptyField(entityData.description)) {
+    mainValue = entityData.description;
+  }
+  // If no representative value found, return the standard id
+  if (isEmptyField(mainValue) || mainValue === 'Unknown') {
+    return entityData.standard_id;
   }
   return mainValue;
 };
@@ -258,18 +268,20 @@ const generateCreateDeleteMessage = (type, instance) => {
     }
     return `${type}s a ${entityType} \`${name}\``;
   }
-  // Relation
-  const from = extractEntityMainValue(instance.from);
-  let fromType = instance.from.entity_type;
-  if (fromType === ENTITY_HASHED_OBSERVABLE_STIX_FILE) {
-    fromType = 'File';
+  if (isStixRelationship(instance.entity_type)) {
+    const from = extractEntityMainValue(instance.from);
+    let fromType = instance.from.entity_type;
+    if (fromType === ENTITY_HASHED_OBSERVABLE_STIX_FILE) {
+      fromType = 'File';
+    }
+    const to = extractEntityMainValue(instance.to);
+    let toType = instance.to.entity_type;
+    if (toType === ENTITY_HASHED_OBSERVABLE_STIX_FILE) {
+      toType = 'File';
+    }
+    return `${type}s the relation ${instance.entity_type} from \`${from}\` (${fromType}) to \`${to}\` (${toType})`;
   }
-  const to = extractEntityMainValue(instance.to);
-  let toType = instance.to.entity_type;
-  if (toType === ENTITY_HASHED_OBSERVABLE_STIX_FILE) {
-    toType = 'File';
-  }
-  return `${type}s the relation ${instance.entity_type} from \`${from}\` (${fromType}) to \`${to}\` (${toType})`;
+  return '-';
 };
 export const generateCreateMessage = (instance) => {
   return generateCreateDeleteMessage(EVENT_TYPE_CREATE, instance);
@@ -277,28 +289,44 @@ export const generateCreateMessage = (instance) => {
 export const generateDeleteMessage = (instance) => {
   return generateCreateDeleteMessage(EVENT_TYPE_DELETE, instance);
 };
-export const generateUpdateMessage = (patch) => {
-  const patchElements = Object.entries(patch);
-  return patchElements
-    .map(([operation, element]) => {
-      const elemEntries = Object.entries(element);
-      return `${operation}s ${elemEntries.map(([key, val]) => {
-        const values = Array.isArray(val) ? val : [val];
-        const valMessage = values
-          .map((v) => {
-            if (operation === UPDATE_OPERATION_REPLACE) {
-              if (Array.isArray(v.current)) {
-                return v.current.map((c) => c.reference || c.value || c);
-              }
-              return v.reference?.value || v.current?.value || v.current;
-            }
-            return v.reference || v.value || v;
-          })
-          .join(', ');
-        return `\`${valMessage || 'nothing'}\` in \`${key}\``;
-      })}`;
-    })
-    .join(', ');
+
+export const generateUpdateMessage = (inputs) => {
+  const inputsByOperations = R.groupBy((m) => m.operation ?? UPDATE_OPERATION_REPLACE, inputs);
+  const patchElements = Object.entries(inputsByOperations);
+  if (patchElements.length === 0) {
+    throw UnsupportedError('[OPENCTI] Error generating update message with empty inputs');
+  }
+  // noinspection UnnecessaryLocalVariableJS
+  const generatedMessage = patchElements.map(([type, operations]) => {
+    return `${type}s ${operations.map(({ key, value }) => {
+      let message = 'nothing';
+      let convertedKey = key;
+      if (META_FIELD_TO_STIX_ATTRIBUTE[key]) {
+        convertedKey = META_FIELD_TO_STIX_ATTRIBUTE[key];
+      }
+      if (STIX_CYBER_OBSERVABLE_FIELD_TO_STIX_ATTRIBUTE[key]) {
+        convertedKey = STIX_CYBER_OBSERVABLE_FIELD_TO_STIX_ATTRIBUTE[key];
+      }
+      const fromArray = Array.isArray(value) ? value : [value];
+      const values = fromArray.filter((v) => isNotEmptyField(v));
+      if (isNotEmptyField(values)) {
+        // If update is based on internal ref, we need to extract the value
+        if (META_FIELD_TO_STIX_ATTRIBUTE[key] || STIX_CYBER_OBSERVABLE_FIELD_TO_STIX_ATTRIBUTE[key]) {
+          message = values.map((val) => extractEntityMainValue(val)).join(', ');
+        } else if (isDictionaryAttribute(key)) {
+          message = Object.entries(R.head(values)).map(([k, v]) => `${k}:${v}`).join(', ');
+        } else if (isJsonAttribute(key)) {
+          message = values.map((v) => JSON.stringify(v));
+        } else {
+          // If standard primitive data, just join the values
+          message = values.join(', ');
+        }
+      }
+      return `\`${message}\` in \`${convertedKey}\``;
+    }).join(' - ')}`;
+  }).join(' | ');
+  // Return generated update message
+  return generatedMessage;
 };
 
 export const pascalize = (s) => {
@@ -311,3 +339,11 @@ export const computeAverage = (numbers) => {
   const sum = numbers.reduce((a, b) => a + b, 0);
   return Math.round(sum / numbers.length || 0);
 };
+
+export const wait = (ms) => {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+};
+
+export const waitInSec = (sec) => wait(sec * 1000);

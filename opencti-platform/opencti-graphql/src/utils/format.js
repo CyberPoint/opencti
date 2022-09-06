@@ -1,7 +1,8 @@
 import Moment from 'moment';
 import { extendMoment } from 'moment-range';
+import * as R from 'ramda';
 import {
-  ENTITY_AUTONOMOUS_SYSTEM,
+  ENTITY_AUTONOMOUS_SYSTEM, ENTITY_BANK_ACCOUNT,
   ENTITY_DIRECTORY,
   ENTITY_EMAIL_MESSAGE,
   ENTITY_HASHED_OBSERVABLE_ARTIFACT,
@@ -9,11 +10,12 @@ import {
   ENTITY_HASHED_OBSERVABLE_X509_CERTIFICATE,
   ENTITY_MUTEX,
   ENTITY_NETWORK_TRAFFIC,
+  ENTITY_PAYMENT_CARD,
   ENTITY_PROCESS,
   ENTITY_SOFTWARE,
   ENTITY_USER_ACCOUNT,
   ENTITY_WINDOWS_REGISTRY_KEY,
-  ENTITY_WINDOWS_REGISTRY_VALUE_TYPE,
+  ENTITY_WINDOWS_REGISTRY_VALUE_TYPE
 } from '../schema/stixCyberObservable';
 
 const moment = extendMoment(Moment);
@@ -24,12 +26,15 @@ export const UNTIL_END = 100000000000000;
 export const UNTIL_END_STR = '5138-11-16T09:46:40.000Z';
 
 const dateFormat = 'YYYY-MM-DDTHH:mm:ss.SSS';
-export const utcDate = (date = undefined) => (date ? moment(date).utc() : moment().utc());
+export const utcDate = (date) => (date ? moment(date).utc() : moment().utc());
 export const now = () => utcDate().toISOString();
 export const sinceNowInMinutes = (lastModified) => {
   const diff = utcDate().diff(utcDate(lastModified));
   const duration = moment.duration(diff);
   return Math.floor(duration.asMinutes());
+};
+export const sinceNowInDays = (lastModified) => {
+  return sinceNowInMinutes(lastModified) / 1440;
 };
 export const prepareDate = (date) => utcDate(date).format(dateFormat);
 export const yearFormat = (date) => utcDate(date).format('YYYY');
@@ -56,7 +61,7 @@ export const computeRangeIntersection = (a, b) => {
 export const minutesAgo = (minutes) => moment().utc().subtract(minutes, 'minutes');
 export const hoursAgo = (hours) => moment().utc().subtract(hours, 'hours');
 
-const hashes = ['SHA-256', 'SHA-1', 'MD5'];
+const hashes = ['SHA-512', 'SHA-256', 'SHA-1', 'MD5'];
 export const hashValue = (stixCyberObservable) => {
   if (stixCyberObservable.hashes) {
     for (let index = 0; index < hashes.length; index += 1) {
@@ -92,12 +97,16 @@ export const observableValue = (stixCyberObservable) => {
       return stixCyberObservable.name || 'Unknown';
     case ENTITY_USER_ACCOUNT:
       return stixCyberObservable.account_login || stixCyberObservable.user_id || 'Unknown';
+    case ENTITY_BANK_ACCOUNT:
+      return stixCyberObservable.iban || stixCyberObservable.number || 'Unknown';
+    case ENTITY_PAYMENT_CARD:
+      return stixCyberObservable.card_number || stixCyberObservable.holder_name || 'Unknown';
     case ENTITY_WINDOWS_REGISTRY_KEY:
       return stixCyberObservable.attribute_key || 'Unknown';
     case ENTITY_WINDOWS_REGISTRY_VALUE_TYPE:
       return stixCyberObservable.name || stixCyberObservable.data || 'Unknown';
     default:
-      return stixCyberObservable.value || 'Unknown';
+      return stixCyberObservable.value || stixCyberObservable.name || 'Unknown';
   }
 };
 
@@ -131,7 +140,9 @@ export const runtimeFieldObservableValueScript = () => {
         emit('Unknown')
       }
     } else if (type == 'artifact') {
-       if (have(doc, 'hashes.SHA-256')) {
+       if (have(doc, 'hashes.SHA-512')) {
+         emit(doc['hashes.SHA-512.keyword'].value)
+       } else if (have(doc, 'hashes.SHA-256')) {
          emit(doc['hashes.SHA-256.keyword'].value)
        } else if (have(doc, 'hashes.SHA-1')) {
          emit(doc['hashes.SHA-1.keyword'].value)
@@ -202,6 +213,18 @@ export const runtimeFieldObservableValueScript = () => {
        } else {
          emit('Unknown')
        }
+    } else if (type == 'bank-account') {
+       if (have(doc, 'iban')) {
+         emit(doc['iban.keyword'].value)
+       } else {
+         emit('Unknown')
+       }
+    } else if (type == 'payment-card') {
+       if (have(doc, 'card_number')) {
+         emit(doc['card_number.keyword'].value)
+       } else {
+         emit('Unknown')
+       }
     } else if (type == 'windows-registry-key') {
        if (have(doc, 'attribute_key')) {
          emit(doc['attribute_key.keyword'].value)
@@ -223,3 +246,5 @@ export const runtimeFieldObservableValueScript = () => {
     }
   `;
 };
+
+export const mergeDeepRightAll = R.unapply(R.reduce(R.mergeDeepRight, {}));

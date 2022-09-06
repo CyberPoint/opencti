@@ -14,6 +14,8 @@ import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import Chip from '@mui/material/Chip';
 import Avatar from '@mui/material/Avatar';
+import Checkbox from '@mui/material/Checkbox';
+import Box from '@mui/material/Box';
 import { ListItemAvatar } from '@mui/material';
 import { deepPurple } from '@mui/material/colors';
 import { SubscriptionFocus } from '../../../components/Subscription';
@@ -54,6 +56,7 @@ const settingsQuery = graphql`
     settings {
       id
       platform_title
+      platform_favicon
       platform_email
       platform_theme
       platform_language
@@ -75,6 +78,7 @@ const settingsQuery = graphql`
       platform_theme_light_logo
       platform_theme_light_logo_login
       platform_enable_reference
+      platform_hidden_types
       platform_providers {
         name
         strategy
@@ -97,6 +101,7 @@ const settingsMutationFieldPatch = graphql`
       fieldPatch(input: $input) {
         id
         platform_title
+        platform_favicon
         platform_email
         platform_theme
         platform_theme_dark_background
@@ -117,6 +122,7 @@ const settingsMutationFieldPatch = graphql`
         platform_theme_light_logo_login
         platform_language
         platform_login_message
+        platform_hidden_types
       }
     }
   }
@@ -146,6 +152,7 @@ const settingsAboutQuery = graphql`
 
 const settingsValidation = (t) => Yup.object().shape({
   platform_title: Yup.string().required(t('This field is required')),
+  platform_favicon: Yup.string().nullable(),
   platform_email: Yup.string()
     .required(t('This field is required'))
     .email(t('The value must be an email address')),
@@ -168,6 +175,7 @@ const settingsValidation = (t) => Yup.object().shape({
   platform_theme_light_logo_login: Yup.string().nullable(),
   platform_language: Yup.string().nullable(),
   platform_login_message: Yup.string().nullable(),
+  platform_hidden_types: Yup.array().nullable(),
 });
 
 class Settings extends Component {
@@ -211,6 +219,40 @@ class Settings extends Component {
         finalValue = '#000000';
       }
     }
+    if (name === 'platform_hidden_types') {
+      if (finalValue.includes('Threats')) {
+        finalValue = finalValue.filter(
+          (n) => !['Threat-Actor', 'Intrusion-Set', 'Campaign'].includes(n),
+        );
+      }
+      if (finalValue.includes('Arsenal')) {
+        finalValue = finalValue.filter(
+          (n) => ![
+            'Malware',
+            'Attack-Pattern',
+            'Course-Of-Action',
+            'Channel',
+            'Narrative',
+            'Tool',
+            'Vulnerability',
+          ].includes(n),
+        );
+      }
+      if (finalValue.includes('Entities')) {
+        finalValue = finalValue.filter(
+          (n) => ![
+            'Sector',
+            'Country',
+            'City',
+            'Position',
+            'Event',
+            'Organization',
+            'Individual',
+            'System',
+          ].includes(n),
+        );
+      }
+    }
     settingsValidation(this.props.t)
       .validateAt(name, { [name]: finalValue })
       .then(() => {
@@ -232,9 +274,14 @@ class Settings extends Component {
             if (props && props.settings) {
               const { settings } = props;
               const { id, editContext } = settings;
-              const initialValues = R.pick(
-                [
+              const initialValues = R.pipe(
+                R.assoc(
+                  'platform_hidden_types',
+                  settings.platform_hidden_types || [],
+                ),
+                R.pick([
                   'platform_title',
+                  'platform_favicon',
                   'platform_email',
                   'platform_theme',
                   'platform_language',
@@ -257,9 +304,9 @@ class Settings extends Component {
                   'platform_theme_light_logo_login',
                   'platform_map_tile_server_dark',
                   'platform_map_tile_server_light',
-                ],
-                settings,
-              );
+                  'platform_hidden_types',
+                ]),
+              )(settings);
               const authProviders = settings.platform_providers;
               const modules = settings.platform_modules;
               let i = 0;
@@ -279,13 +326,13 @@ class Settings extends Component {
                           initialValues={initialValues}
                           validationSchema={settingsValidation(t)}
                         >
-                          {() => (
+                          {({ values }) => (
                             <Form style={{ marginTop: 20 }}>
                               <Field
                                 component={TextField}
                                 variant="standard"
                                 name="platform_title"
-                                label={t('Name')}
+                                label={t('Platform title')}
                                 fullWidth={true}
                                 onFocus={this.handleChangeFocus.bind(this, id)}
                                 onSubmit={this.handleSubmitField.bind(this, id)}
@@ -293,6 +340,22 @@ class Settings extends Component {
                                   <SubscriptionFocus
                                     context={editContext}
                                     fieldName="platform_title"
+                                  />
+                                }
+                              />
+                              <Field
+                                component={TextField}
+                                variant="standard"
+                                name="platform_favicon"
+                                label={t('Platform favicon URL')}
+                                fullWidth={true}
+                                style={{ marginTop: 20 }}
+                                onFocus={this.handleChangeFocus.bind(this, id)}
+                                onSubmit={this.handleSubmitField.bind(this, id)}
+                                helperText={
+                                  <SubscriptionFocus
+                                    context={editContext}
+                                    fieldName="platform_favicon"
                                   />
                                 }
                               />
@@ -359,6 +422,379 @@ class Settings extends Component {
                                 <MenuItem value="en-us">English</MenuItem>
                                 <MenuItem value="fr-fr">Français</MenuItem>
                                 <MenuItem value="zh-cn">简化字</MenuItem>
+                              </Field>
+                              <Field
+                                component={SelectField}
+                                variant="standard"
+                                name="platform_hidden_types"
+                                label={t('Hidden entity types')}
+                                fullWidth={true}
+                                multiple={true}
+                                containerstyle={{
+                                  marginTop: 20,
+                                  width: '100%',
+                                }}
+                                onFocus={this.handleChangeFocus.bind(this, id)}
+                                onChange={this.handleSubmitField.bind(this, id)}
+                                helpertext={
+                                  <SubscriptionFocus
+                                    context={editContext}
+                                    fieldName="platform_hidden_types"
+                                  />
+                                }
+                                renderValue={(selected) => (
+                                  <Box
+                                    sx={{
+                                      display: 'flex',
+                                      flexWrap: 'wrap',
+                                      gap: 0.5,
+                                    }}
+                                  >
+                                    {selected.map((value) => (
+                                      <Chip
+                                        key={value}
+                                        label={t(`entity_${value}`)}
+                                      />
+                                    ))}
+                                  </Box>
+                                )}
+                              >
+                                <MenuItem value="Threats" dense={true}>
+                                  <Checkbox
+                                    checked={
+                                      (
+                                        values.platform_hidden_types || []
+                                      ).indexOf('Threats') > -1
+                                    }
+                                  />
+                                  {t('Threats')}
+                                </MenuItem>
+                                <MenuItem
+                                  value="Threat-Actor"
+                                  disabled={(
+                                    values.platform_hidden_types || []
+                                  ).includes('Threats')}
+                                  dense={true}
+                                >
+                                  <Checkbox
+                                    checked={
+                                      (
+                                        values.platform_hidden_types || []
+                                      ).indexOf('Threat-Actor') > -1
+                                    }
+                                    style={{ marginLeft: 10 }}
+                                  />
+                                  {t('entity_Threat-Actor')}
+                                </MenuItem>
+                                <MenuItem
+                                  value="Intrusion-Set"
+                                  disabled={(
+                                    values.platform_hidden_types || []
+                                  ).includes('Threats')}
+                                  dense={true}
+                                >
+                                  <Checkbox
+                                    checked={
+                                      (
+                                        values.platform_hidden_types || []
+                                      ).indexOf('Intrusion-Set') > -1
+                                    }
+                                    style={{ marginLeft: 10 }}
+                                  />
+                                  {t('entity_Intrusion-Set')}
+                                </MenuItem>
+                                <MenuItem
+                                  value="Campaign"
+                                  disabled={(
+                                    values.platform_hidden_types || []
+                                  ).includes('Threats')}
+                                  dense={true}
+                                >
+                                  <Checkbox
+                                    checked={
+                                      (
+                                        values.platform_hidden_types || []
+                                      ).indexOf('Campaign') > -1
+                                    }
+                                    style={{ marginLeft: 10 }}
+                                  />
+                                  {t('entity_Campaign')}
+                                </MenuItem>
+                                <MenuItem value="Arsenal" dense={true}>
+                                  <Checkbox
+                                    checked={
+                                      (
+                                        values.platform_hidden_types || []
+                                      ).indexOf('Arsenal') > -1
+                                    }
+                                  />
+                                  {t('Arsenal')}
+                                </MenuItem>
+                                <MenuItem
+                                  value="Malware"
+                                  disabled={(
+                                    values.platform_hidden_types || []
+                                  ).includes('Arsenal')}
+                                  dense={true}
+                                >
+                                  <Checkbox
+                                    checked={
+                                      (
+                                        values.platform_hidden_types || []
+                                      ).indexOf('Malware') > -1
+                                    }
+                                    style={{ marginLeft: 10 }}
+                                  />
+                                  {t('entity_Malware')}
+                                </MenuItem>
+                                <MenuItem
+                                  value="Attack-Pattern"
+                                  disabled={(
+                                    values.platform_hidden_types || []
+                                  ).includes('Arsenal')}
+                                  dense={true}
+                                >
+                                  <Checkbox
+                                    checked={
+                                      (
+                                        values.platform_hidden_types || []
+                                      ).indexOf('Attack-Pattern') > -1
+                                    }
+                                    style={{ marginLeft: 10 }}
+                                  />
+                                  {t('entity_Attack-Pattern')}
+                                </MenuItem>
+                                <MenuItem
+                                  value="Channel"
+                                  disabled={(
+                                    values.platform_hidden_types || []
+                                  ).includes('Arsenal')}
+                                  dense={true}
+                                >
+                                  <Checkbox
+                                    checked={
+                                      (
+                                        values.platform_hidden_types || []
+                                      ).indexOf('Channel') > -1
+                                    }
+                                    style={{ marginLeft: 10 }}
+                                  />
+                                  {t('entity_Channel')}
+                                </MenuItem>
+                                <MenuItem
+                                  value="Narrative"
+                                  disabled={(
+                                    values.platform_hidden_types || []
+                                  ).includes('Arsenal')}
+                                  dense={true}
+                                >
+                                  <Checkbox
+                                    checked={
+                                      (
+                                        values.platform_hidden_types || []
+                                      ).indexOf('Narrative') > -1
+                                    }
+                                    style={{ marginLeft: 10 }}
+                                  />
+                                  {t('entity_Narrative')}
+                                </MenuItem>
+                                <MenuItem
+                                  value="Course-Of-Action"
+                                  disabled={(
+                                    values.platform_hidden_types || []
+                                  ).includes('Arsenal')}
+                                  dense={true}
+                                >
+                                  <Checkbox
+                                    checked={
+                                      (
+                                        values.platform_hidden_types || []
+                                      ).indexOf('Course-Of-Action') > -1
+                                    }
+                                    style={{ marginLeft: 10 }}
+                                  />
+                                  {t('entity_Course-Of-Action')}
+                                </MenuItem>
+                                <MenuItem
+                                  value="Tool"
+                                  disabled={(
+                                    values.platform_hidden_types || []
+                                  ).includes('Arsenal')}
+                                  dense={true}
+                                >
+                                  <Checkbox
+                                    checked={
+                                      (
+                                        values.platform_hidden_types || []
+                                      ).indexOf('Tool') > -1
+                                    }
+                                    style={{ marginLeft: 10 }}
+                                  />
+                                  {t('entity_Tool')}
+                                </MenuItem>
+                                <MenuItem
+                                  value="Vulnerability"
+                                  disabled={(
+                                    values.platform_hidden_types || []
+                                  ).includes('Arsenal')}
+                                  dense={true}
+                                >
+                                  <Checkbox
+                                    checked={
+                                      (
+                                        values.platform_hidden_types || []
+                                      ).indexOf('Vulnerability') > -1
+                                    }
+                                    style={{ marginLeft: 10 }}
+                                  />
+                                  {t('entity_Vulnerability')}
+                                </MenuItem>
+                                <MenuItem value="Entities" dense={true}>
+                                  <Checkbox
+                                    checked={
+                                      (
+                                        values.platform_hidden_types || []
+                                      ).indexOf('Entities') > -1
+                                    }
+                                  />
+                                  {t('Entities')}
+                                </MenuItem>
+                                <MenuItem
+                                  value="Sector"
+                                  disabled={(
+                                    values.platform_hidden_types || []
+                                  ).includes('Entities')}
+                                  dense={true}
+                                >
+                                  <Checkbox
+                                    checked={
+                                      (
+                                        values.platform_hidden_types || []
+                                      ).indexOf('Sector') > -1
+                                    }
+                                    style={{ marginLeft: 10 }}
+                                  />
+                                  {t('entity_Sector')}
+                                </MenuItem>
+                                <MenuItem
+                                  value="Country"
+                                  disabled={(
+                                    values.platform_hidden_types || []
+                                  ).includes('Entities')}
+                                  dense={true}
+                                >
+                                  <Checkbox
+                                    checked={
+                                      (
+                                        values.platform_hidden_types || []
+                                      ).indexOf('Country') > -1
+                                    }
+                                    style={{ marginLeft: 10 }}
+                                  />
+                                  {t('entity_Country')}
+                                </MenuItem>
+                                <MenuItem
+                                  value="City"
+                                  disabled={(
+                                    values.platform_hidden_types || []
+                                  ).includes('Entities')}
+                                  dense={true}
+                                >
+                                  <Checkbox
+                                    checked={
+                                      (
+                                        values.platform_hidden_types || []
+                                      ).indexOf('City') > -1
+                                    }
+                                    style={{ marginLeft: 10 }}
+                                  />
+                                  {t('entity_City')}
+                                </MenuItem>
+                                <MenuItem
+                                  value="Position"
+                                  disabled={(
+                                    values.platform_hidden_types || []
+                                  ).includes('Entities')}
+                                  dense={true}
+                                >
+                                  <Checkbox
+                                    checked={
+                                      (
+                                        values.platform_hidden_types || []
+                                      ).indexOf('Position') > -1
+                                    }
+                                    style={{ marginLeft: 10 }}
+                                  />
+                                  {t('entity_Position')}
+                                </MenuItem>
+                                <MenuItem
+                                  value="Event"
+                                  disabled={(
+                                    values.platform_hidden_types || []
+                                  ).includes('Entities')}
+                                  dense={true}
+                                >
+                                  <Checkbox
+                                    checked={
+                                      (
+                                        values.platform_hidden_types || []
+                                      ).indexOf('Event') > -1
+                                    }
+                                    style={{ marginLeft: 10 }}
+                                  />
+                                  {t('entity_Event')}
+                                </MenuItem>
+                                <MenuItem
+                                  value="Organization"
+                                  disabled={(
+                                    values.platform_hidden_types || []
+                                  ).includes('Entities')}
+                                  dense={true}
+                                >
+                                  <Checkbox
+                                    checked={
+                                      (
+                                        values.platform_hidden_types || []
+                                      ).indexOf('Organization') > -1
+                                    }
+                                    style={{ marginLeft: 10 }}
+                                  />
+                                  {t('entity_Organization')}
+                                </MenuItem>
+                                <MenuItem
+                                  value="System"
+                                  disabled={(
+                                    values.platform_hidden_types || []
+                                  ).includes('Entities')}
+                                  dense={true}
+                                >
+                                  <Checkbox
+                                    checked={
+                                      (
+                                        values.platform_hidden_types || []
+                                      ).indexOf('System') > -1
+                                    }
+                                    style={{ marginLeft: 10 }}
+                                  />
+                                  {t('entity_System')}
+                                </MenuItem>
+                                <MenuItem
+                                  value="Individual"
+                                  disabled={(
+                                    values.platform_hidden_types || []
+                                  ).includes('Entities')}
+                                  dense={true}
+                                >
+                                  <Checkbox
+                                    checked={
+                                      (
+                                        values.platform_hidden_types || []
+                                      ).indexOf('Individual') > -1
+                                    }
+                                    style={{ marginLeft: 10 }}
+                                  />
+                                  {t('entity_Individual')}
+                                </MenuItem>
                               </Field>
                             </Form>
                           )}

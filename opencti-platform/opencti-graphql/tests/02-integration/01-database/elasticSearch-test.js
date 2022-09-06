@@ -33,7 +33,7 @@ import {
 import { utcDate } from '../../../src/utils/format';
 import { ADMIN_USER } from '../../utils/testQuery';
 import { BASE_TYPE_RELATION } from '../../../src/schema/general';
-import { loadByIdWithMetaRels } from '../../../src/database/middleware';
+import { storeLoadByIdWithRefs } from '../../../src/database/middleware';
 
 describe('Elasticsearch configuration test', () => {
   it('should configuration correct', () => {
@@ -53,12 +53,12 @@ describe('Elasticsearch configuration test', () => {
     // Create index
     const createdIndices = await elCreateIndexes(['test_index']);
     expect(createdIndices.length).toEqual(1);
-    expect(R.head(createdIndices).body.acknowledged).toBeTruthy();
-    expect(R.head(createdIndices).body.index).toEqual('test_index-000001');
+    expect(R.head(createdIndices).acknowledged).toBeTruthy();
+    expect(R.head(createdIndices).index).toEqual('test_index-000001');
     // Remove index
     const deletedIndices = await elDeleteIndexes(['test_index-000001']);
     expect(deletedIndices.length).toEqual(1);
-    expect(R.head(deletedIndices).body.acknowledged).toBeTruthy();
+    expect(R.head(deletedIndices).acknowledged).toBeTruthy();
   });
 });
 
@@ -91,7 +91,7 @@ describe('Elasticsearch document loader', () => {
     const dataThroughStix = await elLoadById(ADMIN_USER, standardId, null, ['test_index']);
     expect(dataThroughStix.standard_id).toEqual(documentWithIndex.standard_id);
     // Try to delete
-    await elDeleteElements(ADMIN_USER, [dataThroughStix], { idLoader: loadByIdWithMetaRels });
+    await elDeleteElements(ADMIN_USER, [dataThroughStix], storeLoadByIdWithRefs);
     const removedInternal = await elLoadById(ADMIN_USER, internalId, null, ['test_index']);
     expect(removedInternal).toBeUndefined();
   });
@@ -134,7 +134,7 @@ describe('Elasticsearch computation', () => {
       'Stix-Domain-Object',
       'entity_type',
       '2019-01-01T00:00:00Z',
-      new Date(mostRecentMalware.created_at).getTime() - 1,
+      new Date(mostRecentMalware.created_at).toISOString(),
       [
         {
           type: 'name',
@@ -231,7 +231,7 @@ describe('Elasticsearch computation', () => {
       'created_at',
       'day',
       '2019-09-29T00:00:00.000Z',
-      new Date().getTime(),
+      new Date().toISOString(),
       [],
       []
     );
@@ -260,7 +260,7 @@ describe('Elasticsearch computation', () => {
     expect(aggregationMap.get('2019-11')).toEqual(0);
     expect(aggregationMap.get('2019-12')).toEqual(0);
     expect(aggregationMap.get('2020-01')).toEqual(1);
-    expect(aggregationMap.get('2020-02')).toEqual(12);
+    expect(aggregationMap.get('2020-02')).toEqual(13);
     expect(aggregationMap.get('2020-03')).toEqual(1);
   });
   it('should year histogram accurate', async () => {
@@ -277,7 +277,7 @@ describe('Elasticsearch computation', () => {
     expect(data.length).toEqual(2);
     const aggregationMap = new Map(data.map((i) => [i.date, i.value]));
     expect(aggregationMap.get('2019')).toEqual(5);
-    expect(aggregationMap.get('2020')).toEqual(14);
+    expect(aggregationMap.get('2020')).toEqual(15);
   });
   it('should year histogram with relation filter accurate', async () => {
     const attackPattern = await elLoadById(ADMIN_USER, 'attack-pattern--489a7797-01c3-4706-8cd1-ec56a9db3adc');
@@ -406,7 +406,7 @@ describe('Elasticsearch pagination', () => {
   it('should entity paginate everything', async () => {
     const data = await elPaginate(ADMIN_USER, READ_ENTITIES_INDICES);
     expect(data).not.toBeNull();
-    expect(data.edges.length).toEqual(97);
+    expect(data.edges.length).toEqual(98);
     const filterBaseTypes = R.uniq(R.map((e) => e.node.base_type, data.edges));
     expect(filterBaseTypes.length).toEqual(1);
     expect(R.head(filterBaseTypes)).toEqual('ENTITY');
@@ -423,7 +423,7 @@ describe('Elasticsearch pagination', () => {
       after: 'WyJleHRlcm5hbC1yZWZlcmVuY2UtLTUzYjNhZGI2LWQ4M2YtNWQyMS05Mzc2LTQ1YTE5OGU0NDA3ZSJd',
     });
     expect(data).not.toBeNull();
-    expect(data.edges.length).toEqual(66);
+    expect(data.edges.length).toEqual(67);
   });
   it('should entity paginate with single type', async () => {
     // first = 200, after, types = null, filters = [], search = null,
@@ -477,7 +477,7 @@ describe('Elasticsearch pagination', () => {
   it('should entity paginate with field exist filter', async () => {
     const filters = [{ key: 'x_opencti_color', operator: undefined, values: ['EXISTS'] }];
     const data = await elPaginate(ADMIN_USER, READ_ENTITIES_INDICES, { filters });
-    expect(data.edges.length).toEqual(6);
+    expect(data.edges.length).toEqual(7);
   });
   it('should entity paginate with equality filter', async () => {
     // eq operation will use the field.keyword to do an exact field equality
@@ -492,7 +492,7 @@ describe('Elasticsearch pagination', () => {
   it('should entity paginate with match filter', async () => {
     let filters = [{ key: 'entity_type', operator: 'match', values: ['marking'] }];
     let data = await elPaginate(ADMIN_USER, READ_ENTITIES_INDICES, { filters });
-    expect(data.edges.length).toEqual(6); // The 4 Default TLP + MITRE Corporation
+    expect(data.edges.length).toEqual(7); // The 4 Default TLP + MITRE Corporation
     // Verify that nothing is found in this case if using the eq operator
     filters = [{ key: 'entity_type', operator: 'eq', values: ['marking'] }];
     data = await elPaginate(ADMIN_USER, READ_ENTITIES_INDICES, { filters });
@@ -517,7 +517,7 @@ describe('Elasticsearch pagination', () => {
   });
   it('should entity paginate with date ordering', async () => {
     const data = await elPaginate(ADMIN_USER, READ_ENTITIES_INDICES, { orderBy: 'created', orderMode: 'asc' });
-    expect(data.edges.length).toEqual(56);
+    expect(data.edges.length).toEqual(57);
     const createdDates = R.map((e) => e.node.created, data.edges);
     let previousCreatedDate = null;
     for (let index = 0; index < createdDates.length; index += 1) {
@@ -540,13 +540,14 @@ describe('Elasticsearch pagination', () => {
       orderBy: 'definition',
       orderMode: 'desc',
     });
-    expect(data.edges.length).toEqual(6);
+    expect(data.edges.length).toEqual(7);
     const markings = R.map((e) => e.node.definition, data.edges);
-    expect(markings[0]).toEqual('TLP:WHITE');
-    expect(markings[1]).toEqual('TLP:TEST');
-    expect(markings[2]).toEqual('TLP:RED');
-    expect(markings[3]).toEqual('TLP:GREEN');
-    expect(markings[4]).toEqual('TLP:AMBER');
+    expect(markings[0]).toEqual('TLP:TEST');
+    expect(markings[1]).toEqual('TLP:RED');
+    expect(markings[2]).toEqual('TLP:GREEN');
+    expect(markings[3]).toEqual('TLP:CLEAR');
+    expect(markings[4]).toEqual('TLP:AMBER+STRICT');
+    expect(markings[5]).toEqual('TLP:AMBER');
   });
   it('should relation paginate everything', async () => {
     let data = await elPaginate(ADMIN_USER, READ_RELATIONSHIPS_INDICES);

@@ -54,6 +54,7 @@ const styles = (theme) => ({
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+    paddingRight: 5,
   },
   itemIconDisabled: {
     color: theme.palette.grey[700],
@@ -169,7 +170,7 @@ class StixSightingRelationshipLineComponent extends Component {
               </div>
               <div
                 className={classes.bodyItem}
-                style={{ width: dataColumns.status_id.width }}
+                style={{ width: dataColumns.x_opencti_workflow_id.width }}
               >
                 <ItemStatus
                   status={node.status}
@@ -505,7 +506,7 @@ class StixSightingRelationshipLineDummyComponent extends Component {
               </div>
               <div
                 className={classes.bodyItem}
-                style={{ width: dataColumns.status_id.width }}
+                style={{ width: dataColumns.x_opencti_workflow_id.width }}
               >
                 <Skeleton
                   animation="wave"

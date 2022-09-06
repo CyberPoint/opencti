@@ -48,10 +48,10 @@ import {
   stixCyberObservablesLinesAttributesQuery,
   stixCyberObservablesLinesSubTypesQuery,
 } from './StixCyberObservablesLines';
-import DatePickerField from '../../../../components/DatePickerField';
 import { parse } from '../../../../utils/Time';
 import MarkDownField from '../../../../components/MarkDownField';
 import ExternalReferencesField from '../../common/form/ExternalReferencesField';
+import DateTimePickerField from '../../../../components/DateTimePickerField';
 
 export const ignoredAttributes = [
   'internal_id',
@@ -71,6 +71,13 @@ export const ignoredAttributes = [
   'importFiles',
 ];
 
+export const ignoredAttributesInFeeds = [
+  'x_opencti_stix_ids',
+  'spec_version',
+  'extensions',
+  'importFiles',
+];
+
 export const dateAttributes = [
   'ctime',
   'mtime',
@@ -78,6 +85,8 @@ export const dateAttributes = [
   'attribute_date',
   'validity_not_before',
   'validity_not_after',
+  'private_key_usage_period_not_before',
+  'private_key_usage_period_not_after',
   'start',
   'end',
   'created_time',
@@ -87,6 +96,7 @@ export const dateAttributes = [
   'credential_last_changed',
   'account_first_login',
   'account_last_login',
+  'expiration_date',
 ];
 
 export const numberAttributes = [
@@ -101,6 +111,7 @@ export const numberAttributes = [
   'size',
   'number_of_subkeys',
   'subject_public_key_exponent',
+  'cvv',
 ];
 
 export const booleanAttributes = [
@@ -215,12 +226,14 @@ const stixCyberObservableMutation = graphql`
     $UserAccount: UserAccountAddInput
     $WindowsRegistryKey: WindowsRegistryKeyAddInput
     $WindowsRegistryValueType: WindowsRegistryValueTypeAddInput
-    $X509V3ExtensionsType: X509V3ExtensionsTypeAddInput
-    $XOpenCTIHostname: XOpenCTIHostnameAddInput
-    $XOpenCTICryptographicKey: XOpenCTICryptographicKeyAddInput
-    $XOpenCTICryptocurrencyWallet: XOpenCTICryptocurrencyWalletAddInput
-    $XOpenCTIText: XOpenCTITextAddInput
-    $XOpenCTIUserAgent: XOpenCTIUserAgentAddInput
+    $Hostname: HostnameAddInput
+    $CryptographicKey: CryptographicKeyAddInput
+    $CryptocurrencyWallet: CryptocurrencyWalletAddInput
+    $Text: TextAddInput
+    $UserAgent: UserAgentAddInput
+    $BankAccount: BankAccountAddInput
+    $PhoneNumber: PhoneNumberAddInput
+    $PaymentCard: PaymentCardAddInput
   ) {
     stixCyberObservableAdd(
       type: $type
@@ -251,12 +264,14 @@ const stixCyberObservableMutation = graphql`
       UserAccount: $UserAccount
       WindowsRegistryKey: $WindowsRegistryKey
       WindowsRegistryValueType: $WindowsRegistryValueType
-      X509V3ExtensionsType: $X509V3ExtensionsType
-      XOpenCTIHostname: $XOpenCTIHostname
-      XOpenCTICryptographicKey: $XOpenCTICryptographicKey
-      XOpenCTICryptocurrencyWallet: $XOpenCTICryptocurrencyWallet
-      XOpenCTIText: $XOpenCTIText
-      XOpenCTIUserAgent: $XOpenCTIUserAgent
+      Hostname: $Hostname
+      CryptographicKey: $CryptographicKey
+      CryptocurrencyWallet: $CryptocurrencyWallet
+      Text: $Text
+      UserAgent: $UserAgent
+      BankAccount: $BankAccount
+      PhoneNumber: $PhoneNumber
+      PaymentCard: $PaymentCard
     ) {
       id
       entity_type
@@ -317,7 +332,7 @@ const sharedUpdater = (
 class StixCyberObservableCreation extends Component {
   constructor(props) {
     super(props);
-    this.state = { open: false, type: null };
+    this.state = { open: false, type: props.type || null };
   }
 
   handleOpen() {
@@ -531,7 +546,13 @@ class StixCyberObservableCreation extends Component {
                   setFieldValue,
                   values,
                 }) => (
-                  <Form style={{ margin: '20px 0 20px 0' }}>
+                  <Form
+                    style={{
+                      margin: this.props.contextual
+                        ? '10px 0 0 0'
+                        : '20px 0 20px 0',
+                    }}
+                  >
                     <div>
                       <Field
                         component={TextField}
@@ -584,12 +605,10 @@ class StixCyberObservableCreation extends Component {
                         if (includes(attribute.value, dateAttributes)) {
                           return (
                             <Field
-                              component={DatePickerField}
+                              component={DateTimePickerField}
                               key={attribute.value}
                               name={attribute.value}
-                              invalidDateMessage={t(
-                                'The value must be a date (mm/dd/yyyy)',
-                              )}
+                              withSeconds={true}
                               TextFieldProps={{
                                 label: attribute.value,
                                 variant: 'standard',
@@ -795,6 +814,7 @@ StixCyberObservableCreation.propTypes = {
   display: PropTypes.bool,
   inputValue: PropTypes.string,
   openExports: PropTypes.bool,
+  type: PropTypes.string,
 };
 
 export default compose(

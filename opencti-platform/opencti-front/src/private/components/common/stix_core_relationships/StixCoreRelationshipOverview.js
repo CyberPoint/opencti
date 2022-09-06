@@ -3,6 +3,7 @@ import * as PropTypes from 'prop-types';
 import { Link, withRouter } from 'react-router-dom';
 import * as R from 'ramda';
 import withStyles from '@mui/styles/withStyles';
+import withTheme from '@mui/styles/withTheme';
 import { graphql, createFragmentContainer } from 'react-relay';
 import Markdown from 'react-markdown';
 import Grid from '@mui/material/Grid';
@@ -39,6 +40,8 @@ import StixCoreRelationshipExternalReferences from '../../analysis/external_refe
 import StixCoreRelationshipLatestHistory from './StixCoreRelationshipLatestHistory';
 import Security, { KNOWLEDGE_KNUPDATE } from '../../../../utils/Security';
 import { defaultValue } from '../../../../utils/Graph';
+import ItemStatus from '../../../../components/ItemStatus';
+import ItemCreator from '../../../../components/ItemCreator';
 
 const styles = (theme) => ({
   container: {
@@ -116,14 +119,22 @@ const styles = (theme) => ({
   },
   buttonExpand: {
     position: 'absolute',
+    left: 0,
     bottom: 0,
     width: '100%',
     height: 25,
-    backgroundColor: 'rgba(255, 255, 255, .1)',
+    color: theme.palette.primary.main,
+    backgroundColor:
+      theme.palette.mode === 'dark'
+        ? 'rgba(255, 255, 255, .1)'
+        : 'rgba(0, 0, 0, .1)',
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,
     '&:hover': {
-      backgroundColor: 'rgba(255, 255, 255, .2)',
+      backgroundColor:
+        theme.palette.mode === 'dark'
+          ? 'rgba(255, 255, 255, .2)'
+          : 'rgba(0, 0, 0, .2)',
     },
   },
 });
@@ -180,7 +191,15 @@ class StixCoreRelationshipContainer extends Component {
   }
 
   render() {
-    const { t, nsdt, classes, stixCoreRelationship, paddingRight } = this.props;
+    const {
+      t,
+      fldt,
+      nsdt,
+      classes,
+      theme,
+      stixCoreRelationship,
+      paddingRight,
+    } = this.props;
     const { expanded } = this.state;
     const { from } = stixCoreRelationship;
     const { to } = stixCoreRelationship;
@@ -206,7 +225,7 @@ class StixCoreRelationshipContainer extends Component {
       && stixCoreRelationship.x_opencti_inferences.length > 1;
     return (
       <div className={classes.container}>
-        <Link to={!fromRestricted ? `${linkFrom}/${from.id}` : ''}>
+        <Link to={!fromRestricted ? `${linkFrom}/${from.id}` : '#'}>
           <div
             className={classes.item}
             style={{
@@ -263,8 +282,8 @@ class StixCoreRelationshipContainer extends Component {
           <div
             style={{
               padding: '5px 8px 5px 8px',
-              backgroundColor: '#14262c',
-              color: '#ffffff',
+              backgroundColor: theme.palette.background.accent,
+              color: theme.palette.text.primary,
               fontSize: 12,
               display: 'inline-block',
             }}
@@ -274,7 +293,7 @@ class StixCoreRelationshipContainer extends Component {
             </strong>
           </div>
         </div>
-        <Link to={!toRestricted ? `${linkTo}/${to.id}` : ''}>
+        <Link to={!toRestricted ? `${linkTo}/${to.id}` : '#'}>
           <div
             className={classes.item}
             style={{
@@ -329,57 +348,96 @@ class StixCoreRelationshipContainer extends Component {
         <Grid container={true} spacing={3}>
           <Grid item={true} xs={6}>
             <Typography variant="h4" gutterBottom={true}>
-              {t('Information')}
+              {t('Basic information')}
             </Typography>
             <Paper classes={{ root: classes.paper }} variant="outlined">
-              <Typography variant="h3" gutterBottom={true}>
-                {t('Marking')}
-              </Typography>
-              {stixCoreRelationship.objectMarking.edges.length > 0
-                && R.map(
-                  (markingDefinition) => (
-                    <ItemMarking
-                      key={markingDefinition.node.id}
-                      label={markingDefinition.node.definition}
-                      color={markingDefinition.node.x_opencti_color}
-                    />
-                  ),
-                  stixCoreRelationship.objectMarking.edges,
-                )}
-              <Typography
-                variant="h3"
-                gutterBottom={true}
-                style={{ marginTop: 20 }}
-              >
-                {t('Creation date')}
-              </Typography>
-              {nsdt(stixCoreRelationship.created_at)}
-              <Typography
-                variant="h3"
-                gutterBottom={true}
-                style={{ marginTop: 20 }}
-              >
-                {t('Modification date')}
-              </Typography>
-              {nsdt(stixCoreRelationship.updated_at)}
-              {stixCoreRelationship.x_opencti_inferences === null && (
-                <div>
+              <Grid container={true} spacing={3}>
+                <Grid item={true} xs={6}>
+                  <Typography variant="h3" gutterBottom={true}>
+                    {t('Marking')}
+                  </Typography>
+                  {stixCoreRelationship.objectMarking.edges.length > 0
+                    && R.map(
+                      (markingDefinition) => (
+                        <ItemMarking
+                          key={markingDefinition.node.id}
+                          label={markingDefinition.node.definition}
+                          color={markingDefinition.node.x_opencti_color}
+                        />
+                      ),
+                      stixCoreRelationship.objectMarking.edges,
+                    )}
+                  {stixCoreRelationship.x_opencti_inferences === null && (
+                    <div>
+                      <Typography
+                        variant="h3"
+                        gutterBottom={true}
+                        style={{ marginTop: 20 }}
+                      >
+                        {t('Author')}
+                      </Typography>
+                      <ItemAuthor
+                        createdBy={R.propOr(
+                          null,
+                          'createdBy',
+                          stixCoreRelationship,
+                        )}
+                      />
+                    </div>
+                  )}
                   <Typography
                     variant="h3"
                     gutterBottom={true}
                     style={{ marginTop: 20 }}
                   >
-                    {t('Author')}
+                    {t('Creation date')}
                   </Typography>
-                  <ItemAuthor
-                    createdBy={R.propOr(
-                      null,
-                      'createdBy',
-                      stixCoreRelationship,
-                    )}
+                  {nsdt(stixCoreRelationship.created)}
+                  <Typography
+                    variant="h3"
+                    gutterBottom={true}
+                    style={{ marginTop: 20 }}
+                  >
+                    {t('Modification date')}
+                  </Typography>
+                  {nsdt(stixCoreRelationship.updated_at)}
+                </Grid>
+                <Grid item={true} xs={6}>
+                  <Typography variant="h3" gutterBottom={true}>
+                    {t('Processing status')}
+                  </Typography>
+                  <ItemStatus
+                    status={stixCoreRelationship.status}
+                    disabled={!stixCoreRelationship.workflowEnabled}
                   />
-                </div>
-              )}
+                  <Typography
+                    variant="h3"
+                    gutterBottom={true}
+                    style={{ marginTop: 20 }}
+                  >
+                    {t('Confidence level')}
+                  </Typography>
+                  <ItemConfidence
+                    confidence={stixCoreRelationship.confidence}
+                  />
+                  <Typography
+                    variant="h3"
+                    gutterBottom={true}
+                    style={{ marginTop: 20 }}
+                  >
+                    {t('Creation date (in this platform)')}
+                  </Typography>
+                  {fldt(stixCoreRelationship.created_at)}
+                  <Typography
+                    variant="h3"
+                    gutterBottom={true}
+                    style={{ marginTop: 20 }}
+                  >
+                    {t('Creator')}
+                  </Typography>
+                  <ItemCreator creator={stixCoreRelationship.creator} />
+                </Grid>
+              </Grid>
             </Paper>
           </Grid>
           <Grid item={true} xs={6}>
@@ -388,21 +446,13 @@ class StixCoreRelationshipContainer extends Component {
             </Typography>
             <Paper classes={{ root: classes.paper }} variant="outlined">
               <Typography variant="h3" gutterBottom={true}>
-                {t('Confidence level')}
-              </Typography>
-              <ItemConfidence confidence={stixCoreRelationship.confidence} />
-              <Typography
-                variant="h3"
-                gutterBottom={true}
-                style={{ marginTop: 20 }}
-              >
                 {t('Start time')}
               </Typography>
               {nsdt(stixCoreRelationship.start_time)}
               <Typography
                 variant="h3"
-                gutterBottom={true}
                 style={{ marginTop: 20 }}
+                gutterBottom={true}
               >
                 {t('Stop time')}
               </Typography>
@@ -550,6 +600,7 @@ const StixCoreRelationshipOverview = createFragmentContainer(
         parent_types
         relationship_type
         confidence
+        created
         start_time
         stop_time
         description
@@ -558,9 +609,23 @@ const StixCoreRelationshipOverview = createFragmentContainer(
         created_at
         updated_at
         is_inferred
+        creator {
+          id
+          name
+        }
+        status {
+          id
+          order
+          template {
+            name
+            color
+          }
+        }
+        workflowEnabled
         x_opencti_inferences {
           rule {
             id
+              
             name
             description
           }
@@ -633,6 +698,18 @@ const StixCoreRelationshipOverview = createFragmentContainer(
               name
             }
             ... on Incident {
+              name
+            }
+            ... on Event {
+              name
+            }
+            ... on Channel {
+              name
+            }
+            ... on Narrative {
+              name
+            }
+            ... on Language {
               name
             }
             ... on StixCoreRelationship {
@@ -718,6 +795,18 @@ const StixCoreRelationshipOverview = createFragmentContainer(
                   name
                 }
                 ... on Incident {
+                  name
+                }
+                ... on Event {
+                  name
+                }
+                ... on Channel {
+                  name
+                }
+                ... on Narrative {
+                  name
+                }
+                ... on Language {
                   name
                 }
                 ... on StixCyberObservable {
@@ -851,6 +940,23 @@ const StixCoreRelationshipOverview = createFragmentContainer(
                           first_seen
                           last_seen
                         }
+                        ... on Event {
+                          name
+                          description
+                          start_time
+                          stop_time
+                        }
+                        ... on Channel {
+                          name
+                          description
+                        }
+                        ... on Narrative {
+                          name
+                          description
+                        }
+                        ... on Language {
+                          name
+                        }
                         ... on StixCyberObservable {
                           observable_value
                           x_opencti_description
@@ -941,6 +1047,18 @@ const StixCoreRelationshipOverview = createFragmentContainer(
                     ... on Incident {
                       name
                     }
+                    ... on Event {
+                      name
+                    }
+                    ... on Channel {
+                      name
+                    }
+                    ... on Narrative {
+                      name
+                    }
+                    ... on Language {
+                      name
+                    }
                   }
                   to {
                     ... on BasicObject {
@@ -1015,6 +1133,18 @@ const StixCoreRelationshipOverview = createFragmentContainer(
                       name
                     }
                     ... on Incident {
+                      name
+                    }
+                    ... on Event {
+                      name
+                    }
+                    ... on Channel {
+                      name
+                    }
+                    ... on Narrative {
+                      name
+                    }
+                    ... on Language {
                       name
                     }
                     ... on ObservedData {
@@ -1144,6 +1274,23 @@ const StixCoreRelationshipOverview = createFragmentContainer(
                               description
                               first_seen
                               last_seen
+                            }
+                            ... on Event {
+                              name
+                              description
+                              start_time
+                              stop_time
+                            }
+                            ... on Channel {
+                              name
+                              description
+                            }
+                            ... on Narrative {
+                              name
+                              description
+                            }
+                            ... on Language {
+                              name
                             }
                             ... on StixCyberObservable {
                               observable_value
@@ -1234,6 +1381,18 @@ const StixCoreRelationshipOverview = createFragmentContainer(
                 ... on Incident {
                   name
                 }
+                ... on Event {
+                  name
+                }
+                ... on Channel {
+                  name
+                }
+                ... on Narrative {
+                  name
+                }
+                ... on Language {
+                  name
+                }
                 ... on StixCyberObservable {
                   observable_value
                 }
@@ -1365,6 +1524,23 @@ const StixCoreRelationshipOverview = createFragmentContainer(
                           first_seen
                           last_seen
                         }
+                        ... on Event {
+                          name
+                          description
+                          start_time
+                          stop_time
+                        }
+                        ... on Channel {
+                          name
+                          description
+                        }
+                        ... on Narrative {
+                          name
+                          description
+                        }
+                        ... on Language {
+                          name
+                        }
                         ... on StixCyberObservable {
                           observable_value
                           x_opencti_description
@@ -1457,6 +1633,18 @@ const StixCoreRelationshipOverview = createFragmentContainer(
                     ... on Incident {
                       name
                     }
+                    ... on Event {
+                      name
+                    }
+                    ... on Channel {
+                      name
+                    }
+                    ... on Narrative {
+                      name
+                    }
+                    ... on Language {
+                      name
+                    }
                     ... on StixCyberObservable {
                       observable_value
                     }
@@ -1587,6 +1775,23 @@ const StixCoreRelationshipOverview = createFragmentContainer(
                               description
                               first_seen
                               last_seen
+                            }
+                            ... on Event {
+                              name
+                              description
+                              start_time
+                              stop_time
+                            }
+                            ... on Channel {
+                              name
+                              description
+                            }
+                            ... on Narrative {
+                              name
+                              description
+                            }
+                            ... on Language {
+                              name
                             }
                             ... on StixCyberObservable {
                               observable_value
@@ -1674,6 +1879,18 @@ const StixCoreRelationshipOverview = createFragmentContainer(
                     ... on Incident {
                       name
                     }
+                    ... on Event {
+                      name
+                    }
+                    ... on Channel {
+                      name
+                    }
+                    ... on Narrative {
+                      name
+                    }
+                    ... on Language {
+                      name
+                    }
                     ... on StixCyberObservable {
                       observable_value
                     }
@@ -1804,6 +2021,23 @@ const StixCoreRelationshipOverview = createFragmentContainer(
                               description
                               first_seen
                               last_seen
+                            }
+                            ... on Event {
+                              name
+                              description
+                              start_time
+                              stop_time
+                            }
+                            ... on Channel {
+                              name
+                              description
+                            }
+                            ... on Narrative {
+                              name
+                              description
+                            }
+                            ... on Language {
+                              name
                             }
                             ... on StixCyberObservable {
                               observable_value
@@ -1898,6 +2132,18 @@ const StixCoreRelationshipOverview = createFragmentContainer(
                 ... on Incident {
                   name
                 }
+                ... on Event {
+                  name
+                }
+                ... on Channel {
+                  name
+                }
+                ... on Narrative {
+                  name
+                }
+                ... on Language {
+                  name
+                }
                 ... on StixCyberObservable {
                   observable_value
                 }
@@ -2029,6 +2275,23 @@ const StixCoreRelationshipOverview = createFragmentContainer(
                           first_seen
                           last_seen
                         }
+                        ... on Event {
+                          name
+                          description
+                          start_time
+                          stop_time
+                        }
+                        ... on Channel {
+                          name
+                          description
+                        }
+                        ... on Narrative {
+                          name
+                          description
+                        }
+                        ... on Language {
+                          name
+                        }
                         ... on StixCyberObservable {
                           observable_value
                           x_opencti_description
@@ -2119,6 +2382,18 @@ const StixCoreRelationshipOverview = createFragmentContainer(
                     ... on Incident {
                       name
                     }
+                    ... on Event {
+                      name
+                    }
+                    ... on Channel {
+                      name
+                    }
+                    ... on Narrative {
+                      name
+                    }
+                    ... on Language {
+                      name
+                    }
                   }
                   to {
                     ... on BasicObject {
@@ -2193,6 +2468,18 @@ const StixCoreRelationshipOverview = createFragmentContainer(
                       name
                     }
                     ... on Incident {
+                      name
+                    }
+                    ... on Event {
+                      name
+                    }
+                    ... on Channel {
+                      name
+                    }
+                    ... on Narrative {
+                      name
+                    }
+                    ... on Language {
                       name
                     }
                     ... on ObservedData {
@@ -2322,6 +2609,23 @@ const StixCoreRelationshipOverview = createFragmentContainer(
                               description
                               first_seen
                               last_seen
+                            }
+                            ... on Event {
+                              name
+                              description
+                              start_time
+                              stop_time
+                            }
+                            ... on Channel {
+                              name
+                              description
+                            }
+                            ... on Narrative {
+                              name
+                              description
+                            }
+                            ... on Language {
+                              name
                             }
                             ... on StixCyberObservable {
                               observable_value
@@ -2412,6 +2716,18 @@ const StixCoreRelationshipOverview = createFragmentContainer(
                 ... on Incident {
                   name
                 }
+                ... on Event {
+                  name
+                }
+                ... on Channel {
+                  name
+                }
+                ... on Narrative {
+                  name
+                }
+                ... on Language {
+                  name
+                }
                 ... on StixCyberObservable {
                   observable_value
                 }
@@ -2543,6 +2859,23 @@ const StixCoreRelationshipOverview = createFragmentContainer(
                           first_seen
                           last_seen
                         }
+                        ... on Event {
+                          name
+                          description
+                          start_time
+                          stop_time
+                        }
+                        ... on Channel {
+                          name
+                          description
+                        }
+                        ... on Narrative {
+                          name
+                          description
+                        }
+                        ... on Language {
+                          name
+                        }
                         ... on StixCyberObservable {
                           observable_value
                           x_opencti_description
@@ -2635,6 +2968,18 @@ const StixCoreRelationshipOverview = createFragmentContainer(
                     ... on Incident {
                       name
                     }
+                    ... on Event {
+                      name
+                    }
+                    ... on Channel {
+                      name
+                    }
+                    ... on Narrative {
+                      name
+                    }
+                    ... on Language {
+                      name
+                    }
                     ... on StixCyberObservable {
                       observable_value
                     }
@@ -2765,6 +3110,23 @@ const StixCoreRelationshipOverview = createFragmentContainer(
                               description
                               first_seen
                               last_seen
+                            }
+                            ... on Event {
+                              name
+                              description
+                              start_time
+                              stop_time
+                            }
+                            ... on Channel {
+                              name
+                              description
+                            }
+                            ... on Narrative {
+                              name
+                              description
+                            }
+                            ... on Language {
+                              name
                             }
                             ... on StixCyberObservable {
                               observable_value
@@ -2852,6 +3214,18 @@ const StixCoreRelationshipOverview = createFragmentContainer(
                     ... on Incident {
                       name
                     }
+                    ... on Event {
+                      name
+                    }
+                    ... on Channel {
+                      name
+                    }
+                    ... on Narrative {
+                      name
+                    }
+                    ... on Language {
+                      name
+                    }
                     ... on StixCyberObservable {
                       observable_value
                     }
@@ -2983,6 +3357,23 @@ const StixCoreRelationshipOverview = createFragmentContainer(
                               first_seen
                               last_seen
                             }
+                            ... on Event {
+                              name
+                              description
+                              start_time
+                              stop_time
+                            }
+                            ... on Channel {
+                              name
+                              description
+                            }
+                            ... on Narrative {
+                              name
+                              description
+                            }
+                            ... on Language {
+                              name
+                            }
                             ... on StixCyberObservable {
                               observable_value
                               x_opencti_description
@@ -2997,7 +3388,6 @@ const StixCoreRelationshipOverview = createFragmentContainer(
             }
           }
         }
-
         createdBy {
           ... on Identity {
             id
@@ -3091,6 +3481,18 @@ const StixCoreRelationshipOverview = createFragmentContainer(
           ... on Incident {
             name
           }
+          ... on Event {
+            name
+          }
+          ... on Channel {
+            name
+          }
+          ... on Narrative {
+            name
+          }
+          ... on Language {
+            name
+          }
           ... on StixCyberObservable {
             observable_value
           }
@@ -3222,6 +3624,23 @@ const StixCoreRelationshipOverview = createFragmentContainer(
                     first_seen
                     last_seen
                   }
+                  ... on Event {
+                    name
+                    description
+                    start_time
+                    stop_time
+                  }
+                  ... on Channel {
+                    name
+                    description
+                  }
+                  ... on Narrative {
+                    name
+                    description
+                  }
+                  ... on Language {
+                    name
+                  }
                   ... on StixCyberObservable {
                     observable_value
                     x_opencti_description
@@ -3312,6 +3731,18 @@ const StixCoreRelationshipOverview = createFragmentContainer(
               ... on Incident {
                 name
               }
+              ... on Event {
+                name
+              }
+              ... on Channel {
+                name
+              }
+              ... on Narrative {
+                name
+              }
+              ... on Language {
+                name
+              }
             }
             to {
               ... on BasicObject {
@@ -3386,6 +3817,18 @@ const StixCoreRelationshipOverview = createFragmentContainer(
                 name
               }
               ... on Incident {
+                name
+              }
+              ... on Event {
+                name
+              }
+              ... on Channel {
+                name
+              }
+              ... on Narrative {
+                name
+              }
+              ... on Language {
                 name
               }
             }
@@ -3468,6 +3911,18 @@ const StixCoreRelationshipOverview = createFragmentContainer(
           ... on Incident {
             name
           }
+          ... on Event {
+            name
+          }
+          ... on Channel {
+            name
+          }
+          ... on Narrative {
+            name
+          }
+          ... on Language {
+            name
+          }
           ... on StixCyberObservable {
             observable_value
           }
@@ -3599,6 +4054,20 @@ const StixCoreRelationshipOverview = createFragmentContainer(
                     first_seen
                     last_seen
                   }
+                  ... on Event {
+                    name
+                    start_time
+                    stop_time
+                  }
+                  ... on Channel {
+                    name
+                  }
+                  ... on Narrative {
+                    name
+                  }
+                  ... on Language {
+                    name
+                  }
                   ... on StixCyberObservable {
                     observable_value
                     x_opencti_description
@@ -3682,6 +4151,18 @@ const StixCoreRelationshipOverview = createFragmentContainer(
               ... on Incident {
                 name
               }
+              ... on Event {
+                name
+              }
+              ... on Channel {
+                name
+              }
+              ... on Narrative {
+                name
+              }
+              ... on Language {
+                name
+              }
               ... on StixCyberObservable {
                 observable_value
               }
@@ -3754,6 +4235,18 @@ const StixCoreRelationshipOverview = createFragmentContainer(
               ... on Incident {
                 name
               }
+              ... on Event {
+                name
+              }
+              ... on Channel {
+                name
+              }
+              ... on Narrative {
+                name
+              }
+              ... on Language {
+                name
+              }
               ... on StixCyberObservable {
                 observable_value
               }
@@ -3768,5 +4261,6 @@ const StixCoreRelationshipOverview = createFragmentContainer(
 export default R.compose(
   inject18n,
   withRouter,
+  withTheme,
   withStyles(styles),
 )(StixCoreRelationshipOverview);

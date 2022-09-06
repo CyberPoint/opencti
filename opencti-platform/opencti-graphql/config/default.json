@@ -2,7 +2,7 @@
   "app": {
     "port": 4000,
     "base_path": "",
-    "base_url": "",
+    "base_url": "http://localhost:4000/",
     "enabled": true,
     "https_cert": {
       "ca": [],
@@ -61,8 +61,17 @@
   },
   "rule_engine": {
     "enabled": true,
-    "lock_key": "rule_engine_lock",
-    "status_writing_delay": 2000
+    "lock_key": "rule_engine_lock"
+  },
+  "history_manager": {
+    "enabled": true,
+    "lock_key": "history_manager_lock"
+  },
+  "connector_manager": {
+    "enabled": true,
+    "lock_key": "connector_manager_lock",
+    "works_day_range": 7,
+    "interval": 15000
   },
   "task_scheduler": {
     "enabled": true,
@@ -96,6 +105,7 @@
     "ca": [],
     "port": 6379,
     "trimming": 0,
+    "include_inferences": false,
     "use_as_cache": false
   },
   "elasticsearch": {
@@ -108,21 +118,26 @@
   },
   "minio": {
     "bucket_name": "opencti-bucket",
+    "bucket_region": "us-east-1",
     "endpoint": "localhost",
     "port": 9000,
     "use_ssl": false,
     "access_key": "ChangeMe",
-    "secret_key": "ChangeMe"
+    "secret_key": "ChangeMe",
+    "excluded_files": [".DS_Store"],
+    "use_aws_role": false
   },
   "rabbitmq": {
     "hostname": "localhost",
+    "vhost": "/",
     "use_ssl": false,
     "ca": [],
     "port": 5672,
     "port_management": 15672,
     "management_ssl": false,
     "username": "guest",
-    "password": "guest"
+    "password": "guest",
+    "queue_type": "classic"
   },
   "smtp": {
     "hostname": "localhost",

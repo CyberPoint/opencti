@@ -33,6 +33,7 @@ const styles = (theme) => ({
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+    paddingRight: 5,
   },
   itemIconDisabled: {
     color: theme.palette.grey[700],
@@ -66,7 +67,7 @@ class EntityStixCoreRelationshipLineToComponent extends Component {
         to={link}
       >
         <ListItemIcon classes={{ root: classes.itemIcon }}>
-          <ItemIcon type={node.from.entity_type} />
+          <ItemIcon type={!restricted ? node.from.entity_type : 'restricted'} />
         </ListItemIcon>
         <ListItemText
           primary={
@@ -102,6 +103,12 @@ class EntityStixCoreRelationshipLineToComponent extends Component {
                 style={{ width: dataColumns.stop_time.width }}
               >
                 {fsd(node.stop_time)}
+              </div>
+              <div
+                className={classes.bodyItem}
+                style={{ width: dataColumns.created.width }}
+              >
+                {fsd(node.created)}
               </div>
               <div
                 className={classes.bodyItem}
@@ -158,6 +165,7 @@ const EntityStixCoreRelationshipLineToFragment = createFragmentContainer(
         stop_time
         description
         is_inferred
+        created
         x_opencti_inferences {
           rule {
             id
@@ -283,6 +291,21 @@ const EntityStixCoreRelationshipLineToFragment = createFragmentContainer(
           ... on Incident {
             name
             description
+          }
+          ... on Event {
+            name
+            description
+          }
+          ... on Channel {
+            name
+            description
+          }
+          ... on Narrative {
+            name
+            description
+          }
+          ... on Language {
+            name
           }
           ... on StixCyberObservable {
             id
@@ -419,6 +442,17 @@ class EntityStixCoreRelationshipLineToDummyComponent extends Component {
               <div
                 className={classes.bodyItem}
                 style={{ width: dataColumns.stop_time.width }}
+              >
+                <Skeleton
+                  animation="wave"
+                  variant="rectangular"
+                  width={140}
+                  height="100%"
+                />
+              </div>
+              <div
+                className={classes.bodyItem}
+                style={{ width: dataColumns.created.width }}
               >
                 <Skeleton
                   animation="wave"

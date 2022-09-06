@@ -24,8 +24,8 @@ import ObjectLabelField from '../../common/form/ObjectLabelField';
 import MarkDownField from '../../../../components/MarkDownField';
 import ConfidenceField from '../../common/form/ConfidenceField';
 import { dayStartDate } from '../../../../utils/Time';
-import DatePickerField from '../../../../components/DatePickerField';
 import TextField from '../../../../components/TextField';
+import DateTimePickerField from '../../../../components/DateTimePickerField';
 
 const styles = (theme) => ({
   drawerPaper: {
@@ -37,6 +37,12 @@ const styles = (theme) => ({
       duration: theme.transitions.duration.enteringScreen,
     }),
     padding: 0,
+  },
+  createButtonContextual: {
+    position: 'fixed',
+    bottom: 30,
+    right: 30,
+    zIndex: 2000,
   },
   createButton: {
     position: 'fixed',
@@ -82,7 +88,7 @@ export const noteCreationMutation = graphql`
 const noteValidation = (t) => Yup.object().shape({
   confidence: Yup.number(),
   created: Yup.date()
-    .typeError(t('The value must be a date (YYYY-MM-DD)'))
+    .typeError(t('The value must be a datetime (yyyy-MM-dd hh:mm (a|p)m)'))
     .required(t('This field is required')),
   attribute_abstract: Yup.string().nullable(),
   content: Yup.string().required(t('This field is required')),
@@ -193,7 +199,7 @@ class NoteCreation extends Component {
                 created: dayStartDate(),
                 attribute_abstract: '',
                 content: '',
-                confidence: 15,
+                confidence: 75,
                 createdBy: '',
                 objectMarking: [],
                 objectLabel: [],
@@ -211,11 +217,8 @@ class NoteCreation extends Component {
               }) => (
                 <Form style={{ margin: '20px 0 20px 0' }}>
                   <Field
-                    component={DatePickerField}
+                    component={DateTimePickerField}
                     name="created"
-                    invalidDateMessage={t(
-                      'The value must be a date (mm/dd/yyyy)',
-                    )}
                     TextFieldProps={{
                       label: t('Publication date'),
                       variant: 'standard',
@@ -330,11 +333,8 @@ class NoteCreation extends Component {
                 <DialogTitle>{t('Create a note')}</DialogTitle>
                 <DialogContent>
                   <Field
-                    component={DatePickerField}
+                    component={DateTimePickerField}
                     name="created"
-                    invalidDateMessage={t(
-                      'The value must be a date (mm/dd/yyyy)',
-                    )}
                     TextFieldProps={{
                       label: t('Publication date'),
                       variant: 'standard',

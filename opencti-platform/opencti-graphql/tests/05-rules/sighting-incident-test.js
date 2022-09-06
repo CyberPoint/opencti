@@ -3,27 +3,29 @@
 // '`targets` **identity B**.';
 
 import * as R from 'ramda';
-import { FIVE_MINUTES, FIVE_SECS, sleep } from '../utils/testQuery';
+import { FIVE_MINUTES, TEN_SECONDS } from '../utils/testQuery';
 import { shutdownModules, startModules } from '../../src/modules';
 import { activateRule, disableRule, getInferences } from '../utils/rule-utils';
-import { internalLoadById, listRelations, patchAttribute } from '../../src/database/middleware';
+import { internalLoadById, patchAttribute } from '../../src/database/middleware';
 import { SYSTEM_USER } from '../../src/utils/access';
 import { ENTITY_TYPE_INCIDENT, ENTITY_TYPE_INDICATOR } from '../../src/schema/stixDomainObject';
 import RuleSightingIncident from '../../src/rules/sighting-incident/SightingIncidentRule';
 import { RELATION_RELATED_TO, RELATION_TARGETS } from '../../src/schema/stixCoreRelationship';
+import { listRelations } from '../../src/database/middleware-loader';
+import { RELATION_OBJECT_MARKING } from '../../src/schema/stixMetaRelationship';
+import { wait } from '../../src/database/utils';
 
-const TLP_WHITE_ID = 'marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9';
+const TLP_CLEAR_ID = 'marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9';
 const ONE_CLAP = 'indicator--3e01a7d8-997b-5e7b-a1a3-32f8956ca752'; // indicator A
 
 describe('Sighting incident rule', () => {
   const assertInferencesSize = async (type, expected) => {
-    await sleep(FIVE_SECS); // let some time to rule manager to create the elements
+    await wait(TEN_SECONDS); // let some time to rule manager to create the elements
     const inferences = await getInferences(type);
     expect(inferences.length).toBe(expected);
     return inferences;
   };
 
-  // eslint-disable-next-line prettier/prettier
   it(
     'Should rule successfully activated',
     async () => {
@@ -38,9 +40,9 @@ describe('Sighting incident rule', () => {
       const inferences = await assertInferencesSize(ENTITY_TYPE_INCIDENT, 1);
       const inference = R.head(inferences);
       expect(inference).not.toBeNull();
-      expect((inference.object_marking_refs || []).length).toBe(1);
-      const white = await internalLoadById(SYSTEM_USER, TLP_WHITE_ID);
-      expect(R.head(inference.object_marking_refs)).toBe(white.internal_id);
+      expect((inference[RELATION_OBJECT_MARKING] || []).length).toBe(1);
+      const clear = await internalLoadById(SYSTEM_USER, TLP_CLEAR_ID);
+      expect(R.head(inference[RELATION_OBJECT_MARKING])).toBe(clear.internal_id);
       expect(inference.first_seen).toBe('2016-08-06T20:08:31.000Z');
       expect(inference.last_seen).toBe('2016-08-07T20:08:31.000Z');
       const relArgs = { fromId: inference.id, connectionFormat: false };

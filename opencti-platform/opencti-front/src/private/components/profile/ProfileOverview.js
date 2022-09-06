@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import * as PropTypes from 'prop-types';
 import { graphql, createFragmentContainer } from 'react-relay';
 import { Formik, Form, Field } from 'formik';
+import qrcode from 'qrcode';
 import withStyles from '@mui/styles/withStyles';
 import { compose, pick } from 'ramda';
 import * as Yup from 'yup';
@@ -14,17 +15,28 @@ import { Link } from 'react-router-dom';
 import Grid from '@mui/material/Grid';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import { SendClockOutline } from 'mdi-material-ui';
+import { LockOutlined, NoEncryptionOutlined } from '@mui/icons-material';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemSecondaryAction from '@mui/material/ListItemSecondaryAction';
 import ListItem from '@mui/material/ListItem';
 import Alert from '@mui/material/Alert';
-import inject18n from '../../../components/i18n';
+import DialogContent from '@mui/material/DialogContent';
+import Dialog from '@mui/material/Dialog';
+import OtpInput from 'react-otp-input';
+import DialogTitle from '@mui/material/DialogTitle';
+import { makeStyles, useTheme } from '@mui/styles';
+import inject18n, { useFormatter } from '../../../components/i18n';
 import TextField from '../../../components/TextField';
 import SelectField from '../../../components/SelectField';
-import { commitMutation, MESSAGING$ } from '../../../relay/environment';
+import {
+  commitMutation,
+  MESSAGING$,
+  QueryRenderer,
+} from '../../../relay/environment';
 import { OPENCTI_ADMIN_UUID } from '../../../utils/Security';
 import UserSubscriptionCreation from './UserSubscriptionCreation';
 import UserSubscriptionPopover from './UserSubscriptionPopover';
+import Loader from '../../../components/Loader';
 
 const styles = () => ({
   panel: {
@@ -39,9 +51,18 @@ const styles = () => ({
   },
 });
 
+const useStyles = makeStyles(() => ({
+  button: {
+    marginTop: 20,
+  },
+}));
+
 const profileOverviewFieldPatch = graphql`
-  mutation ProfileOverviewFieldPatchMutation($input: [EditInput]!) {
-    meEdit(input: $input) {
+  mutation ProfileOverviewFieldPatchMutation(
+    $input: [EditInput]!
+    $password: String
+  ) {
+    meEdit(input: $input, password: $password) {
       ...UserEditionOverview_user
     }
   }
@@ -50,6 +71,31 @@ const profileOverviewFieldPatch = graphql`
 const renewTokenPatch = graphql`
   mutation ProfileOverviewTokenRenewMutation {
     meTokenRenew {
+      ...UserEditionOverview_user
+    }
+  }
+`;
+
+const generateOTP = graphql`
+  query ProfileOverviewOTPQuery {
+    otpGeneration {
+      secret
+      uri
+    }
+  }
+`;
+
+const validateOtpPatch = graphql`
+  mutation ProfileOverviewOtpMutation($input: UserOTPActivationInput) {
+    otpActivation(input: $input) {
+      ...UserEditionOverview_user
+    }
+  }
+`;
+
+const disableOtpPatch = graphql`
+  mutation ProfileOverviewOtpDisableMutation {
+    otpDeactivation {
       ...UserEditionOverview_user
     }
   }
@@ -65,18 +111,139 @@ const userValidation = (t) => Yup.object().shape({
   theme: Yup.string().nullable(),
   language: Yup.string().nullable(),
   description: Yup.string().nullable(),
+  otp_activated: Yup.boolean(),
 });
 
 const passwordValidation = (t) => Yup.object().shape({
+  current_password: Yup.string().required(t('This field is required')),
   password: Yup.string().required(t('This field is required')),
   confirmation: Yup.string()
     .oneOf([Yup.ref('password'), null], t('The values do not match'))
     .required(t('This field is required')),
 });
 
+const Otp = ({ closeFunction, secret, uri }) => {
+  const { t } = useFormatter();
+  const classes = useStyles();
+  const theme = useTheme();
+  const [otpQrImage, setOtpQrImage] = useState('');
+  const [code, setCode] = useState('');
+  const [error, setError] = useState(null);
+  const handleChange = (data) => setCode(data);
+  const activateOtp = () => {
+    commitMutation({
+      mutation: validateOtpPatch,
+      variables: { input: { secret, code } },
+      onError: () => {
+        setCode('');
+        return setError(t('The code is not correct'));
+      },
+      onCompleted: () => {
+        setError(null);
+        return closeFunction();
+      },
+    });
+  };
+  useEffect(() => {
+    qrcode.toDataURL(
+      uri,
+      {
+        color: {
+          dark: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
+          light: '#0000', // Transparent background
+        },
+      },
+      (err, imageUrl) => {
+        if (err) {
+          setOtpQrImage('');
+          return;
+        }
+        setOtpQrImage(imageUrl);
+      },
+    );
+  }, [uri, theme]);
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <img src={otpQrImage} style={{ width: 265 }} alt="" />
+      {error ? (
+        <Alert
+          severity="error"
+          variant="outlined"
+          style={{ margin: '0 0 15px 0' }}
+        >
+          {error}
+        </Alert>
+      ) : (
+        <Alert
+          severity="info"
+          variant="outlined"
+          style={{ margin: '0 0 15px 0' }}
+        >
+          {t('Type the code generated in your application')}
+        </Alert>
+      )}
+      <OtpInput
+        value={code}
+        onChange={handleChange}
+        numInputs={6}
+        isInputNum={true}
+        shouldAutoFocus={true}
+        inputStyle={{
+          outline: 'none',
+          border: `1px solid rgba(${
+            theme.palette.mode === 'dark' ? '255,255,255' : '0,0,0'
+          },.15)`,
+          borderRadius: 4,
+          boxSizing: 'border-box',
+          width: '54px',
+          height: '54px',
+          fontSize: '16px',
+          fontWeight: '400',
+          backgroundColor: 'transparent',
+          margin: '0 5px 0 5px',
+          color: theme.palette.text.primary,
+        }}
+        focusStyle={{
+          border: `2px solid ${theme.palette.primary.main}`,
+          outline: 'none',
+        }}
+      />
+      <Button
+        classes={{ root: classes.button }}
+        variant="contained"
+        type="button"
+        color="secondary"
+        onClick={activateOtp}
+      >
+        {t('Enable')}
+      </Button>
+    </div>
+  );
+};
+
+const OtpComponent = ({ closeFunction }) => (
+  <QueryRenderer
+    query={generateOTP}
+    render={({ props }) => {
+      if (props) {
+        return (
+          <Otp
+            closeFunction={closeFunction}
+            secret={props.otpGeneration.secret}
+            uri={props.otpGeneration.uri}
+          />
+        );
+      }
+      return <Loader />;
+    }}
+  />
+);
+
 const ProfileOverviewComponent = (props) => {
   const { t, me, classes, fldt, subscriptionStatus, about } = props;
-  const external = false;
+  const { external, otp_activated: useOtp } = me;
+  const [display2FA, setDisplay2FA] = useState(false);
+
   const initialValues = pick(
     [
       'name',
@@ -86,9 +253,16 @@ const ProfileOverviewComponent = (props) => {
       'lastname',
       'theme',
       'language',
+      'otp_activated',
     ],
     me,
   );
+
+  const disableOtp = () => {
+    commitMutation({
+      mutation: disableOtpPatch,
+    });
+  };
 
   const renewToken = () => {
     commitMutation({
@@ -114,6 +288,7 @@ const ProfileOverviewComponent = (props) => {
       mutation: profileOverviewFieldPatch,
       variables: {
         input: field,
+        password: values.current_password,
       },
       setSubmitting,
       onCompleted: () => {
@@ -123,8 +298,22 @@ const ProfileOverviewComponent = (props) => {
       },
     });
   };
+
   return (
     <div>
+      <Dialog
+        open={display2FA}
+        PaperProps={{ elevation: 1 }}
+        keepMounted={false}
+        onClose={() => setDisplay2FA(false)}
+      >
+        <DialogTitle style={{ textAlign: 'center' }}>
+          {t('Enable two-factor authentication')}
+        </DialogTitle>
+        <DialogContent>
+          <OtpComponent closeFunction={() => setDisplay2FA(false)} />
+        </DialogContent>
+      </Dialog>
       <Grid container={true} spacing={3}>
         <Grid item={true} xs={6}>
           <Paper classes={{ root: classes.panel }} variant="outlined">
@@ -151,7 +340,7 @@ const ProfileOverviewComponent = (props) => {
                     component={TextField}
                     variant="standard"
                     name="user_email"
-                    disabled={true}
+                    disabled={external}
                     label={t('Email address')}
                     fullWidth={true}
                     style={{ marginTop: 20 }}
@@ -238,14 +427,14 @@ const ProfileOverviewComponent = (props) => {
               disabled={!subscriptionStatus}
             />
             {!subscriptionStatus && (
-              <Alert severity="info">
+              <Alert severity="info" style={{ marginTop: 20 }}>
                 {t(
                   'To use this feature, your platform administrator must enable the subscription manager in the config.',
                 )}
               </Alert>
             )}
             {me.userSubscriptions.edges.length > 0 ? (
-              <div style={{ marginTop: 20 }}>
+              <div style={{ marginTop: 10 }}>
                 <List>
                   {me.userSubscriptions.edges.map((userSubscriptionEdge) => {
                     const userSubscription = userSubscriptionEdge.node;
@@ -298,53 +487,96 @@ const ProfileOverviewComponent = (props) => {
           </Paper>
         </Grid>
         <Grid item={true} xs={6}>
-          {!external && (
-            <Paper classes={{ root: classes.panel }} variant="outlined">
-              <Typography variant="h1" gutterBottom={true}>
-                {t('Password')}
-              </Typography>
-              <Formik
-                enableReinitialize={true}
-                initialValues={{ password: '', confirmation: '' }}
-                validationSchema={passwordValidation(t)}
-                onSubmit={handleSubmitPasswords}
-              >
-                {({ submitForm, isSubmitting }) => (
-                  <Form style={{ margin: '20px 0 20px 0' }}>
-                    <Field
-                      component={TextField}
-                      variant="standard"
-                      name="password"
-                      label={t('Password')}
-                      type="password"
-                      fullWidth={true}
-                    />
-                    <Field
-                      component={TextField}
-                      variant="standard"
-                      name="confirmation"
-                      label={t('Confirmation')}
-                      type="password"
-                      fullWidth={true}
-                      style={{ marginTop: 20 }}
-                    />
-                    <div style={{ marginTop: 20 }}>
-                      <Button
-                        variant="contained"
-                        type="button"
-                        color="primary"
-                        onClick={submitForm}
-                        disabled={isSubmitting}
-                        classes={{ root: classes.button }}
-                      >
-                        {t('Update')}
-                      </Button>
-                    </div>
-                  </Form>
-                )}
-              </Formik>
-            </Paper>
-          )}
+          <Paper classes={{ root: classes.panel }} variant="outlined">
+            <Typography
+              variant="h1"
+              gutterBottom={true}
+              style={{ float: 'left' }}
+            >
+              {t('Authentication')}
+            </Typography>
+            <div style={{ float: 'right', marginTop: -5 }}>
+              {useOtp && (
+                <Button
+                  type="button"
+                  color="primary"
+                  startIcon={<NoEncryptionOutlined />}
+                  onClick={disableOtp}
+                  classes={{ root: classes.button }}
+                >
+                  {t('Disable two-factor authentication')}
+                </Button>
+              )}
+              {!useOtp && (
+                <Button
+                  type="button"
+                  color="secondary"
+                  startIcon={<LockOutlined />}
+                  onClick={() => setDisplay2FA(true)}
+                  classes={{ root: classes.button }}
+                >
+                  {t('Enable two-factor authentication')}
+                </Button>
+              )}
+            </div>
+            <div className="clearfix" />
+            <Formik
+              enableReinitialize={true}
+              initialValues={{
+                current_password: '',
+                password: '',
+                confirmation: '',
+              }}
+              validationSchema={passwordValidation(t)}
+              onSubmit={handleSubmitPasswords}
+            >
+              {({ submitForm, isSubmitting }) => (
+                <Form style={{ margin: '20px 0 20px 0' }}>
+                  <Field
+                    component={TextField}
+                    variant="standard"
+                    name="current_password"
+                    label={t('Current password')}
+                    type="password"
+                    fullWidth={true}
+                    disabled={external}
+                  />
+                  <Field
+                    component={TextField}
+                    variant="standard"
+                    name="password"
+                    label={t('New password')}
+                    type="password"
+                    fullWidth={true}
+                    style={{ marginTop: 20 }}
+                    disabled={external}
+                  />
+                  <Field
+                    component={TextField}
+                    variant="standard"
+                    name="confirmation"
+                    label={t('Confirmation')}
+                    type="password"
+                    fullWidth={true}
+                    style={{ marginTop: 20 }}
+                    disabled={external}
+                  />
+                  <div style={{ marginTop: 20 }}>
+                    <Button
+                      variant="contained"
+                      type="button"
+                      color="primary"
+                      onClick={submitForm}
+                      disabled={external || isSubmitting}
+                      classes={{ root: classes.button }}
+                    >
+                      {t('Update')}
+                    </Button>
+                  </div>
+                </Form>
+              )}
+            </Formik>
+          </Paper>
         </Grid>
         <Grid item={true} xs={6}>
           <Paper classes={{ root: classes.panel }} variant="outlined">
@@ -422,6 +654,8 @@ const ProfileOverview = createFragmentContainer(ProfileOverviewComponent, {
       language
       theme
       api_token
+      otp_activated
+      otp_qr
       description
       userSubscriptions(first: 200)
         @connection(key: "Pagination_userSubscriptions") {

@@ -177,14 +177,12 @@ class StixCoreObjectOrStixCoreRelationshipLastReports extends Component {
                               {fsd(report.published)}
                             </div>
                             <div style={{ width: 110, paddingRight: 20 }}>
-                              {markingDefinition ? (
+                              {markingDefinition && (
                                 <ItemMarking
                                   key={markingDefinition.node.id}
                                   label={markingDefinition.node.definition}
                                   variant="inList"
                                 />
-                              ) : (
-                                ''
                               )}
                             </div>
                           </ListItem>
@@ -210,7 +208,7 @@ class StixCoreObjectOrStixCoreRelationshipLastReports extends Component {
                         textAlign: 'center',
                       }}
                     >
-                      {t('No entities of this type has been found.')}
+                      {t('No reports about this entity.')}
                     </span>
                   </div>
                 );

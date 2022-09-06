@@ -12,11 +12,13 @@ export const ENTITY_TYPE_ROLE = 'Role';
 export const ENTITY_TYPE_CAPABILITY = 'Capability';
 export const ENTITY_TYPE_CONNECTOR = 'Connector';
 export const ENTITY_TYPE_WORKSPACE = 'Workspace';
+export const ENTITY_TYPE_HISTORY = 'History';
 export const ENTITY_TYPE_WORK = 'work';
 export const ENTITY_TYPE_TASK = 'Task';
 export const ENTITY_TYPE_RETENTION_RULE = 'RetentionRule';
 export const ENTITY_TYPE_SYNC = 'Sync';
 export const ENTITY_TYPE_TAXII_COLLECTION = 'TaxiiCollection';
+export const ENTITY_TYPE_FEED = 'Feed';
 export const ENTITY_TYPE_STREAM_COLLECTION = 'StreamCollection';
 export const ENTITY_TYPE_USER_SUBSCRIPTION = 'UserSubscription';
 export const ENTITY_TYPE_STATUS_TEMPLATE = 'StatusTemplate';
@@ -29,10 +31,12 @@ const DATED_INTERNAL_OBJECTS = [
   ENTITY_TYPE_CAPABILITY,
   ENTITY_TYPE_CONNECTOR,
   ENTITY_TYPE_WORKSPACE,
+  ENTITY_TYPE_SYNC,
 ];
 const INTERNAL_OBJECTS = [
   ENTITY_TYPE_SETTINGS,
   ENTITY_TYPE_TAXII_COLLECTION,
+  ENTITY_TYPE_FEED,
   ENTITY_TYPE_STREAM_COLLECTION,
   ENTITY_TYPE_USER_SUBSCRIPTION,
   ENTITY_TYPE_STATUS_TEMPLATE,
@@ -50,6 +54,7 @@ const INTERNAL_OBJECTS = [
   ENTITY_TYPE_CAPABILITY,
   ENTITY_TYPE_CONNECTOR,
   ENTITY_TYPE_WORKSPACE,
+  ENTITY_TYPE_HISTORY,
 ];
 const HISTORY_OBJECTS = [ENTITY_TYPE_WORK];
 schemaTypes.register(ABSTRACT_INTERNAL_OBJECT, INTERNAL_OBJECTS);
@@ -57,12 +62,13 @@ export const isInternalObject = (type) => R.includes(type, INTERNAL_OBJECTS) || 
 export const isDatedInternalObject = (type) => R.includes(type, DATED_INTERNAL_OBJECTS);
 export const isHistoryObject = (type) => R.includes(type, HISTORY_OBJECTS);
 
-export const internalObjectsAttributes = {
+const internalObjectsAttributes = {
   [ENTITY_TYPE_SETTINGS]: [
     'internal_id',
     'standard_id',
     'entity_type',
     'platform_title',
+    'platform_favicon',
     'platform_email',
     'platform_theme',
     'platform_theme_dark_background',
@@ -84,6 +90,7 @@ export const internalObjectsAttributes = {
     'platform_language',
     'platform_login_message',
     'platform_enable_reference',
+    'platform_hidden_types',
     'created_at',
     'i_created_at_day',
     'i_created_at_month',
@@ -127,6 +134,9 @@ export const internalObjectsAttributes = {
     'i_created_at_year',
     'updated_at',
     'api_token',
+    'otp_secret',
+    'otp_qr',
+    'otp_activated',
   ],
   [ENTITY_TYPE_ROLE]: [
     'internal_id',
@@ -236,11 +246,12 @@ export const internalObjectsAttributes = {
     'running',
     'current_state',
     'listen_deletion',
+    'no_dependencies',
   ],
 };
+R.forEachObjIndexed((value, key) => schemaTypes.registerAttributes(key, value), internalObjectsAttributes);
 
-export const internalObjectsFieldsToBeUpdated = {
+const internalObjectsFieldsToBeUpdated = {
   [ENTITY_TYPE_RULE]: ['active'],
 };
-
-R.forEachObjIndexed((value, key) => schemaTypes.registerAttributes(key, value), internalObjectsAttributes);
+R.forEachObjIndexed((value, key) => schemaTypes.registerUpsertAttributes(key, value), internalObjectsFieldsToBeUpdated);

@@ -4,13 +4,13 @@ import { now } from '../utils/format';
 import { elIndex, elPaginate } from '../database/engine';
 import { INDEX_INTERNAL_OBJECTS, READ_DATA_INDICES, READ_STIX_INDICES } from '../database/utils';
 import { ENTITY_TYPE_TASK } from '../schema/internalObject';
-import { deleteElementById, loadById, patchAttribute } from '../database/middleware';
-import { listEntities, buildFilters } from '../database/repository';
+import { deleteElementById, storeLoadById, patchAttribute } from '../database/middleware';
+import { buildFilters } from '../database/repository';
 import { adaptFiltersFrontendFormat, GlobalFilters, TYPE_FILTER } from '../utils/filtering';
 import { ForbiddenAccess } from '../config/errors';
-import { KNOWLEDGE_DELETE } from '../initialization';
 import { BYPASS, SYSTEM_USER } from '../utils/access';
-import { RULE_PREFIX } from '../schema/general';
+import { RULE_PREFIX, KNOWLEDGE_DELETE } from '../schema/general';
+import { listEntities } from '../database/middleware-loader';
 
 export const MAX_TASK_ELEMENTS = 500;
 
@@ -23,8 +23,11 @@ export const ACTION_TYPE_ADD = 'ADD';
 export const ACTION_TYPE_REMOVE = 'REMOVE';
 export const ACTION_TYPE_REPLACE = 'REPLACE';
 export const ACTION_TYPE_MERGE = 'MERGE';
+export const ACTION_TYPE_PROMOTE = 'PROMOTE';
+export const ACTION_TYPE_ENRICHMENT = 'ENRICHMENT';
 export const ACTION_TYPE_RULE_APPLY = 'RULE_APPLY';
 export const ACTION_TYPE_RULE_CLEAR = 'RULE_CLEAR';
+export const ACTION_TYPE_RULE_ELEMENT_RESCAN = 'RULE_ELEMENT_RESCAN';
 
 const createDefaultTask = (user, input, taskType, taskExpectedNumber) => {
   const taskId = generateInternalId();
@@ -47,7 +50,7 @@ const createDefaultTask = (user, input, taskType, taskExpectedNumber) => {
 };
 
 export const findById = async (user, taskId) => {
-  return loadById(user, taskId, ENTITY_TYPE_TASK);
+  return storeLoadById(user, taskId, ENTITY_TYPE_TASK);
 };
 
 export const findAll = (user, args) => {
@@ -115,12 +118,12 @@ export const createRuleTask = async (user, ruleDefinition, input) => {
 };
 
 export const createQueryTask = async (user, input) => {
-  const { actions, filters, search = null } = input;
+  const { actions, filters, excluded_ids = [], search = null } = input;
   checkActionValidity(user, actions);
   const queryData = await executeTaskQuery(user, filters, search);
-  const countExpected = queryData.pageInfo.globalCount;
+  const countExpected = queryData.pageInfo.globalCount - excluded_ids.length;
   const task = createDefaultTask(user, input, TASK_TYPE_QUERY, countExpected);
-  const queryTask = { ...task, actions, task_filters: filters, task_search: search };
+  const queryTask = { ...task, actions, task_filters: filters, task_search: search, task_excluded_ids: excluded_ids };
   await elIndex(INDEX_INTERNAL_OBJECTS, queryTask);
   return queryTask;
 };

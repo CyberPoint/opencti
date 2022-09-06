@@ -3,17 +3,6 @@ import * as PropTypes from 'prop-types';
 import { graphql, createFragmentContainer } from 'react-relay';
 import { Formik, Form, Field } from 'formik';
 import withStyles from '@mui/styles/withStyles';
-import {
-  assoc,
-  compose,
-  map,
-  pathOr,
-  pipe,
-  pick,
-  difference,
-  head,
-  propOr,
-} from 'ramda';
 import * as Yup from 'yup';
 import MenuItem from '@mui/material/MenuItem';
 import * as R from 'ramda';
@@ -21,7 +10,6 @@ import inject18n from '../../../../components/i18n';
 import TextField from '../../../../components/TextField';
 import { SubscriptionFocus } from '../../../../components/Subscription';
 import { commitMutation } from '../../../../relay/environment';
-import DatePickerField from '../../../../components/DatePickerField';
 import CreatedByField from '../../common/form/CreatedByField';
 import ObjectMarkingField from '../../common/form/ObjectMarkingField';
 import SwitchField from '../../../../components/SwitchField';
@@ -32,6 +20,14 @@ import ConfidenceField from '../../common/form/ConfidenceField';
 import OpenVocabField from '../../common/form/OpenVocabField';
 import { adaptFieldValue } from '../../../../utils/String';
 import CommitMessage from '../../common/form/CommitMessage';
+import {
+  convertCreatedBy,
+  convertMarkings,
+  convertStatus,
+} from '../../../../utils/Edition';
+import StatusField from '../../common/form/StatusField';
+import { buildDate, parse } from '../../../../utils/Time';
+import DateTimePickerField from '../../../../components/DateTimePickerField';
 
 const styles = (theme) => ({
   drawerPaper: {
@@ -39,7 +35,6 @@ const styles = (theme) => ({
     width: '50%',
     position: 'fixed',
     overflow: 'hidden',
-
     transition: theme.transitions.create('width', {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.enteringScreen,
@@ -125,17 +120,18 @@ const indicatorValidation = (t) => Yup.object().shape({
   confidence: Yup.number(),
   pattern: Yup.string().required(t('This field is required')),
   valid_from: Yup.date()
-    .typeError(t('The value must be a date (YYYY-MM-DD)'))
-    .required(t('This field is required')),
+    .nullable()
+    .typeError(t('The value must be a datetime (yyyy-MM-dd hh:mm (a|p)m)')),
   valid_until: Yup.date()
-    .typeError(t('The value must be a date (YYYY-MM-DD)'))
-    .required(t('This field is required')),
-  x_opencti_score: Yup.number(),
+    .nullable()
+    .typeError(t('The value must be a datetime (yyyy-MM-dd hh:mm (a|p)m)')),
+  x_opencti_score: Yup.number().nullable(),
   description: Yup.string().nullable(),
   x_opencti_detection: Yup.boolean(),
   x_mitre_platforms: Yup.array(),
   indicator_types: Yup.array(),
   references: Yup.array().required(t('This field is required')),
+  x_opencti_workflow_id: Yup.object(),
 });
 
 class IndicatorEditionOverviewComponent extends Component {
@@ -157,9 +153,17 @@ class IndicatorEditionOverviewComponent extends Component {
     const inputValues = R.pipe(
       R.dissoc('message'),
       R.dissoc('references'),
-      R.assoc('status_id', values.status_id?.value),
+      R.assoc('x_opencti_workflow_id', values.x_opencti_workflow_id?.value),
       R.assoc('createdBy', values.createdBy?.value),
       R.assoc('objectMarking', R.pluck('value', values.objectMarking)),
+      R.assoc(
+        'valid_from',
+        values.valid_from ? parse(values.valid_from).format() : null,
+      ),
+      R.assoc(
+        'valid_until',
+        values.valid_from ? parse(values.valid_until).format() : null,
+      ),
       R.toPairs,
       R.map((n) => ({
         key: n[0],
@@ -185,6 +189,10 @@ class IndicatorEditionOverviewComponent extends Component {
 
   handleSubmitField(name, value) {
     if (!this.props.enableReferences) {
+      let finalValue = value;
+      if (name === 'x_opencti_workflow_id') {
+        finalValue = value.value;
+      }
       indicatorValidation(this.props.t)
         .validateAt(name, { [name]: value })
         .then(() => {
@@ -194,7 +202,7 @@ class IndicatorEditionOverviewComponent extends Component {
               id: this.props.indicator.id,
               input: {
                 key: name,
-                value: value || '',
+                value: finalValue ?? '',
               },
             },
           });
@@ -206,22 +214,22 @@ class IndicatorEditionOverviewComponent extends Component {
   handleChangeKillChainPhases(name, values) {
     if (!this.props.enableReferences) {
       const { indicator } = this.props;
-      const currentKillChainPhases = pipe(
-        pathOr([], ['killChainPhases', 'edges']),
-        map((n) => ({
+      const currentKillChainPhases = R.pipe(
+        R.pathOr([], ['killChainPhases', 'edges']),
+        R.map((n) => ({
           label: `[${n.node.kill_chain_name}] ${n.node.phase_name}`,
           value: n.node.id,
         })),
       )(indicator);
-      const added = difference(values, currentKillChainPhases);
-      const removed = difference(currentKillChainPhases, values);
+      const added = R.difference(values, currentKillChainPhases);
+      const removed = R.difference(currentKillChainPhases, values);
       if (added.length > 0) {
         commitMutation({
           mutation: indicatorMutationRelationAdd,
           variables: {
             id: this.props.indicator.id,
             input: {
-              toId: head(added).value,
+              toId: R.head(added).value,
               relationship_type: 'kill-chain-phase',
             },
           },
@@ -232,7 +240,7 @@ class IndicatorEditionOverviewComponent extends Component {
           mutation: indicatorMutationRelationDelete,
           variables: {
             id: this.props.indicator.id,
-            toId: head(removed).value,
+            toId: R.head(removed).value,
             relationship_type: 'kill-chain-phase',
           },
         });
@@ -255,22 +263,22 @@ class IndicatorEditionOverviewComponent extends Component {
   handleChangeObjectMarking(name, values) {
     if (!this.props.enableReferences) {
       const { indicator } = this.props;
-      const currentMarkingDefinitions = pipe(
-        pathOr([], ['objectMarking', 'edges']),
-        map((n) => ({
+      const currentMarkingDefinitions = R.pipe(
+        R.pathOr([], ['objectMarking', 'edges']),
+        R.map((n) => ({
           label: n.node.definition,
           value: n.node.id,
         })),
       )(indicator);
-      const added = difference(values, currentMarkingDefinitions);
-      const removed = difference(currentMarkingDefinitions, values);
+      const added = R.difference(values, currentMarkingDefinitions);
+      const removed = R.difference(currentMarkingDefinitions, values);
       if (added.length > 0) {
         commitMutation({
           mutation: indicatorMutationRelationAdd,
           variables: {
             id: this.props.indicator.id,
             input: {
-              toId: head(added).value,
+              toId: R.head(added).value,
               relationship_type: 'object-marking',
             },
           },
@@ -281,7 +289,7 @@ class IndicatorEditionOverviewComponent extends Component {
           mutation: indicatorMutationRelationDelete,
           variables: {
             id: this.props.indicator.id,
-            toId: head(removed).value,
+            toId: R.head(removed).value,
             relationship_type: 'object-marking',
           },
         });
@@ -291,33 +299,29 @@ class IndicatorEditionOverviewComponent extends Component {
 
   render() {
     const { t, indicator, context, enableReferences } = this.props;
-    const killChainPhases = pipe(
-      pathOr([], ['killChainPhases', 'edges']),
-      map((n) => ({
+    const killChainPhases = R.pipe(
+      R.pathOr([], ['killChainPhases', 'edges']),
+      R.map((n) => ({
         label: `[${n.node.kill_chain_name}] ${n.node.phase_name}`,
         value: n.node.id,
       })),
     )(indicator);
-    const createdBy = pathOr(null, ['createdBy', 'name'], indicator) === null
-      ? ''
-      : {
-        label: pathOr(null, ['createdBy', 'name'], indicator),
-        value: pathOr(null, ['createdBy', 'id'], indicator),
-      };
-    const objectMarking = pipe(
-      pathOr([], ['objectMarking', 'edges']),
-      map((n) => ({
-        label: n.node.definition,
-        value: n.node.id,
-      })),
-    )(indicator);
-    const initialValues = pipe(
-      assoc('killChainPhases', killChainPhases),
-      assoc('createdBy', createdBy),
-      assoc('objectMarking', objectMarking),
-      assoc('x_mitre_platforms', propOr([], 'x_mitre_platforms', indicator)),
-      assoc('indicator_types', propOr([], 'indicator_types', indicator)),
-      pick([
+    const createdBy = convertCreatedBy(indicator);
+    const objectMarking = convertMarkings(indicator);
+    const status = convertStatus(t, indicator);
+    const initialValues = R.pipe(
+      R.assoc('killChainPhases', killChainPhases),
+      R.assoc('createdBy', createdBy),
+      R.assoc('objectMarking', objectMarking),
+      R.assoc('x_opencti_workflow_id', status),
+      R.assoc(
+        'x_mitre_platforms',
+        R.propOr([], 'x_mitre_platforms', indicator),
+      ),
+      R.assoc('indicator_types', R.propOr([], 'indicator_types', indicator)),
+      R.assoc('valid_from', buildDate(indicator.valid_from)),
+      R.assoc('valid_until', buildDate(indicator.valid_until)),
+      R.pick([
         'name',
         'confidence',
         'pattern',
@@ -332,6 +336,7 @@ class IndicatorEditionOverviewComponent extends Component {
         'createdBy',
         'killChainPhases',
         'objectMarking',
+        'x_opencti_workflow_id',
       ]),
     )(indicator);
     return (
@@ -387,9 +392,8 @@ class IndicatorEditionOverviewComponent extends Component {
               }
             />
             <Field
-              component={DatePickerField}
+              component={DateTimePickerField}
               name="valid_from"
-              invalidDateMessage={t('The value must be a date (mm/dd/yyyy)')}
               onFocus={this.handleChangeFocus.bind(this)}
               onSubmit={this.handleSubmitField.bind(this)}
               TextFieldProps={{
@@ -403,9 +407,8 @@ class IndicatorEditionOverviewComponent extends Component {
               }}
             />
             <Field
-              component={DatePickerField}
+              component={DateTimePickerField}
               name="valid_until"
-              invalidDateMessage={t('The value must be a date (mm/dd/yyyy)')}
               onFocus={this.handleChangeFocus.bind(this)}
               onSubmit={this.handleSubmitField.bind(this)}
               TextFieldProps={{
@@ -497,6 +500,22 @@ class IndicatorEditionOverviewComponent extends Component {
               }
               onChange={this.handleChangeKillChainPhases.bind(this)}
             />
+            {indicator.workflowEnabled && (
+              <StatusField
+                name="x_opencti_workflow_id"
+                type="Indicator"
+                onFocus={this.handleChangeFocus.bind(this)}
+                onChange={this.handleSubmitField.bind(this)}
+                setFieldValue={setFieldValue}
+                style={{ marginTop: 20 }}
+                helpertext={
+                  <SubscriptionFocus
+                    context={context}
+                    fieldName="x_opencti_workflow_id"
+                  />
+                }
+              />
+            )}
             <CreatedByField
               name="createdBy"
               style={{ marginTop: 20, width: '100%' }}
@@ -599,12 +618,21 @@ const IndicatorEditionOverview = createFragmentContainer(
             }
           }
         }
+        status {
+          id
+          order
+          template {
+            name
+            color
+          }
+        }
+        workflowEnabled
       }
     `,
   },
 );
 
-export default compose(
+export default R.compose(
   inject18n,
   withStyles(styles, { withTheme: true }),
 )(IndicatorEditionOverview);

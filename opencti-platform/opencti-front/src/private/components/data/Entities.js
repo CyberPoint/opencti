@@ -42,7 +42,9 @@ class Entities extends Component {
       types: R.propOr([], 'types', params),
       numberOfElements: { number: 0, symbol: '' },
       selectedElements: null,
+      deSelectedElements: null,
       selectAll: false,
+      openExports: false,
     };
   }
 
@@ -67,8 +69,16 @@ class Entities extends Component {
     this.setState({ sortBy: field, orderAsc }, () => this.saveView());
   }
 
+  handleToggleExports() {
+    this.setState({ openExports: !this.state.openExports });
+  }
+
   handleClearSelectedElements() {
-    this.setState({ selectAll: false, selectedElements: null });
+    this.setState({
+      selectAll: false,
+      selectedElements: null,
+      deSelectedElements: null,
+    });
   }
 
   handleToggle(type) {
@@ -133,12 +143,26 @@ class Entities extends Component {
   }
 
   handleToggleSelectEntity(entity) {
-    const { selectedElements } = this.state;
+    const { selectedElements, deSelectedElements, selectAll } = this.state;
     if (entity.id in (selectedElements || {})) {
       const newSelectedElements = R.omit([entity.id], selectedElements);
       this.setState({
         selectAll: false,
         selectedElements: newSelectedElements,
+      });
+    } else if (selectAll && entity.id in (deSelectedElements || {})) {
+      const newDeSelectedElements = R.omit([entity.id], deSelectedElements);
+      this.setState({
+        deSelectedElements: newDeSelectedElements,
+      });
+    } else if (selectAll) {
+      const newDeSelectedElements = R.assoc(
+        entity.id,
+        entity,
+        deSelectedElements || {},
+      );
+      this.setState({
+        deSelectedElements: newDeSelectedElements,
       });
     } else {
       const newSelectedElements = R.assoc(
@@ -154,7 +178,11 @@ class Entities extends Component {
   }
 
   handleToggleSelectAll() {
-    this.setState({ selectAll: !this.state.selectAll, selectedElements: null });
+    this.setState({
+      selectAll: !this.state.selectAll,
+      selectedElements: null,
+      deSelectedElements: null,
+    });
   }
 
   // eslint-disable-next-line class-methods-use-this
@@ -201,12 +229,15 @@ class Entities extends Component {
       filters,
       numberOfElements,
       selectedElements,
+      deSelectedElements,
       selectAll,
       types,
+      openExports,
     } = this.state;
     let numberOfSelectedElements = Object.keys(selectedElements || {}).length;
     if (selectAll) {
-      numberOfSelectedElements = numberOfElements.original;
+      numberOfSelectedElements = numberOfElements.original
+        - Object.keys(deSelectedElements || {}).length;
     }
     const entityTypes = R.map((n) => ({ id: n, value: n }), types);
     return (
@@ -223,13 +254,18 @@ class Entities extends Component {
               handleRemoveFilter={this.handleRemoveFilter.bind(this)}
               handleChangeView={this.handleChangeView.bind(this)}
               handleToggleSelectAll={this.handleToggleSelectAll.bind(this)}
+              handleToggleExports={this.handleToggleExports.bind(this)}
+              openExports={openExports}
+              exportEntityType="Stix-Domain-Object"
               selectAll={selectAll}
               disableCards={true}
               keyword={searchTerm}
               filters={filters}
+              noPadding={true}
               paginationOptions={paginationOptions}
               numberOfElements={numberOfElements}
               iconExtension={true}
+              secondaryAction={true}
               availableFilterKeys={[
                 'labelledBy',
                 'markedBy',
@@ -249,6 +285,7 @@ class Entities extends Component {
                     initialLoading={props === null}
                     onLabelClick={this.handleAddFilter.bind(this)}
                     selectedElements={selectedElements}
+                    deSelectedElements={deSelectedElements}
                     onToggleEntity={this.handleToggleSelectEntity.bind(this)}
                     selectAll={selectAll}
                     setNumberOfElements={this.setNumberOfElements.bind(this)}
@@ -258,6 +295,7 @@ class Entities extends Component {
             </ListLines>
             <ToolBar
               selectedElements={selectedElements}
+              deSelectedElements={deSelectedElements}
               numberOfSelectedElements={numberOfSelectedElements}
               selectAll={selectAll}
               filters={

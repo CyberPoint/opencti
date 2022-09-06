@@ -5,11 +5,11 @@ import {
   createEntity,
   createRelation,
   batchListThroughGetTo,
-  loadById,
+  storeLoadById,
   timeSeriesEntities,
-  distributionEntities,
+  distributionEntities, storeLoadByIdWithRefs,
 } from '../database/middleware';
-import { listEntities } from '../database/repository';
+import { listEntities } from '../database/middleware-loader';
 import { BUS_TOPICS } from '../config/conf';
 import { notify } from '../database/redis';
 import { findById as findMarkingDefinitionById } from './markingDefinition';
@@ -19,50 +19,63 @@ import { DatabaseError, FunctionalError } from '../config/errors';
 import { ENTITY_TYPE_INDICATOR } from '../schema/stixDomainObject';
 import { isStixCyberObservable } from '../schema/stixCyberObservable';
 import { RELATION_BASED_ON, RELATION_INDICATES } from '../schema/stixCoreRelationship';
-import { ABSTRACT_STIX_CYBER_OBSERVABLE, ABSTRACT_STIX_DOMAIN_OBJECT } from '../schema/general';
-import { now } from '../utils/format';
+import {
+  ABSTRACT_STIX_CYBER_OBSERVABLE,
+  ABSTRACT_STIX_DOMAIN_OBJECT, INPUT_CREATED_BY, INPUT_EXTERNAL_REFS,
+  INPUT_LABELS,
+  INPUT_MARKINGS
+} from '../schema/general';
 import { elCount } from '../database/engine';
-import { READ_INDEX_STIX_DOMAIN_OBJECTS } from '../database/utils';
+import { isEmptyField, READ_INDEX_STIX_DOMAIN_OBJECTS } from '../database/utils';
+import { extractObservablesFromIndicatorPattern } from '../utils/syntax';
 
 const OpenCTITimeToLive = {
   // Formatted as "[Marking-Definition]-[KillChainPhaseIsDelivery]"
   File: {
-    'TLP:WHITE-no': 365,
-    'TLP:WHITE-yes': 365,
+    'TLP:CLEAR-no': 365,
+    'TLP:CLEAR-yes': 365,
     'TLP:GREEN-no': 365,
     'TLP:GREEN-yes': 365,
     'TLP:AMBER-yes': 365,
     'TLP:AMBER-no': 365,
+    'TLP:AMBER+STRICT-yes': 365,
+    'TLP:AMBER+STRICT-no': 365,
     'TLP:RED-yes': 365,
     'TLP:RED-no': 365,
   },
   'IPv4-Addr': {
-    'TLP:WHITE-no': 30,
-    'TLP:WHITE-yes': 7,
+    'TLP:CLEAR-no': 30,
+    'TLP:CLEAR-yes': 7,
     'TLP:GREEN-no': 30,
     'TLP:GREEN-yes': 7,
     'TLP:AMBER-yes': 15,
     'TLP:AMBER-no': 60,
+    'TLP:AMBER+STRICT-yes': 15,
+    'TLP:AMBER+STRICT-no': 60,
     'TLP:RED-yes': 120,
     'TLP:RED-no': 120,
   },
   Url: {
-    'TLP:WHITE-no': 60,
-    'TLP:WHITE-yes': 15,
+    'TLP:CLEAR-no': 60,
+    'TLP:CLEAR-yes': 15,
     'TLP:GREEN-no': 60,
     'TLP:GREEN-yes': 15,
     'TLP:AMBER-yes': 30,
     'TLP:AMBER-no': 180,
+    'TLP:AMBER+STRICT-yes': 30,
+    'TLP:AMBER+STRICT-no': 180,
     'TLP:RED-yes': 180,
     'TLP:RED-no': 180,
   },
   default: {
-    'TLP:WHITE-no': 365,
-    'TLP:WHITE-yes': 365,
+    'TLP:CLEAR-no': 365,
+    'TLP:CLEAR-yes': 365,
     'TLP:GREEN-no': 365,
     'TLP:GREEN-yes': 365,
     'TLP:AMBER-yes': 365,
     'TLP:AMBER-no': 365,
+    'TLP:AMBER+STRICT-yes': 365,
+    'TLP:AMBER+STRICT-no': 365,
     'TLP:RED-yes': 365,
     'TLP:RED-no': 365,
   },
@@ -74,7 +87,7 @@ const computeValidUntil = async (user, indicator) => {
     validFrom = moment(indicator.valid_from).utc();
   }
   // get the highest marking definition
-  let markingDefinition = 'TLP:WHITE';
+  let markingDefinition = 'TLP:CLEAR';
   if (indicator.objectMarking && indicator.objectMarking.length > 0) {
     const markingDefinitions = await Promise.all(
       indicator.objectMarking.map((markingDefinitionId) => {
@@ -114,18 +127,56 @@ const computeValidUntil = async (user, indicator) => {
 };
 
 export const findById = (user, indicatorId) => {
-  return loadById(user, indicatorId, ENTITY_TYPE_INDICATOR);
+  return storeLoadById(user, indicatorId, ENTITY_TYPE_INDICATOR);
 };
 
 export const findAll = (user, args) => {
   return listEntities(user, [ENTITY_TYPE_INDICATOR], args);
 };
 
+export const createObservablesFromIndicator = async (user, input, indicator) => {
+  const { pattern } = indicator;
+  const observables = extractObservablesFromIndicatorPattern(pattern);
+  const observablesToLink = [];
+  for (let index = 0; index < observables.length; index += 1) {
+    const observable = observables[index];
+    const observableInput = {
+      ...R.dissoc('type', observable),
+      x_opencti_description: indicator.description
+        ? indicator.description
+        : `Simple observable of indicator {${indicator.name || indicator.pattern}}`,
+      x_opencti_score: indicator.x_opencti_score,
+      createdBy: input.createdBy,
+      objectMarking: input.objectMarking,
+      objectLabel: input.objectLabel,
+      externalReferences: input.externalReferences,
+      update: true,
+    };
+    const createdObservable = await createEntity(user, observableInput, observable.type);
+    observablesToLink.push(createdObservable.id);
+  }
+  await Promise.all(
+    observablesToLink.map((observableToLink) => {
+      const relationInput = { fromId: indicator.id, toId: observableToLink, relationship_type: RELATION_BASED_ON };
+      return createRelation(user, relationInput);
+    })
+  );
+};
+
+export const promoteIndicatorToObservable = async (user, indicatorId) => {
+  const indicator = await storeLoadByIdWithRefs(user, indicatorId);
+  const objectLabel = (indicator[INPUT_LABELS] ?? []).map((n) => n.internal_id);
+  const objectMarking = (indicator[INPUT_MARKINGS] ?? []).map((n) => n.internal_id);
+  const externalReferences = (indicator[INPUT_EXTERNAL_REFS] ?? []).map((n) => n.internal_id);
+  const createdBy = indicator[INPUT_CREATED_BY]?.internal_id;
+  const input = { objectLabel, objectMarking, createdBy, externalReferences };
+  return createObservablesFromIndicator(user, input, indicator);
+};
+
 export const addIndicator = async (user, indicator) => {
-  if (
-    indicator.x_opencti_main_observable_type !== 'Unknown'
-    && !isStixCyberObservable(indicator.x_opencti_main_observable_type)
-  ) {
+  const observableType = isEmptyField(indicator.x_opencti_main_observable_type) ? 'Unknown' : indicator.x_opencti_main_observable_type;
+  const isKnownObservable = observableType !== 'Unknown';
+  if (isKnownObservable && !isStixCyberObservable(indicator.x_opencti_main_observable_type)) {
     throw FunctionalError(`Observable type ${indicator.x_opencti_main_observable_type} is not supported.`);
   }
   // check indicator syntax
@@ -133,19 +184,15 @@ export const addIndicator = async (user, indicator) => {
   if (check === false) {
     throw FunctionalError(`Indicator of type ${indicator.pattern_type} is not correctly formatted.`);
   }
+  const validUntil = isEmptyField(indicator.valid_until) ? await computeValidUntil(user, indicator) : indicator.valid_until;
   const indicatorToCreate = R.pipe(
+    R.dissoc('createObservables'),
     R.dissoc('basedOn'),
-    R.assoc(
-      'x_opencti_main_observable_type',
-      R.isNil(indicator.x_opencti_main_observable_type) ? 'Unknown' : indicator.x_opencti_main_observable_type
-    ),
+    R.assoc('x_opencti_main_observable_type', observableType),
     R.assoc('x_opencti_score', R.isNil(indicator.x_opencti_score) ? 50 : indicator.x_opencti_score),
     R.assoc('x_opencti_detection', R.isNil(indicator.x_opencti_detection) ? false : indicator.x_opencti_detection),
-    R.assoc('valid_from', R.isNil(indicator.valid_from) ? now() : indicator.valid_from),
-    R.assoc(
-      'valid_until',
-      R.isNil(indicator.valid_until) ? await computeValidUntil(user, indicator) : indicator.valid_until
-    )
+    R.assoc('valid_from', R.isNil(indicator.valid_from) ? validUntil : indicator.valid_from),
+    R.assoc('valid_until', validUntil)
   )(indicator);
   // create the linked observables
   let observablesToLink = [];
@@ -164,6 +211,9 @@ export const addIndicator = async (user, indicator) => {
       return createRelation(user, input);
     })
   );
+  if (observablesToLink.length === 0 && indicator.createObservables) {
+    await createObservablesFromIndicator(user, indicator, created);
+  }
   return notify(BUS_TOPICS[ABSTRACT_STIX_DOMAIN_OBJECT].ADDED_TOPIC, created, user);
 };
 

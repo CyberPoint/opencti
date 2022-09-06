@@ -16,6 +16,8 @@ import ItemMarking from '../../../../components/ItemMarking';
 import ItemIcon from '../../../../components/ItemIcon';
 import ContainerStixCoreObjectPopover from './ContainerStixCoreObjectPopover';
 import { resolveLink } from '../../../../utils/Entity';
+import StixCoreObjectLabels from '../stix_core_objects/StixCoreObjectLabels';
+import { defaultValue } from '../../../../utils/Graph';
 
 const styles = (theme) => ({
   item: {
@@ -32,6 +34,7 @@ const styles = (theme) => ({
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+    paddingRight: 5,
   },
   itemIconDisabled: {
     color: theme.palette.grey[700],
@@ -55,6 +58,7 @@ class ContainerStixDomainObjectLineComponent extends Component {
       paginationOptions,
       onToggleEntity,
       selectedElements,
+      deSelectedElements,
       selectAll,
     } = this.props;
     return (
@@ -72,7 +76,10 @@ class ContainerStixDomainObjectLineComponent extends Component {
         >
           <Checkbox
             edge="start"
-            checked={selectAll || node.id in (selectedElements || {})}
+            checked={
+              (selectAll && !(node.id in (deSelectedElements || {})))
+              || node.id in (selectedElements || {})
+            }
             disableRipple={true}
           />
         </ListItemIcon>
@@ -94,7 +101,16 @@ class ContainerStixDomainObjectLineComponent extends Component {
               >
                 {node.x_mitre_id
                   ? `[${node.x_mitre_id}] ${node.name}`
-                  : node.name}
+                  : defaultValue(node)}
+              </div>
+              <div
+                className={classes.bodyItem}
+                style={{ width: dataColumns.objectLabel.width }}
+              >
+                <StixCoreObjectLabels
+                  variant="inList"
+                  labels={node.objectLabel}
+                />
               </div>
               <div
                 className={classes.bodyItem}
@@ -150,6 +166,7 @@ ContainerStixDomainObjectLineComponent.propTypes = {
   paginationOptions: PropTypes.object,
   onToggleEntity: PropTypes.func,
   selectedElements: PropTypes.object,
+  deSelectedElements: PropTypes.object,
   selectAll: PropTypes.bool,
 };
 
@@ -223,6 +240,27 @@ const ContainerStixDomainObjectLineFragment = createFragmentContainer(
         ... on Incident {
           name
         }
+        ... on Event {
+          name
+        }
+        ... on Channel {
+          name
+        }
+        ... on Narrative {
+          name
+        }
+        ... on Language {
+          name
+        }
+        objectLabel {
+          edges {
+            node {
+              id
+              value
+              color
+            }
+          }
+        }
         createdBy {
           ... on Identity {
             id
@@ -285,6 +323,17 @@ class ContainerStixDomainObjectLineDummyComponent extends Component {
               <div
                 className={classes.bodyItem}
                 style={{ width: dataColumns.name.width }}
+              >
+                <Skeleton
+                  animation="wave"
+                  variant="rectangular"
+                  width="90%"
+                  height="100%"
+                />
+              </div>
+              <div
+                className={classes.bodyItem}
+                style={{ width: dataColumns.objectLabel.width }}
               >
                 <Skeleton
                   animation="wave"

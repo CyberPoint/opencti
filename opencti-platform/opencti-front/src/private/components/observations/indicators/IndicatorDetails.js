@@ -12,6 +12,7 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import { Launch, SettingsApplications } from '@mui/icons-material';
 import ListItemText from '@mui/material/ListItemText';
 import Chip from '@mui/material/Chip';
+import Divider from '@mui/material/Divider';
 import inject18n from '../../../../components/i18n';
 import ItemScore from '../../../../components/ItemScore';
 import IndicatorObservables from './IndicatorObservables';
@@ -40,7 +41,7 @@ const styles = (theme) => ({
 
 class IndicatorDetailsComponent extends Component {
   render() {
-    const { t, fld, classes, indicator } = this.props;
+    const { t, fldt, classes, indicator } = this.props;
     return (
       <div style={{ height: '100%' }} className="break">
         <Typography variant="h4" gutterBottom={true}>
@@ -51,14 +52,18 @@ class IndicatorDetailsComponent extends Component {
             {t('Indicator pattern')}
           </Typography>
           <ExpandablePre source={indicator.pattern} limit={300} />
-          <Grid container={true} spacing={3} style={{ marginTop: 10 }}>
+          <Grid
+            container={true}
+            spacing={3}
+            style={{ marginTop: 10, marginBottom: 10 }}
+          >
             <Grid item={true} xs={6}>
               <Typography variant="h3" gutterBottom={true}>
                 {t('Valid from')}
               </Typography>
               <Chip
                 classes={{ root: classes.chip }}
-                label={fld(indicator.valid_from)}
+                label={fldt(indicator.valid_from)}
               />
               <Typography
                 variant="h3"
@@ -98,7 +103,7 @@ class IndicatorDetailsComponent extends Component {
               </Typography>
               <Chip
                 classes={{ root: classes.chip }}
-                label={fld(indicator.valid_until)}
+                label={fldt(indicator.valid_until)}
               />
               <Typography
                 variant="h3"
@@ -137,7 +142,6 @@ class IndicatorDetailsComponent extends Component {
                   })}
                 </List>
               )}
-
               <Typography
                 variant="h3"
                 gutterBottom={true}
@@ -157,6 +161,7 @@ class IndicatorDetailsComponent extends Component {
               </List>
             </Grid>
           </Grid>
+          <Divider />
           <IndicatorObservables indicator={indicator} />
         </Paper>
       </div>

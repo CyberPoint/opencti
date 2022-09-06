@@ -20,9 +20,14 @@ import DialogActions from '@mui/material/DialogActions';
 import { ExpandMoreOutlined, ExpandLessOutlined } from '@mui/icons-material';
 import Slide from '@mui/material/Slide';
 import { interval } from 'rxjs';
+import { Field, Form, Formik } from 'formik';
+import DialogTitle from '@mui/material/DialogTitle';
+import { includes } from 'ramda';
+import MenuItem from '@mui/material/MenuItem';
+import * as Yup from 'yup';
 import inject18n from '../../../../components/i18n';
 import { truncate } from '../../../../utils/String';
-import { commitMutation } from '../../../../relay/environment';
+import { commitMutation, MESSAGING$ } from '../../../../relay/environment';
 import AddExternalReferences from './AddExternalReferences';
 import { externalReferenceMutationRelationDelete } from './AddExternalReferencesLines';
 import Security, {
@@ -35,6 +40,11 @@ import FileLine from '../../common/files/FileLine';
 import { FIVE_SECONDS } from '../../../../utils/Time';
 import FileUploader from '../../common/files/FileUploader';
 import ExternalReferencePopover from './ExternalReferencePopover';
+import SelectField from '../../../../components/SelectField';
+import {
+  scopesConn,
+  stixCoreObjectFilesAndHistoryAskJobImportMutation,
+} from '../../common/stix_core_objects/StixCoreObjectFilesAndHistory';
 
 const interval$ = interval(FIVE_SECONDS);
 
@@ -63,14 +73,22 @@ const styles = (theme) => ({
   },
   buttonExpand: {
     position: 'absolute',
+    left: 0,
     bottom: 0,
     width: '100%',
     height: 25,
-    backgroundColor: 'rgba(255, 255, 255, .1)',
+    color: theme.palette.primary.main,
+    backgroundColor:
+      theme.palette.mode === 'dark'
+        ? 'rgba(255, 255, 255, .1)'
+        : 'rgba(0, 0, 0, .1)',
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,
     '&:hover': {
-      backgroundColor: 'rgba(255, 255, 255, .2)',
+      backgroundColor:
+        theme.palette.mode === 'dark'
+          ? 'rgba(255, 255, 255, .2)'
+          : 'rgba(0, 0, 0, .2)',
     },
   },
 });
@@ -79,6 +97,10 @@ const Transition = React.forwardRef((props, ref) => (
   <Slide direction="up" ref={ref} {...props} />
 ));
 Transition.displayName = 'TransitionSlide';
+
+const importValidation = (t) => Yup.object().shape({
+  connector_id: Yup.string().required(t('This field is required')),
+});
 
 class StixCoreObjectExternalReferencesLinesContainer extends Component {
   constructor(props) {
@@ -90,6 +112,7 @@ class StixCoreObjectExternalReferencesLinesContainer extends Component {
       removeExternalReference: null,
       removing: false,
       expanded: false,
+      fileToImport: null,
     };
   }
 
@@ -164,13 +187,43 @@ class StixCoreObjectExternalReferencesLinesContainer extends Component {
     });
   }
 
+  handleOpenImport(file) {
+    this.setState({ fileToImport: file });
+  }
+
+  handleCloseImport() {
+    this.setState({ fileToImport: null });
+  }
+
+  onSubmitImport(values, { setSubmitting, resetForm }) {
+    const { stixCoreObjectId } = this.props;
+    const { fileToImport } = this.state;
+    commitMutation({
+      mutation: stixCoreObjectFilesAndHistoryAskJobImportMutation,
+      variables: {
+        fileName: fileToImport.id,
+        connectorId: values.connector_id,
+        bypassEntityId: stixCoreObjectId,
+      },
+      onCompleted: () => {
+        setSubmitting(false);
+        resetForm();
+        this.handleCloseImport();
+        MESSAGING$.notifySuccess('Import successfully asked');
+      },
+    });
+  }
+
   render() {
     const { t, classes, stixCoreObjectId, data } = this.props;
-    const { expanded } = this.state;
+    const { expanded, fileToImport } = this.state;
     const externalReferencesEdges = data && data.stixCoreObject
       ? data.stixCoreObject.externalReferences.edges
       : [];
     const expandable = externalReferencesEdges.length > 7;
+    const importConnsPerFormat = data.connectorsForImport
+      ? scopesConn(data.connectorsForImport || [])
+      : {};
     return (
       <div style={{ height: '100%' }}>
         <Typography variant="h4" gutterBottom={true} style={{ float: 'left' }}>
@@ -178,7 +231,7 @@ class StixCoreObjectExternalReferencesLinesContainer extends Component {
         </Typography>
         <Security
           needs={[KNOWLEDGE_KNUPDATE]}
-          placeholder={<div style={{ height: 28 }} />}
+          placeholder={<div style={{ height: 29 }} />}
         >
           <AddExternalReferences
             stixCoreObjectOrStixCoreRelationshipId={stixCoreObjectId}
@@ -264,9 +317,17 @@ class StixCoreObjectExternalReferencesLinesContainer extends Component {
                               <FileLine
                                 key={file.node.id}
                                 dense={true}
-                                disableImport={true}
                                 file={file.node}
                                 nested={true}
+                                workNested={true}
+                                connectors={
+                                  importConnsPerFormat[
+                                    file.node.metaData.mimetype
+                                  ]
+                                }
+                                handleOpenImport={this.handleOpenImport.bind(
+                                  this,
+                                )}
                               />
                             ))}
                           </List>
@@ -329,7 +390,15 @@ class StixCoreObjectExternalReferencesLinesContainer extends Component {
               )}
             </List>
           ) : (
-            <div style={{ display: 'table', height: '100%', width: '100%' }}>
+            <div
+              style={{
+                display: 'table',
+                height: '100%',
+                width: '100%',
+                paddingTop: 15,
+                paddingBottom: 15,
+              }}
+            >
               <span
                 style={{
                   display: 'table-cell',
@@ -409,6 +478,67 @@ class StixCoreObjectExternalReferencesLinesContainer extends Component {
             </Button>
           </DialogActions>
         </Dialog>
+        <Formik
+          enableReinitialize={true}
+          initialValues={{ connector_id: '' }}
+          validationSchema={importValidation(t)}
+          onSubmit={this.onSubmitImport.bind(this)}
+          onReset={this.handleCloseImport.bind(this)}
+        >
+          {({ submitForm, handleReset, isSubmitting }) => (
+            <Form style={{ margin: '0 0 20px 0' }}>
+              <Dialog
+                PaperProps={{ elevation: 1 }}
+                open={fileToImport}
+                keepMounted={true}
+                onClose={this.handleCloseImport.bind(this)}
+                fullWidth={true}
+              >
+                <DialogTitle>{t('Launch an import')}</DialogTitle>
+                <DialogContent>
+                  <Field
+                    component={SelectField}
+                    variant="standard"
+                    name="connector_id"
+                    label={t('Connector')}
+                    fullWidth={true}
+                    containerstyle={{ width: '100%' }}
+                  >
+                    {data.connectorsForImport.map((connector, i) => {
+                      const disabled = !fileToImport
+                        || (connector.connector_scope.length > 0
+                          && !includes(
+                            fileToImport.metaData.mimetype,
+                            connector.connector_scope,
+                          ));
+                      return (
+                        <MenuItem
+                          key={i}
+                          value={connector.id}
+                          disabled={disabled || !connector.active}
+                        >
+                          {connector.name}
+                        </MenuItem>
+                      );
+                    })}
+                  </Field>
+                </DialogContent>
+                <DialogActions>
+                  <Button onClick={handleReset} disabled={isSubmitting}>
+                    {t('Cancel')}
+                  </Button>
+                  <Button
+                    color="secondary"
+                    onClick={submitForm}
+                    disabled={isSubmitting}
+                  >
+                    {t('Create')}
+                  </Button>
+                </DialogActions>
+              </Dialog>
+            </Form>
+          )}
+        </Formik>
       </div>
     );
   }
@@ -491,6 +621,13 @@ const StixCoreObjectExternalReferencesLines = createPaginationContainer(
               }
             }
           }
+        }
+        connectorsForImport {
+          id
+          name
+          active
+          connector_scope
+          updated_at
         }
       }
     `,

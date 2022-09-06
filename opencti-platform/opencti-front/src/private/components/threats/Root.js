@@ -8,6 +8,7 @@ import IntrusionSets from './IntrusionSets';
 import RootIntrusionSet from './intrusion_sets/Root';
 import Campaigns from './Campaigns';
 import RootCampaign from './campaigns/Root';
+import { UserContext } from '../../../utils/Security';
 
 class Root extends Component {
   render() {

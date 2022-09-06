@@ -3,17 +3,8 @@ import * as PropTypes from 'prop-types';
 import { graphql, createFragmentContainer } from 'react-relay';
 import { Formik, Form, Field } from 'formik';
 import withStyles from '@mui/styles/withStyles';
-import {
-  assoc,
-  compose,
-  map,
-  pathOr,
-  pipe,
-  pick,
-  difference,
-  head,
-} from 'ramda';
 import * as Yup from 'yup';
+import * as R from 'ramda';
 import inject18n from '../../../../components/i18n';
 import TextField from '../../../../components/TextField';
 import { SubscriptionFocus } from '../../../../components/Subscription';
@@ -21,6 +12,16 @@ import { commitMutation } from '../../../../relay/environment';
 import CreatedByField from '../../common/form/CreatedByField';
 import ObjectMarkingField from '../../common/form/ObjectMarkingField';
 import MarkDownField from '../../../../components/MarkDownField';
+import DateTimePickerField from '../../../../components/DateTimePickerField';
+import KillChainPhasesField from '../../common/form/KillChainPhasesField';
+import OpenVocabField from '../../common/form/OpenVocabField';
+import {
+  convertCreatedBy,
+  convertMarkings,
+  convertStatus,
+} from '../../../../utils/Edition';
+import StatusField from '../../common/form/StatusField';
+import { buildDate } from '../../../../utils/Time';
 
 const styles = (theme) => ({
   drawerPaper: {
@@ -28,7 +29,6 @@ const styles = (theme) => ({
     width: '50%',
     position: 'fixed',
     overflow: 'hidden',
-
     transition: theme.transitions.create('width', {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.enteringScreen,
@@ -109,7 +109,15 @@ const infrastructureValidation = (t) => Yup.object().shape({
     .min(3, t('The value is too short'))
     .max(5000, t('The value is too long'))
     .required(t('This field is required')),
+  infrastructure_types: Yup.array().nullable(),
+  first_seen: Yup.date()
+    .nullable()
+    .typeError(t('The value must be a datetime (yyyy-MM-dd hh:mm (a|p)m)')),
+  last_seen: Yup.date()
+    .nullable()
+    .typeError(t('The value must be a datetime (yyyy-MM-dd hh:mm (a|p)m)')),
   references: Yup.array().required(t('This field is required')),
+  x_opencti_workflow_id: Yup.object(),
 });
 
 class InfrastructureEditionOverviewComponent extends Component {
@@ -126,6 +134,10 @@ class InfrastructureEditionOverviewComponent extends Component {
   }
 
   handleSubmitField(name, value) {
+    let finalValue = value;
+    if (name === 'x_opencti_workflow_id') {
+      finalValue = value.value;
+    }
     infrastructureValidation(this.props.t)
       .validateAt(name, { [name]: value })
       .then(() => {
@@ -133,7 +145,7 @@ class InfrastructureEditionOverviewComponent extends Component {
           mutation: infrastructureMutationFieldPatch,
           variables: {
             id: this.props.infrastructure.id,
-            input: { key: name, value: value || '' },
+            input: { key: name, value: finalValue ?? '' },
           },
         });
       })
@@ -154,74 +166,112 @@ class InfrastructureEditionOverviewComponent extends Component {
 
   handleChangeObjectMarking(name, values) {
     const { infrastructure } = this.props;
-    const currentMarkingDefinitions = pipe(
-      pathOr([], ['objectMarking', 'edges']),
-      map((n) => ({
+    const currentMarkingDefinitions = R.pipe(
+      R.pathOr([], ['objectMarking', 'edges']),
+      R.map((n) => ({
         label: n.node.definition,
         value: n.node.id,
       })),
     )(infrastructure);
-    const added = difference(values, currentMarkingDefinitions);
-    const removed = difference(currentMarkingDefinitions, values);
-
+    const added = R.difference(values, currentMarkingDefinitions);
+    const removed = R.difference(currentMarkingDefinitions, values);
     if (added.length > 0) {
       commitMutation({
         mutation: infrastructureMutationRelationAdd,
         variables: {
           id: this.props.infrastructure.id,
           input: {
-            toId: head(added).value,
+            toId: R.head(added).value,
             relationship_type: 'object-marking',
           },
         },
       });
     }
-
     if (removed.length > 0) {
       commitMutation({
         mutation: infrastructureMutationRelationDelete,
         variables: {
           id: this.props.infrastructure.id,
-          toId: head(removed).value,
+          toId: R.head(removed).value,
           relationship_type: 'object-marking',
         },
       });
     }
   }
 
+  handleChangeKillChainPhases(name, values) {
+    if (!this.props.enableReferences) {
+      const { infrastructure } = this.props;
+      const currentKillChainPhases = R.pipe(
+        R.pathOr([], ['killChainPhases', 'edges']),
+        R.map((n) => ({
+          label: `[${n.node.kill_chain_name}] ${n.node.phase_name}`,
+          value: n.node.id,
+        })),
+      )(infrastructure);
+      const added = R.difference(values, currentKillChainPhases);
+      const removed = R.difference(currentKillChainPhases, values);
+      if (added.length > 0) {
+        commitMutation({
+          mutation: infrastructureMutationRelationAdd,
+          variables: {
+            id: this.props.infrastructure.id,
+            input: {
+              toId: R.head(added).value,
+              relationship_type: 'kill-chain-phase',
+            },
+          },
+        });
+      }
+
+      if (removed.length > 0) {
+        commitMutation({
+          mutation: infrastructureMutationRelationDelete,
+          variables: {
+            id: this.props.infrastructure.id,
+            toId: R.head(removed).value,
+            relationship_type: 'kill-chain-phase',
+          },
+        });
+      }
+    }
+  }
+
   render() {
     const { t, infrastructure, context } = this.props;
-    const createdBy = pathOr(null, ['createdBy', 'name'], infrastructure) === null
-      ? ''
-      : {
-        label: pathOr(null, ['createdBy', 'name'], infrastructure),
-        value: pathOr(null, ['createdBy', 'id'], infrastructure),
-      };
-    const killChainPhases = pipe(
-      pathOr([], ['killChainPhases', 'edges']),
-      map((n) => ({
+    const createdBy = convertCreatedBy(infrastructure);
+    const objectMarking = convertMarkings(infrastructure);
+    const status = convertStatus(t, infrastructure);
+    const killChainPhases = R.pipe(
+      R.pathOr([], ['killChainPhases', 'edges']),
+      R.map((n) => ({
         label: `[${n.node.kill_chain_name}] ${n.node.phase_name}`,
         value: n.node.id,
-        relationId: n.relation.id,
       })),
     )(infrastructure);
-    const objectMarking = pipe(
-      pathOr([], ['objectMarking', 'edges']),
-      map((n) => ({
-        label: n.node.definition,
-        value: n.node.id,
-      })),
-    )(infrastructure);
-    const initialValues = pipe(
-      assoc('createdBy', createdBy),
-      assoc('killChainPhases', killChainPhases),
-      assoc('objectMarking', objectMarking),
-      pick([
+    const initialValues = R.pipe(
+      R.assoc('createdBy', createdBy),
+      R.assoc('killChainPhases', killChainPhases),
+      R.assoc('objectMarking', objectMarking),
+      R.assoc('x_opencti_workflow_id', status),
+      R.assoc('first_seen', buildDate(infrastructure.first_seen)),
+      R.assoc('last_seen', buildDate(infrastructure.last_seen)),
+      R.assoc(
+        'infrastructure_types',
+        infrastructure.infrastructure_types
+          ? infrastructure.infrastructure_types
+          : [],
+      ),
+      R.pick([
         'name',
         'description',
+        'infrastructure_types',
+        'first_seen',
+        'last_seen',
         'createdBy',
         'killChainPhases',
         'objectMarking',
+        'x_opencti_workflow_id',
       ]),
     )(infrastructure);
     return (
@@ -245,6 +295,17 @@ class InfrastructureEditionOverviewComponent extends Component {
                 <SubscriptionFocus context={context} fieldName="name" />
               }
             />
+            <OpenVocabField
+              label={t('Infrastructure types')}
+              type="infrastructure-type-ov"
+              name="infrastructure_types"
+              onFocus={this.handleChangeFocus.bind(this)}
+              onChange={this.handleSubmitField.bind(this)}
+              containerstyle={{ marginTop: 20, width: '100%' }}
+              variant="edit"
+              multiple={true}
+              editContext={context}
+            />
             <Field
               component={MarkDownField}
               name="description"
@@ -259,6 +320,64 @@ class InfrastructureEditionOverviewComponent extends Component {
                 <SubscriptionFocus context={context} fieldName="description" />
               }
             />
+            <Field
+              component={DateTimePickerField}
+              name="first_seen"
+              onFocus={this.handleChangeFocus.bind(this)}
+              onSubmit={this.handleSubmitField.bind(this)}
+              TextFieldProps={{
+                label: t('First seen'),
+                variant: 'standard',
+                fullWidth: true,
+                style: { marginTop: 20 },
+                helperText: (
+                  <SubscriptionFocus context={context} fieldName="first_seen" />
+                ),
+              }}
+            />
+            <Field
+              component={DateTimePickerField}
+              name="last_seen"
+              onFocus={this.handleChangeFocus.bind(this)}
+              onSubmit={this.handleSubmitField.bind(this)}
+              TextFieldProps={{
+                label: t('Last seen'),
+                variant: 'standard',
+                fullWidth: true,
+                style: { marginTop: 20 },
+                helperText: (
+                  <SubscriptionFocus context={context} fieldName="last_seen" />
+                ),
+              }}
+            />
+            <KillChainPhasesField
+              name="killChainPhases"
+              style={{ marginTop: 20, width: '100%' }}
+              setFieldValue={setFieldValue}
+              helpertext={
+                <SubscriptionFocus
+                  context={context}
+                  fieldName="killChainPhases"
+                />
+              }
+              onChange={this.handleChangeKillChainPhases.bind(this)}
+            />
+            {infrastructure.workflowEnabled && (
+              <StatusField
+                name="x_opencti_workflow_id"
+                type="Infrastructure"
+                onFocus={this.handleChangeFocus.bind(this)}
+                onChange={this.handleSubmitField.bind(this)}
+                setFieldValue={setFieldValue}
+                style={{ marginTop: 20 }}
+                helpertext={
+                  <SubscriptionFocus
+                    context={context}
+                    fieldName="x_opencti_workflow_id"
+                  />
+                }
+              />
+            )}
             <CreatedByField
               name="createdBy"
               style={{ marginTop: 20, width: '100%' }}
@@ -302,11 +421,24 @@ const InfrastructureEditionOverview = createFragmentContainer(
         id
         name
         description
+        first_seen
+        last_seen
+        infrastructure_types
         createdBy {
           ... on Identity {
             id
             name
             entity_type
+          }
+        }
+        killChainPhases {
+          edges {
+            node {
+              id
+              kill_chain_name
+              phase_name
+              x_opencti_order
+            }
           }
         }
         objectMarking {
@@ -318,12 +450,21 @@ const InfrastructureEditionOverview = createFragmentContainer(
             }
           }
         }
+        status {
+          id
+          order
+          template {
+            name
+            color
+          }
+        }
+        workflowEnabled
       }
     `,
   },
 );
 
-export default compose(
+export default R.compose(
   inject18n,
   withStyles(styles, { withTheme: true }),
 )(InfrastructureEditionOverview);

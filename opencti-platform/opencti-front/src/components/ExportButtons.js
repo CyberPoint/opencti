@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { CSVLink } from 'react-csv';
-import IconButton from '@mui/material/IconButton';
 import { ImageOutlined } from '@mui/icons-material';
 import { FilePdfBox, FileDelimitedOutline } from 'mdi-material-ui';
 import withTheme from '@mui/styles/withTheme';
@@ -10,6 +9,8 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Dialog from '@mui/material/Dialog';
 import Tooltip from '@mui/material/Tooltip';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import ToggleButton from '@mui/material/ToggleButton';
 import themeLight from './ThemeLight';
 import themeDark from './ThemeDark';
 import { commitLocalUpdate } from '../relay/environment';
@@ -30,6 +31,7 @@ class ExportButtons extends Component {
   constructor(props) {
     super(props);
     this.adjust = props.adjust;
+    this.csvLink = React.createRef();
     commitLocalUpdate((store) => {
       const me = store.getRoot().getLinkedRecord('me');
       const exporting = me.getValue('exporting') || false;
@@ -147,19 +149,28 @@ class ExportButtons extends Component {
 
   render() {
     const { anchorElImage, anchorElPdf, exporting } = this.state;
-    const { classes, t, domElementId, name, csvData } = this.props;
+    const { classes, t, domElementId, name, csvData, csvFileName } = this.props;
     return (
       <div className={classes.exportButtons}>
-        <Tooltip title={t('Export to image')}>
-          <IconButton
-            onClick={this.handleOpenImage.bind(this)}
-            aria-haspopup="true"
-            color="primary"
-            size="large"
-          >
-            <ImageOutlined />
-          </IconButton>
-        </Tooltip>
+        <ToggleButtonGroup size="small" color="secondary" exclusive={true}>
+          <Tooltip title={t('Export to image')}>
+            <ToggleButton onClick={this.handleOpenImage.bind(this)}>
+              <ImageOutlined fontSize="small" color="primary" />
+            </ToggleButton>
+          </Tooltip>
+          <Tooltip title={t('Export to PDF')}>
+            <ToggleButton onClick={this.handleOpenPdf.bind(this)}>
+              <FilePdfBox fontSize="small" color="primary" />
+            </ToggleButton>
+          </Tooltip>
+          {csvData && (
+            <Tooltip title={t('Export to CSV')}>
+              <ToggleButton onClick={() => this.csvLink.current.link.click()}>
+                <FileDelimitedOutline fontSize="small" color="primary" />
+              </ToggleButton>
+            </Tooltip>
+          )}
+        </ToggleButtonGroup>
         <Menu
           anchorEl={anchorElImage}
           open={Boolean(anchorElImage)}
@@ -210,16 +221,6 @@ class ExportButtons extends Component {
             {t('Light (without background)')}
           </MenuItem>
         </Menu>
-        <Tooltip title={t('Export to PDF')}>
-          <IconButton
-            onClick={this.handleOpenPdf.bind(this)}
-            aria-haspopup="true"
-            color="primary"
-            size="large"
-          >
-            <FilePdfBox />
-          </IconButton>
-        </Tooltip>
         <Menu
           anchorEl={anchorElPdf}
           open={Boolean(anchorElPdf)}
@@ -248,15 +249,6 @@ class ExportButtons extends Component {
             {t('Light')}
           </MenuItem>
         </Menu>
-        {csvData && (
-          <Tooltip title={t('Export to CSV')}>
-            <IconButton aria-haspopup="true" color="primary" size="medium">
-              <CSVLink data={csvData}>
-                <FileDelimitedOutline />
-              </CSVLink>
-            </IconButton>
-          </Tooltip>
-        )}
         <Dialog
           PaperProps={{ elevation: 1 }}
           open={exporting}
@@ -266,6 +258,13 @@ class ExportButtons extends Component {
         >
           <Loader />
         </Dialog>
+        {csvData && (
+          <CSVLink
+            filename={csvFileName || `${t('CSV data.')}.csv`}
+            ref={this.csvLink}
+            data={csvData}
+          />
+        )}
       </div>
     );
   }

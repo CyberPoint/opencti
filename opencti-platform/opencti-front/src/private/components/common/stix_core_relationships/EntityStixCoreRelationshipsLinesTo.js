@@ -70,7 +70,7 @@ EntityStixCoreRelationshipsLinesToTo.propTypes = {
 export const entityStixCoreRelationshipsLinesToQuery = graphql`
   query EntityStixCoreRelationshipsLinesToPaginationQuery(
     $fromTypes: [String]
-    $toId: String
+    $toId: [String]
     $toRole: String
     $relationship_type: [String]
     $search: String
@@ -78,6 +78,7 @@ export const entityStixCoreRelationshipsLinesToQuery = graphql`
     $cursor: ID
     $orderBy: StixCoreRelationshipsOrdering
     $orderMode: OrderingMode
+    $filters: [StixCoreRelationshipsFiltering]
   ) {
     ...EntityStixCoreRelationshipsLinesTo_data
       @arguments(
@@ -90,6 +91,7 @@ export const entityStixCoreRelationshipsLinesToQuery = graphql`
         cursor: $cursor
         orderBy: $orderBy
         orderMode: $orderMode
+        filters: $filters
       )
   }
 `;
@@ -101,7 +103,7 @@ export default createPaginationContainer(
       fragment EntityStixCoreRelationshipsLinesTo_data on Query
       @argumentDefinitions(
         fromTypes: { type: "[String]" }
-        toId: { type: "String" }
+        toId: { type: "[String]" }
         toRole: { type: "String" }
         relationship_type: { type: "[String]" }
         search: { type: "String" }
@@ -112,6 +114,7 @@ export default createPaginationContainer(
           defaultValue: start_time
         }
         orderMode: { type: "OrderingMode", defaultValue: asc }
+        filters: { type: "[StixCoreRelationshipsFiltering]" }
       ) {
         stixCoreRelationships(
           fromTypes: $fromTypes
@@ -123,6 +126,7 @@ export default createPaginationContainer(
           after: $cursor
           orderBy: $orderBy
           orderMode: $orderMode
+          filters: $filters
         ) @connection(key: "Pagination_stixCoreRelationships") {
           edges {
             node {
@@ -160,6 +164,7 @@ export default createPaginationContainer(
         cursor,
         orderBy: fragmentVariables.orderBy,
         orderMode: fragmentVariables.orderMode,
+        filters: fragmentVariables.filters,
       };
     },
     query: entityStixCoreRelationshipsLinesToQuery,

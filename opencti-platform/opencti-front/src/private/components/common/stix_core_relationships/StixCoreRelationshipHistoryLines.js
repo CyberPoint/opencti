@@ -4,19 +4,33 @@ import { compose, pathOr } from 'ramda';
 import withStyles from '@mui/styles/withStyles';
 import { graphql, createRefetchContainer } from 'react-relay';
 import Paper from '@mui/material/Paper';
+import { interval } from 'rxjs';
 import inject18n from '../../../../components/i18n';
 import StixCoreRelationshipHistoryLine from './StixCoreRelationshipHistoryLine';
+import { FIVE_SECONDS } from '../../../../utils/Time';
+
+const interval$ = interval(FIVE_SECONDS);
 
 const styles = () => ({
   paperHistory: {
     height: '100%',
     margin: '10px 0 0 0',
-    padding: '15px 15px 0 15px',
+    padding: 15,
     borderRadius: 6,
   },
 });
 
 class StixCoreRelationshipHistoryLinesComponent extends Component {
+  componentDidMount() {
+    this.subscription = interval$.subscribe(() => {
+      this.props.relay.refetch();
+    });
+  }
+
+  componentWillUnmount() {
+    this.subscription.unsubscribe();
+  }
+
   render() {
     const { t, classes, data, isRelationLog } = this.props;
     const logs = pathOr([], ['logs', 'edges'], data);
@@ -34,7 +48,13 @@ class StixCoreRelationshipHistoryLinesComponent extends Component {
             );
           })
         ) : (
-          <div style={{ display: 'table', height: '100%', width: '100%' }}>
+          <div
+            style={{
+              display: 'table',
+              height: '100%',
+              width: '100%',
+            }}
+          >
             <span
               style={{
                 display: 'table-cell',

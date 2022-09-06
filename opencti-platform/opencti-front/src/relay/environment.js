@@ -41,6 +41,8 @@ const isEmptyPath = isNil(window.BASE_PATH) || isEmpty(window.BASE_PATH);
 const contextPath = isEmptyPath || window.BASE_PATH === '/' ? '' : window.BASE_PATH;
 export const APP_BASE_PATH = isEmptyPath || contextPath.startsWith('/') ? contextPath : `/${contextPath}`;
 
+export const fileUri = (fileImport) => `${APP_BASE_PATH}${fileImport}`; // No slash here, will be replace by the builder
+
 // Create Network
 let subscriptionClient;
 const loc = window.location;
@@ -130,7 +132,9 @@ export const commitMutation = ({
         error.res.errors,
       );
       if (!isEmpty(authRequired)) {
-        MESSAGING$.notifyError('Unauthorized action, please refresh your browser');
+        MESSAGING$.notifyError(
+          'Unauthorized action, please refresh your browser',
+        );
       } else if (onError) {
         const messages = buildErrorMessages(error);
         onError(error, messages);

@@ -1,11 +1,12 @@
-import { assoc, filter, includes, map, pipe } from 'ramda';
-import { READ_ENTITIES_INDICES } from './utils';
-import { elPaginate } from './engine';
+import { filter, includes, map, pipe } from 'ramda';
 import { ENTITY_TYPE_CONNECTOR } from '../schema/internalObject';
-import { connectorConfig } from './rabbitmq';
+import { connectorConfig, INTERNAL_SYNC_QUEUE } from './rabbitmq';
 import { sinceNowInMinutes } from '../utils/format';
+import { CONNECTOR_INTERNAL_ENRICHMENT, CONNECTOR_INTERNAL_IMPORT_FILE } from '../schema/general';
+import { listEntities } from './middleware-loader';
 
 // region global queries
+// TODO Will be removed during typescript migration
 export const buildFilters = (args = {}) => {
   const builtFilters = { ...args };
   const { types = [], entityTypes = [], relationshipTypes = [] } = args;
@@ -70,44 +71,63 @@ export const buildFilters = (args = {}) => {
   builtFilters.filters = customFilters;
   return builtFilters;
 };
-
-export const listEntities = async (user, entityTypes, args = {}) => {
-  const { indices = READ_ENTITIES_INDICES } = args;
-  const paginateArgs = buildFilters({ entityTypes, ...args });
-  return elPaginate(user, indices, paginateArgs);
-};
 // endregion
 
 // region connectors
 export const completeConnector = (connector) => {
   if (connector) {
-    return pipe(
-      assoc('connector_scope', connector.connector_scope ? connector.connector_scope.split(',') : []),
-      assoc('config', connectorConfig(connector.id)),
-      assoc('active', sinceNowInMinutes(connector.updated_at) < 5)
-    )(connector);
+    const completed = { ...connector };
+    completed.connector_scope = connector.connector_scope ? connector.connector_scope.split(',') : [];
+    completed.config = connectorConfig(connector.id);
+    completed.active = sinceNowInMinutes(connector.updated_at) < 5;
+    return completed;
   }
   return null;
 };
 
 export const connectors = (user) => {
-  return listEntities(user, [ENTITY_TYPE_CONNECTOR], { connectionFormat: false }).then((elements) => map((conn) => completeConnector(conn), elements));
+  return listEntities(user, [ENTITY_TYPE_CONNECTOR], { connectionFormat: false })
+    .then((elements) => map((conn) => completeConnector(conn), elements));
 };
 
-export const connectorsFor = async (user, type, scope, onlyAlive = false, onlyAuto = false, onlyContextual = false) => {
-  const connects = await connectors(user);
+export const connectorsForWorker = async (user) => {
+  const registeredConnectors = await connectors(user);
+  registeredConnectors.push({
+    id: 'sync',
+    name: 'Internal sync connector',
+    connector_scope: [],
+    config: connectorConfig(INTERNAL_SYNC_QUEUE),
+    active: true
+  });
+  return registeredConnectors;
+};
+
+const filterConnectors = (instances, type, scope, onlyAlive = false, onlyAuto = false, onlyContextual = false) => {
   return pipe(
     filter((c) => c.connector_type === type),
     filter((c) => (onlyAlive ? c.active === true : true)),
     filter((c) => (onlyAuto ? c.auto === true : true)),
     filter((c) => (onlyContextual ? c.only_contextual === true : true)),
-
     filter((c) => (scope && c.connector_scope && c.connector_scope.length > 0
-      ? includes(
-        scope.toLowerCase(),
-        map((s) => s.toLowerCase(), c.connector_scope)
-      )
+      ? includes(scope.toLowerCase(), map((s) => s.toLowerCase(), c.connector_scope))
       : true))
-  )(connects);
+  )(instances);
+};
+
+export const connectorsFor = async (user, type, scope, onlyAlive = false, onlyAuto = false, onlyContextual = false) => {
+  const connects = await connectors(user);
+  return filterConnectors(connects, type, scope, onlyAlive, onlyAuto, onlyContextual);
+};
+
+export const connectorsForEnrichment = async (user, scope, onlyAlive = false, onlyAuto = false) => {
+  return connectorsFor(user, CONNECTOR_INTERNAL_ENRICHMENT, scope, onlyAlive, onlyAuto);
+};
+
+export const connectorsEnrichment = (instances, scope, onlyAlive = false, onlyAuto = false) => {
+  return filterConnectors(instances, CONNECTOR_INTERNAL_ENRICHMENT, scope, onlyAlive, onlyAuto);
+};
+
+export const connectorsForImport = async (user, scope, onlyAlive = false, onlyAuto = false, onlyContextual = false) => {
+  return connectorsFor(user, CONNECTOR_INTERNAL_IMPORT_FILE, scope, onlyAlive, onlyAuto, onlyContextual);
 };
 // endregion

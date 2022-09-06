@@ -25,8 +25,8 @@ from pycti.connector.opencti_connector_helper import (
 )
 from requests.exceptions import RequestException, Timeout
 
-PROCESSING_COUNT: int = 3
-MAX_PROCESSING_COUNT: int = 30
+PROCESSING_COUNT: int = 4
+MAX_PROCESSING_COUNT: int = 60
 
 
 @dataclass(unsafe_hash=True)
@@ -55,7 +55,7 @@ class Consumer(Thread):  # pylint: disable=too-many-instance-attributes
         self.pika_parameters = pika.ConnectionParameters(
             self.connector["config"]["connection"]["host"],
             self.connector["config"]["connection"]["port"],
-            "/",
+            self.connector["config"]["connection"]["vhost"],
             self.pika_credentials,
             ssl_options=pika.SSLOptions(create_ssl_context())
             if self.connector["config"]["connection"]["use_ssl"]
@@ -66,6 +66,8 @@ class Consumer(Thread):  # pylint: disable=too-many-instance-attributes
         self.channel = self.pika_connection.channel()
         self.channel.basic_qos(prefetch_count=1)
         self.processing_count: int = 0
+        self.current_bundle_id: [str, None] = None
+        self.current_bundle_seq: int = 0
 
     @property
     def id(self) -> Any:  # pylint: disable=inconsistent-return-statements
@@ -154,26 +156,64 @@ class Consumer(Thread):  # pylint: disable=too-many-instance-attributes
         self.processing_count += 1
         content = "Unparseable"
         try:
-            content = base64.b64decode(data["content"]).decode("utf-8")
+            event_type = data["type"] if "type" in data else "bundle"
             types = (
                 data["entities_types"]
                 if "entities_types" in data and len(data["entities_types"]) > 0
                 else None
             )
-            update = data["update"] if "update" in data else False
             processing_count = self.processing_count
             if self.processing_count == PROCESSING_COUNT:
                 processing_count = None  # type: ignore
-            self.api.stix2.import_bundle_from_json(
-                content, update, types, processing_count
-            )
-            # Ack the message
-            cb = functools.partial(self.ack_message, channel, delivery_tag)
-            connection.add_callback_threadsafe(cb)
-            if work_id is not None:
-                self.api.work.report_expectation(work_id, None)
-            self.processing_count = 0
-            return True
+            if event_type == "bundle":
+                content = base64.b64decode(data["content"]).decode("utf-8")
+                update = data["update"] if "update" in data else False
+                self.api.stix2.import_bundle_from_json(
+                    content, update, types, processing_count
+                )
+                # Ack the message
+                cb = functools.partial(self.ack_message, channel, delivery_tag)
+                connection.add_callback_threadsafe(cb)
+                if work_id is not None:
+                    self.api.work.report_expectation(work_id, None)
+                self.processing_count = 0
+                return True
+            elif event_type == "event":
+                event = base64.b64decode(data["content"]).decode("utf-8")
+                event_content = json.loads(event)
+                event_type = event_content["type"]
+                if event_type == "create" or event_type == "update":
+                    bundle = {
+                        "type": "bundle",
+                        "objects": [event_content["data"]],
+                    }
+                    self.api.stix2.import_bundle(
+                        bundle, True, types, processing_count
+                    )
+                elif event_type == "delete":
+                    delete_id = event_content["data"]["id"]
+                    self.api.stix.delete(id=delete_id)
+                elif event_type == "merge":
+                    # Start with a merge
+                    target_id = event_content["data"]["id"]
+                    source_ids = list(map(lambda source: source["id"], event_content["context"]["sources"]))
+                    self.api.stix_core_object.merge(id=target_id, object_ids=source_ids)
+                    # Update the target entity after merge
+                    bundle = {
+                        "type": "bundle",
+                        "objects": [event_content["data"]],
+                    }
+                    self.api.stix2.import_bundle(
+                        bundle, True, types, processing_count
+                    )
+                # Ack the message
+                cb = functools.partial(self.ack_message, channel, delivery_tag)
+                connection.add_callback_threadsafe(cb)
+                self.processing_count = 0
+                return True
+            else:
+                # Unknown type, just move on.
+                return True
         except Timeout as te:
             logging.warning("%s", f"A connection timeout occurred: {{ {te} }}")
             # Platform is under heavy load: wait for unlock & retry almost indefinitely.
@@ -233,7 +273,13 @@ class Consumer(Thread):  # pylint: disable=too-many-instance-attributes
                 connection.add_callback_threadsafe(cb)
                 if work_id is not None:
                     self.api.work.report_expectation(
-                        work_id, {"error": error, "source": content}
+                        work_id,
+                        {
+                            "error": error,
+                            "source": content
+                            if len(content) < 50000
+                            else "Bundle too large",
+                        },
                     )
                 return False
             return None
@@ -310,11 +356,6 @@ class Worker:  # pylint: disable=too-few-public-methods, too-many-instance-attri
     def start(self) -> None:
         sleep_delay = 60
         while True:
-            if sleep_delay == 0:
-                sleep_delay = 1
-            else:
-                sleep_delay <<= 1
-            sleep_delay = min(60, sleep_delay)
             try:
                 # Fetch queue configuration from API
                 self.connectors = self.api.connector.list()
@@ -342,7 +383,6 @@ class Worker:  # pylint: disable=too-few-public-methods, too-many-instance-attri
                                 self.opencti_ssl_verify,
                                 self.opencti_json_logging,
                             )
-                            sleep_delay = 0
                             self.consumer_threads[queue].start()
                     else:
                         self.consumer_threads[queue] = Consumer(
@@ -353,7 +393,6 @@ class Worker:  # pylint: disable=too-few-public-methods, too-many-instance-attri
                             self.opencti_ssl_verify,
                             self.opencti_json_logging,
                         )
-                        sleep_delay = 0
                         self.consumer_threads[queue].start()
 
                 # Check if some threads must be stopped
@@ -366,7 +405,6 @@ class Worker:  # pylint: disable=too-few-public-methods, too-many-instance-attri
                         try:
                             self.consumer_threads[thread].terminate()
                             self.consumer_threads.pop(thread, None)
-                            sleep_delay = 1
                         except:  # TODO: remove bare except
                             logging.info(
                                 "%s",

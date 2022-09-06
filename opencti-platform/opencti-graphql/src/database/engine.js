@@ -1,7 +1,7 @@
 /* eslint-disable no-underscore-dangle */
 import { Client as ElkClient } from '@elastic/elasticsearch';
 import { Client as OpenClient } from '@opensearch-project/opensearch';
-import { Promise } from 'bluebird';
+import { Promise as BluePromise } from 'bluebird';
 import * as R from 'ramda';
 import semver from 'semver';
 import { readFileSync } from 'node:fs';
@@ -19,6 +19,7 @@ import {
   READ_INDEX_STIX_DOMAIN_OBJECTS,
   READ_PLATFORM_INDICES,
   READ_RELATIONSHIPS_INDICES,
+  waitInSec,
   WRITE_PLATFORM_INDICES,
 } from './utils';
 import conf, { booleanConf, logApp } from '../config/conf';
@@ -48,8 +49,10 @@ import {
   booleanAttributes,
   dateAttributes,
   isBooleanAttribute,
+  isModifiedObject,
   isMultipleAttribute,
   isRuntimeAttribute,
+  isUpdatedAtObject,
   numericOrBooleanAttributes,
 } from '../schema/fieldDataAdapter';
 import { convertEntityTypeToStixType, getParentTypes } from '../schema/schemaUtils';
@@ -66,11 +69,7 @@ import { RELATION_INDICATES } from '../schema/stixCoreRelationship';
 import { getInstanceIds, INTERNAL_FROM_FIELD, INTERNAL_TO_FIELD } from '../schema/identifier';
 import { BYPASS } from '../utils/access';
 import { cacheDel, cacheGet, cachePurge, cacheSet } from './redis';
-import {
-  INPUTS_RELATIONS_TO_STIX_ATTRIBUTE,
-  isSingleStixEmbeddedRelationship,
-  STIX_EMBEDDED_RELATION_TO_FIELD,
-} from '../schema/stixEmbeddedRelationship';
+import { isSingleStixEmbeddedRelationship, } from '../schema/stixEmbeddedRelationship';
 import { now, runtimeFieldObservableValueScript } from '../utils/format';
 import { ENTITY_TYPE_MARKING_DEFINITION } from '../schema/stixMetaObject';
 
@@ -106,12 +105,10 @@ export const isImpactedTypeAndSide = (type, side) => {
 };
 export const isImpactedRole = (role) => !UNIMPACTED_ENTITIES_ROLE.includes(role);
 
-let ca = null;
-if (conf.get('elasticsearch:ssl:ca')) {
-  ca = readFileSync(conf.get('elasticsearch:ssl:ca'));
-} else if (conf.get('elasticsearch:ssl:ca_plain')) {
-  ca = conf.get('elasticsearch:ssl:ca_plain');
-}
+const ca = conf.get('elasticsearch:ssl:ca')
+  ? readFileSync(conf.get('elasticsearch:ssl:ca'))
+  : conf.get('elasticsearch:ssl:ca_plain') || null;
+
 const searchConfiguration = {
   node: conf.get('elasticsearch:url'),
   proxy: conf.get('elasticsearch:proxy') || null,
@@ -123,7 +120,11 @@ const searchConfiguration = {
   maxRetries: conf.get('elasticsearch:max_retries') || 3,
   requestTimeout: conf.get('elasticsearch:request_timeout') || 30000,
   sniffOnStart: booleanConf('elasticsearch:sniff_on_start', false),
-  ssl: {
+  ssl: { // For Opensearch 2+ and Elastic 7
+    ca,
+    rejectUnauthorized: booleanConf('elasticsearch:ssl:reject_unauthorized', true),
+  },
+  tls: { // For Elastic 8+
     ca,
     rejectUnauthorized: booleanConf('elasticsearch:ssl:reject_unauthorized', true),
   },
@@ -134,6 +135,7 @@ const openClient = new OpenClient(searchConfiguration);
 let isRuntimeSortingEnable = false;
 let el = openClient;
 
+// Look for the engine version with OpenSearch client
 export const searchEngineVersion = () => {
   return openClient
     .info()
@@ -181,7 +183,43 @@ export const searchEngineInit = async () => {
   return true;
 };
 export const isRuntimeSortEnable = () => isRuntimeSortingEnable;
-export const searchClient = () => el;
+
+// The OpenSearch/ELK Body Parser (oebp)
+// Starting ELK8+, response are no longer inside a body envelop
+// Query wrapping is still accepted in ELK8
+const oebp = (queryResult) => {
+  if (el instanceof ElkClient) {
+    return queryResult;
+  }
+  return queryResult.body;
+};
+export const elRawSearch = (query) => el.search(query).then((r) => oebp(r));
+export const elRawDeleteByQuery = (query) => el.deleteByQuery(query).then((r) => oebp(r));
+export const elRawUpdateByQuery = (query) => el.updateByQuery(query).then((r) => oebp(r));
+const elGetTask = (taskId) => el.tasks.get({ task_id: taskId }).then((r) => oebp(r));
+export const elUpdateByQueryForMigration = async (message, index, body) => {
+  logApp.info(`${message} started`);
+  // Execute the update by query in async mode
+  const queryAsync = await elRawUpdateByQuery({ index,
+    refresh: true,
+    wait_for_completion: false,
+    body
+  }).catch((err) => {
+    throw DatabaseError('Error updating elastic', { error: err });
+  });
+  // Wait 10 seconds for task to initialize
+  await waitInSec(10);
+  // Monitor the task until completion
+  let taskStatus = await elGetTask(queryAsync.task);
+  while (!taskStatus.completed) {
+    const { total, updated } = taskStatus.task.status;
+    logApp.info(`${message} in progress - ${updated}/${total}`);
+    await waitInSec(5);
+    taskStatus = await elGetTask(queryAsync.task);
+  }
+  const timeSec = Math.round(taskStatus.task.running_time_in_nanos / 1e9);
+  logApp.info(`${message} done in ${timeSec} seconds`);
+};
 
 const buildMarkingRestriction = (user) => {
   const must = [];
@@ -246,7 +284,7 @@ const buildMarkingRestriction = (user) => {
 
 export const elIndexExists = async (indexName) => {
   const existIndex = await el.indices.exists({ index: indexName });
-  return existIndex.body === true;
+  return oebp(existIndex) === true;
 };
 const elCreateIndexTemplate = async () => {
   await el.cluster
@@ -432,30 +470,29 @@ const elCreateIndexTemplate = async () => {
 };
 export const elCreateIndexes = async (indexesToCreate = WRITE_PLATFORM_INDICES) => {
   await elCreateIndexTemplate();
-  return Promise.all(
-    indexesToCreate.map((index) => {
-      const indexName = `${index}${ES_INDEX_PATTERN_SUFFIX}`;
-      return el.indices.exists({ index: indexName }).then((result) => {
-        if (result.body === false) {
-          return el.indices.create({ index: indexName, body: { aliases: { [index]: {} } } }).catch((e) => {
-            throw DatabaseError('Error creating index', { error: e });
-          });
-        }
-        /* istanbul ignore next */
-        return result;
-      });
-    })
-  );
+  const createdIndices = [];
+  for (let i = 0; i < indexesToCreate.length; i += 1) {
+    const index = indexesToCreate[i];
+    const indexName = `${index}${ES_INDEX_PATTERN_SUFFIX}`;
+    const isExist = await el.indices.exists({ index: indexName }).then((r) => oebp(r));
+    if (!isExist) {
+      const createdIndex = await el.indices.create({ index: indexName, body: { aliases: { [index]: {} } } });
+      createdIndices.push(oebp(createdIndex));
+    }
+  }
+  return createdIndices;
 };
 export const elDeleteIndexes = async (indexesToDelete) => {
   return Promise.all(
     indexesToDelete.map((index) => {
-      return el.indices.delete({ index }).catch((err) => {
+      return el.indices.delete({ index })
+        .then((response) => oebp(response))
+        .catch((err) => {
         /* istanbul ignore next */
-        if (err.meta.body && err.meta.body.error.type !== 'index_not_found_exception') {
-          logApp.error('[SEARCH ENGINE] Delete indices fail', { error: err });
-        }
-      });
+          if (err.meta.body && err.meta.body.error.type !== 'index_not_found_exception') {
+            logApp.error('[SEARCH ENGINE] Delete indices fail', { error: err });
+          }
+        });
     })
   );
 };
@@ -658,7 +695,7 @@ export const elCount = (user, indexName, options = {}) => {
   return el
     .count(query)
     .then((data) => {
-      return data.body.count;
+      return oebp(data).count;
     })
     .catch((err) => {
       throw DatabaseError('Count data fail', { error: err, query });
@@ -730,10 +767,9 @@ export const elAggregationCount = (user, type, aggregationField, start, end, fil
     },
   };
   logApp.debug('[SEARCH ENGINE] aggregationCount', { query });
-  return el
-    .search(query)
+  return elRawSearch(query)
     .then((data) => {
-      const { buckets } = data.body.aggregations.genres;
+      const { buckets } = data.aggregations.genres;
       return R.map((b) => {
         let label = b.key;
         if (typeof label === 'number') {
@@ -804,11 +840,7 @@ const elDataConverter = (esHit) => {
       // Rebuild rel to stix attributes
       const rel = key.substr(REL_INDEX_PREFIX.length);
       const [relType] = rel.split('.');
-      const stixType = STIX_EMBEDDED_RELATION_TO_FIELD[relType];
-      if (stixType) {
-        const dataKey = INPUTS_RELATIONS_TO_STIX_ATTRIBUTE[relType];
-        data[dataKey] = isSingleStixEmbeddedRelationship(relType) ? R.head(val) : val;
-      }
+      data[relType] = isSingleStixEmbeddedRelationship(relType) ? R.head(val) : val;
     } else {
       data[key] = val;
     }
@@ -869,12 +901,12 @@ export const elFindByFromAndTo = async (user, fromId, toId, relationshipType) =>
       },
     },
   };
-  const data = await el.search(query).catch((e) => {
+  const data = await elRawSearch(query).catch((e) => {
     throw DatabaseError('Find by from and to fail', { error: e, query });
   });
   const hits = [];
-  for (let index = 0; index < data.body.hits.hits.length; index += 1) {
-    const hit = data.body.hits.hits[index];
+  for (let index = 0; index < data.hits.hits.length; index += 1) {
+    const hit = data.hits.hits[index];
     hits.push(elDataConverter(hit));
   }
   return hits;
@@ -969,11 +1001,11 @@ export const elFindByIds = async (user, ids, opts = {}) => {
         },
       };
       logApp.debug('[SEARCH ENGINE] elInternalLoadById', { query });
-      const data = await el.search(query).catch((err) => {
+      const data = await elRawSearch(query).catch((err) => {
         throw DatabaseError('Error loading ids', { error: err, query });
       });
-      for (let j = 0; j < data.body.hits.hits.length; j += 1) {
-        const hit = data.body.hits.hits[j];
+      for (let j = 0; j < data.hits.hits.length; j += 1) {
+        const hit = data.hits.hits[j];
         const element = elDataConverter(hit);
         elasticHits[element.internal_id] = element;
       }
@@ -1113,11 +1145,10 @@ export const elAggregationRelationsCount = async (user, type, opts) => {
     },
   };
   logApp.debug('[SEARCH ENGINE] aggregationRelationsCount', { query });
-  return el
-    .search(query)
+  return elRawSearch(query)
     .then(async (data) => {
       if (field === 'internal_id') {
-        const { buckets } = data.body.aggregations.connections.filtered.genres;
+        const { buckets } = data.aggregations.connections.filtered.genres;
         const filteredBuckets = R.filter((b) => b.key !== fromId, buckets);
         return R.map((b) => ({ label: b.key, value: b.parent.weight.value }), filteredBuckets);
       }
@@ -1136,8 +1167,8 @@ export const elAggregationRelationsCount = async (user, type, opts) => {
         R.uniq(),
         R.filter((f) => !isAbstract(f)),
         R.map((u) => u.toLowerCase())
-      )(data.body.hits.hits);
-      const { buckets } = data.body.aggregations.connections.filtered.genres;
+      )(data.hits.hits);
+      const { buckets } = data.aggregations.connections.filtered.genres;
       const filteredBuckets = R.filter((b) => R.includes(b.key, types), buckets);
       return R.map((b) => ({ label: pascalize(b.key), value: b.parent.weight.value }), filteredBuckets);
     })
@@ -1269,8 +1300,8 @@ export const elHistogramCount = async (user, type, field, interval, start, end, 
     },
   };
   logApp.debug('[SEARCH ENGINE] histogramCount', { query });
-  return el.search(query).then((data) => {
-    const { buckets } = data.body.aggregations.count_over_time;
+  return elRawSearch(query).then((data) => {
+    const { buckets } = data.aggregations.count_over_time;
     const dataToPairs = R.toPairs(buckets);
     return R.map((b) => ({ date: R.head(b), value: R.last(b).weight.value }), dataToPairs);
   });
@@ -1588,13 +1619,12 @@ export const elPaginate = async (user, indexName, options = {}) => {
     body,
   };
   logApp.debug('[SEARCH ENGINE] paginate', { query });
-  return el
-    .search(query)
+  return elRawSearch(query)
     .then((data) => {
-      const convertedHits = R.map((n) => elDataConverter(n), data.body.hits.hits);
+      const convertedHits = R.map((n) => elDataConverter(n), data.hits.hits);
       if (connectionFormat) {
         const nodeHits = R.map((n) => ({ node: n, sort: n.sort }), convertedHits);
-        return buildPagination(first, searchAfter, nodeHits, data.body.hits.total.value);
+        return buildPagination(first, searchAfter, nodeHits, data.hits.total.value);
       }
       return convertedHits;
     })
@@ -1602,13 +1632,17 @@ export const elPaginate = async (user, indexName, options = {}) => {
       /* istanbul ignore next */ (err) => {
         // Because we create the mapping at element creation
         // We log the error only if its not a mapping not found error
-        const numberOfCauses = err.meta.body.error.root_cause.length;
-        const invalidMappingCauses = R.pipe(
-          R.map((r) => r.reason),
-          R.filter((r) => R.includes('No mapping found for', r) || R.includes('no such index', r))
-        )(err.meta.body.error.root_cause);
+        let isTechnicalError = true;
+        if (isNotEmptyField(err.meta.body)) {
+          const numberOfCauses = err.meta.body.error.root_cause.length;
+          const invalidMappingCauses = R.pipe(
+            R.map((r) => r.reason ?? ''),
+            R.filter((r) => R.includes('No mapping found for', r) || R.includes('no such index', r))
+          )(err.meta.body.error.root_cause);
+          isTechnicalError = numberOfCauses > invalidMappingCauses.length;
+        }
         // If uncontrolled error, log and propagate
-        if (numberOfCauses > invalidMappingCauses.length) {
+        if (isTechnicalError) {
           logApp.error('[SEARCH ENGINE] Paginate fail', { error: err, query });
           throw err;
         } else {
@@ -1693,8 +1727,8 @@ export const elAttributeValues = async (user, field, opts = {}) => {
     ignore_throttled: ES_IGNORE_THROTTLED,
     body,
   };
-  const data = await el.search(query);
-  const { buckets } = data.body.aggregations.values;
+  const data = await elRawSearch(query);
+  const { buckets } = data.aggregations.values;
   const values = (buckets ?? []).map((n) => n.key);
   const nodeElements = values.map((val) => ({ node: { id: val, key: field, value: val } }));
   return buildPagination(0, null, nodeElements, nodeElements.length);
@@ -1705,8 +1739,9 @@ export const elBulk = async (args) => {
   return el
     .bulk(args)
     .then((result) => {
-      if (result.body.errors) {
-        const errors = result.body.items.map((i) => i.index?.error || i.update?.error).filter((f) => f !== undefined);
+      const data = oebp(result);
+      if (data.errors) {
+        const errors = data.items.map((i) => i.index?.error || i.update?.error).filter((f) => f !== undefined);
         throw DatabaseError('Error executing bulk indexing', { errors });
       }
       return result;
@@ -1804,7 +1839,7 @@ const getRelatedRelations = async (user, targetIds, elements, level, cache) => {
   if (foundRelations.length > 0) {
     const groups = R.splitEvery(MAX_SPLIT, foundRelations);
     const concurrentFetch = (gIds) => getRelatedRelations(user, gIds, elements, level + 1, cache);
-    await Promise.map(groups, concurrentFetch, { concurrency: ES_MAX_CONCURRENCY });
+    await BluePromise.map(groups, concurrentFetch, { concurrency: ES_MAX_CONCURRENCY });
   }
 };
 export const getRelationsToRemove = async (user, elements) => {
@@ -1814,7 +1849,7 @@ export const getRelationsToRemove = async (user, elements) => {
   await getRelatedRelations(user, ids, relationsToRemove, 0, relationsToRemoveMap);
   return { relations: R.flatten(relationsToRemove), relationsToRemoveMap };
 };
-export const elDeleteInstanceIds = async (instances) => {
+export const elDeleteInstances = async (instances) => {
   // If nothing to delete, return immediately to prevent elastic to delete everything
   if (instances.length > 0) {
     logApp.debug(`[SEARCH ENGINE] Deleting ${instances.length} instances`);
@@ -1879,14 +1914,13 @@ const elRemoveRelationConnection = async (user, relsFromTo) => {
   }
 };
 
-export const elDeleteElements = async (user, elements, loaders) => {
+export const elDeleteElements = async (user, elements, stixLoadById) => {
   if (elements.length === 0) return [];
   const toBeRemovedIds = elements.map((e) => e.internal_id);
-  const { stixLoadById } = loaders;
   const opts = { concurrency: ES_MAX_CONCURRENCY };
   const { relations, relationsToRemoveMap } = await getRelationsToRemove(user, elements);
   const stixRelations = relations.filter((r) => isStixRelationShipExceptMeta(r.relationship_type));
-  const dependencyDeletions = await Promise.map(stixRelations, (r) => stixLoadById(user, r.internal_id), opts);
+  const dependencyDeletions = await BluePromise.map(stixRelations, (r) => stixLoadById(user, r.internal_id), opts);
   // Compute the id that needs to be remove from rel
   const basicCleanup = elements.filter((f) => isBasicRelationship(f.entity_type));
   const cleanupRelations = relations.concat(basicCleanup);
@@ -1903,13 +1937,13 @@ export const elDeleteElements = async (user, elements, loaders) => {
   let currentRelationsDelete = 0;
   const groupsOfDeletions = R.splitEvery(MAX_SPLIT, relations);
   const concurrentDeletions = async (deletions) => {
-    await elDeleteInstanceIds(deletions);
+    await elDeleteInstances(deletions);
     currentRelationsDelete += deletions.length;
     logApp.debug(`[OPENCTI] Deleting related relations ${currentRelationsDelete} / ${relations.length}`);
   };
-  await Promise.map(groupsOfDeletions, concurrentDeletions, opts);
+  await BluePromise.map(groupsOfDeletions, concurrentDeletions, opts);
   // Remove the elements
-  await elDeleteInstanceIds(elements);
+  await elDeleteInstances(elements);
   // Update all rel connections that will remain
   let currentRelationsCount = 0;
   const groupsOfRelsFromTo = R.splitEvery(MAX_SPLIT, relsFromToImpacts);
@@ -1918,7 +1952,7 @@ export const elDeleteElements = async (user, elements, loaders) => {
     currentRelationsCount += relsToClean.length;
     logApp.debug(`[OPENCTI] Updating relations for deletion ${currentRelationsCount} / ${relsFromToImpacts.length}`);
   };
-  await Promise.map(groupsOfRelsFromTo, concurrentRelsFromTo, opts);
+  await BluePromise.map(groupsOfRelsFromTo, concurrentRelsFromTo, opts);
   // Return the relations deleted because of the entity deletion
   return dependencyDeletions;
 };
@@ -2017,10 +2051,10 @@ export const elIndexElements = async (elements) => {
       cache[e.fromId] = e.from;
       cache[e.toId] = e.to;
       if (isImpactedRole(fromRole)) {
-        impacts.push({ from: e.fromId, relationshipType, to: e.to, side: 'from' });
+        impacts.push({ from: e.fromId, relationshipType, to: e.to, type: e.to.entity_type, side: 'from' });
       }
       if (isImpactedRole(toRole)) {
-        impacts.push({ from: e.toId, relationshipType, to: e.from, side: 'to' });
+        impacts.push({ from: e.toId, relationshipType, to: e.from, type: e.from.entity_type, side: 'to' });
       }
       return impacts;
     }),
@@ -2035,7 +2069,7 @@ export const elIndexElements = async (elements) => {
     const targetsElements = R.map((relType) => {
       const data = targetsByRelation[relType];
       const resolvedData = R.map((d) => {
-        return { id: d.to.internal_id, side: d.side };
+        return { id: d.to.internal_id, side: d.side, type: d.type };
       }, data);
       return { relation: relType, elements: resolvedData };
     }, Object.keys(targetsByRelation));
@@ -2046,9 +2080,12 @@ export const elIndexElements = async (elements) => {
       let script = `if (ctx._source['${field}'] == null) ctx._source['${field}'] = [];`;
       script += `ctx._source['${field}'].addAll(params['${field}'])`;
       if (isStixMetaRelationship(t.relation)) {
-        const fromUpdate = R.filter((e) => e.side === 'from', t.elements).length > 0;
-        if (fromUpdate) {
+        const fromSide = R.find((e) => e.side === 'from', t.elements);
+        if (fromSide && isUpdatedAtObject(fromSide.type)) {
           script += '; ctx._source[\'updated_at\'] = params.updated_at';
+        }
+        if (fromSide && isModifiedObject(fromSide.type)) {
+          script += '; ctx._source[\'modified\'] = params.updated_at';
         }
       }
       return script;
@@ -2188,5 +2225,5 @@ export const elUpdateElement = async (instance) => {
 export const getStats = () => {
   return el.indices
     .stats({ index: READ_PLATFORM_INDICES }) //
-    .then((result) => result.body._all.total);
+    .then((result) => oebp(result)._all.total);
 };

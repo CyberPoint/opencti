@@ -9,6 +9,13 @@ import { Subject, timer } from 'rxjs';
 import { debounce } from 'rxjs/operators';
 import { withRouter } from 'react-router-dom';
 import withTheme from '@mui/styles/withTheme';
+import Dialog from '@mui/material/Dialog';
+import { Field, Form, Formik } from 'formik';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import MenuItem from '@mui/material/MenuItem';
+import DialogActions from '@mui/material/DialogActions';
+import Button from '@mui/material/Button';
 import inject18n from '../../../../components/i18n';
 import InvestigationGraphBar from './InvestigationGraphBar';
 import {
@@ -31,9 +38,13 @@ import { commitMutation, fetchQuery } from '../../../../relay/environment';
 import { investigationAddStixCoreObjectsLinesRelationsDeleteMutation } from './InvestigationAddStixCoreObjectsLines';
 import { workspaceMutationFieldPatch } from '../WorkspaceEditionOverview';
 import WorkspaceHeader from '../WorkspaceHeader';
+import SelectField from '../../../../components/SelectField';
+import TextField from '../../../../components/TextField';
+import SwitchField from '../../../../components/SwitchField';
 
 const PARAMETERS$ = new Subject().pipe(debounce(() => timer(2000)));
 const POSITIONS$ = new Subject().pipe(debounce(() => timer(2000)));
+const DBL_CLICK_TIMEOUT = 500; // ms
 
 export const investigationGraphQuery = graphql`
   query InvestigationGraphQuery($id: String) {
@@ -787,6 +798,8 @@ class InvestigationGraphComponent extends Component {
       width: null,
       height: null,
       zoomed: false,
+      keyword: '',
+      prevClick: null,
     };
   }
 
@@ -976,7 +989,7 @@ class InvestigationGraphComponent extends Component {
     }
   }
 
-  resetAllFilters() {
+  resetAllFilters(onlyRefresh = false) {
     return new Promise((resolve) => {
       const sortByLabel = R.sortBy(R.compose(R.toLower, R.prop('tlabel')));
       const sortByDefinition = R.sortBy(
@@ -1008,20 +1021,35 @@ class InvestigationGraphComponent extends Component {
         R.uniqBy(R.prop('id')),
         sortByName,
       )(R.union(this.graphData.nodes, this.graphData.links));
-      this.setState(
-        {
-          allStixCoreObjectsTypes,
-          allMarkedBy,
-          allCreatedBy,
-          stixCoreObjectsTypes: allStixCoreObjectsTypes,
-          markedBy: allMarkedBy.map((n) => n.id),
-          createdBy: allCreatedBy.map((n) => n.id),
-        },
-        () => {
-          this.saveParameters(false);
-          resolve(true);
-        },
-      );
+      if (onlyRefresh) {
+        this.setState(
+          {
+            allStixCoreObjectsTypes,
+            allMarkedBy,
+            allCreatedBy,
+          },
+          () => {
+            this.saveParameters(false);
+            resolve(true);
+          },
+        );
+      } else {
+        this.setState(
+          {
+            allStixCoreObjectsTypes,
+            allMarkedBy,
+            allCreatedBy,
+            stixCoreObjectsTypes: allStixCoreObjectsTypes,
+            markedBy: allMarkedBy.map((n) => n.id),
+            createdBy: allCreatedBy.map((n) => n.id),
+            keyword: '',
+          },
+          () => {
+            this.saveParameters(false);
+            resolve(true);
+          },
+        );
+      }
     });
   }
 
@@ -1059,6 +1087,8 @@ class InvestigationGraphComponent extends Component {
   }
 
   handleNodeClick(node, event) {
+    const { prevClick } = this.state;
+    const now = new Date();
     if (event.ctrlKey || event.shiftKey || event.altKey) {
       if (this.selectedNodes.has(node)) {
         this.selectedNodes.delete(node);
@@ -1066,12 +1096,31 @@ class InvestigationGraphComponent extends Component {
         this.selectedNodes.add(node);
       }
     } else {
+      if (
+        prevClick
+        && prevClick.node === node
+        && now - prevClick.time < DBL_CLICK_TIMEOUT
+      ) {
+        this.selectedNodes.clear();
+        this.selectedLinks.clear();
+        this.selectedNodes.add(node);
+        this.setState({
+          prevClick: null,
+          numberOfSelectedNodes: this.selectedNodes.size,
+          numberOfSelectedLinks: this.selectedLinks.size,
+        });
+        return this.handleOpenExpandElements();
+      }
       const untoggle = this.selectedNodes.has(node) && this.selectedNodes.size === 1;
       this.selectedNodes.clear();
       this.selectedLinks.clear();
       if (!untoggle) this.selectedNodes.add(node);
     }
-    this.setState({
+    return this.setState({
+      prevClick: {
+        node,
+        time: now,
+      },
       numberOfSelectedNodes: this.selectedNodes.size,
       numberOfSelectedLinks: this.selectedLinks.size,
     });
@@ -1419,10 +1468,14 @@ class InvestigationGraphComponent extends Component {
       decodeGraphData(this.props.workspace.graph_data),
       this.props.t,
     );
-    await this.resetAllFilters();
     const selectedTimeRangeInterval = computeTimeRangeInterval(
       this.graphObjects,
     );
+    if (filters.reset_filters) {
+      await this.resetAllFilters();
+    } else {
+      await this.resetAllFilters(true);
+    }
     this.setState(
       {
         selectedTimeRangeInterval,
@@ -1463,6 +1516,7 @@ class InvestigationGraphComponent extends Component {
           this.state.createdBy,
           [],
           this.state.selectedTimeRangeInterval,
+          this.state.keyword,
         ),
       },
       () => {
@@ -1483,13 +1537,46 @@ class InvestigationGraphComponent extends Component {
         this.state.createdBy,
         [],
         interval,
+        this.state.keyword,
       ),
       selectedTimeRangeInterval: interval,
     });
   }
 
+  handleSearch(keyword) {
+    this.setState({
+      keyword,
+      graphData: applyFilters(
+        this.graphData,
+        this.state.stixCoreObjectsTypes,
+        this.state.markedBy,
+        this.state.createdBy,
+        [],
+        this.state.selectedTimeRangeInterval,
+        keyword,
+      ),
+    });
+  }
+
+  handleOpenExpandElements() {
+    this.setState({ openExpandElements: true });
+  }
+
+  handleCloseExpandElements() {
+    this.setState({ openExpandElements: false });
+  }
+
+  onResetExpandElements() {
+    this.handleCloseExpandElements();
+  }
+
+  onSubmitExpandElements(values, { resetForm }) {
+    this.handleExpandElements(values);
+    resetForm();
+  }
+
   render() {
-    const { workspace, theme } = this.props;
+    const { workspace, theme, t } = this.props;
     const {
       mode3D,
       modeFixed,
@@ -1508,6 +1595,7 @@ class InvestigationGraphComponent extends Component {
       selectedTimeRangeInterval,
       width,
       height,
+      openExpandElements,
     } = this.state;
     const graphWidth = width || window.innerWidth - 210;
     const graphHeight = height || window.innerHeight - 180;
@@ -1522,6 +1610,146 @@ class InvestigationGraphComponent extends Component {
           workspace={workspace}
           adjust={this.handleZoomToFit.bind(this)}
         />
+        <Dialog
+          PaperProps={{ elevation: 1 }}
+          open={openExpandElements}
+          onClose={this.handleCloseExpandElements.bind(this)}
+        >
+          <Formik
+            enableReinitialize={true}
+            initialValues={{
+              entity_type: 'All',
+              relationship_type: 'All',
+              limit: 100,
+              reset_filters: true,
+            }}
+            onSubmit={this.onSubmitExpandElements.bind(this)}
+            onReset={this.onResetExpandElements.bind(this)}
+          >
+            {({ submitForm, handleReset, isSubmitting }) => (
+              <Form>
+                <DialogTitle>{t('Expand elements')}</DialogTitle>
+                <DialogContent>
+                  <Field
+                    component={SelectField}
+                    variant="standard"
+                    name="entity_type"
+                    label={t('Entity types')}
+                    fullWidth={true}
+                    containerstyle={{
+                      width: '100%',
+                    }}
+                  >
+                    {R.pipe(
+                      R.map((n) => ({ key: n, label: t(`entity_${n}`) })),
+                      R.sortWith([R.ascend(R.prop('label'))]),
+                    )([
+                      'All',
+                      'Attack-Pattern',
+                      'Campaign',
+                      'Note',
+                      'Observed-Data',
+                      'Opinion',
+                      'Report',
+                      'Course-Of-Action',
+                      'Individual',
+                      'Organization',
+                      'Sector',
+                      'Indicator',
+                      'Infrastructure',
+                      'Intrusion-Set',
+                      'City',
+                      'Country',
+                      'Region',
+                      'Position',
+                      'Malware',
+                      'Threat-Actor',
+                      'Tool',
+                      'Vulnerability',
+                      'Incident',
+                      'Label',
+                      'Marking-Definition',
+                      'External-Reference',
+                      'Stix-Cyber-Observable',
+                      'Domain-Name',
+                      'IPv4-Addr',
+                      'IPv6-Addr',
+                      'StixFile',
+                    ]).map((entityType) => (
+                      <MenuItem key={entityType.key} value={entityType.key}>
+                        {entityType.label}
+                      </MenuItem>
+                    ))}
+                  </Field>
+                  <Field
+                    component={SelectField}
+                    variant="standard"
+                    name="relationship_type"
+                    label={t('Relationship type')}
+                    fullWidth={true}
+                    containerstyle={{
+                      marginTop: 20,
+                      width: '100%',
+                    }}
+                  >
+                    {R.pipe(
+                      R.map((n) => ({ key: n, label: t(`relationship_${n}`) })),
+                      R.sortWith([R.ascend(R.prop('label'))]),
+                    )([
+                      'All',
+                      'uses',
+                      'indicates',
+                      'targets',
+                      'located-at',
+                      'related-to',
+                      'communicates-with',
+                      'attributed-to',
+                      'based-on',
+                      'mitigates',
+                      'variant-of',
+                      'compromises',
+                      'delivers',
+                      'belongs-to',
+                      'amplifies',
+                    ]).map((relationshipType) => (
+                      <MenuItem key={relationshipType.key} value={relationshipType.key}>
+                        {relationshipType.label}
+                      </MenuItem>
+                    ))}
+                  </Field>
+                  <Field
+                    component={TextField}
+                    variant="standard"
+                    name="limit"
+                    label={t('Limit')}
+                    type="number"
+                    fullWidth={true}
+                    style={{ marginTop: 20 }}
+                  />
+                  <Field
+                    component={SwitchField}
+                    type="checkbox"
+                    name="reset_filters"
+                    label={t('Reset filters')}
+                    containerstyle={{ marginTop: 20 }}
+                  />
+                </DialogContent>
+                <DialogActions>
+                  <Button onClick={handleReset} disabled={isSubmitting}>
+                    {t('Cancel')}
+                  </Button>
+                  <Button
+                    color="secondary"
+                    onClick={submitForm}
+                    disabled={isSubmitting}
+                  >
+                    {t('Expand')}
+                  </Button>
+                </DialogActions>
+              </Form>
+            )}
+          </Formik>
+        </Dialog>
         <InvestigationGraphBar
           displayProgress={displayProgress}
           handleToggle3DMode={this.handleToggle3DMode.bind(this)}
@@ -1548,7 +1776,8 @@ class InvestigationGraphComponent extends Component {
           onAdd={this.handleAddEntity.bind(this)}
           onDelete={this.handleDelete.bind(this)}
           onAddRelation={this.handleAddRelation.bind(this)}
-          handleExpandElements={this.handleExpandElements.bind(this)}
+          handleOpenExpandElements={this.handleOpenExpandElements.bind(this)}
+          handleCloseExpandElements={this.handleOpenExpandElements.bind(this)}
           handleDeleteSelected={this.handleDeleteSelected.bind(this)}
           selectedNodes={Array.from(this.selectedNodes)}
           selectedLinks={Array.from(this.selectedLinks)}
@@ -1567,6 +1796,7 @@ class InvestigationGraphComponent extends Component {
           selectedTimeRangeInterval={selectedTimeRangeInterval}
           handleTimeRangeChange={this.handleTimeRangeChange.bind(this)}
           timeRangeValues={timeRangeValues}
+          handleSearch={this.handleSearch.bind(this)}
         />
         {mode3D ? (
           <ForceGraph3D
@@ -1650,7 +1880,7 @@ class InvestigationGraphComponent extends Component {
             }}
             onLinkClick={this.handleLinkClick.bind(this)}
             onBackgroundClick={this.handleBackgroundClick.bind(this)}
-            cooldownTicks={modeFixed ? 0 : 'Infinity'}
+            cooldownTicks={modeFixed ? 0 : undefined}
             dagMode={
               // eslint-disable-next-line no-nested-ternary
               modeTree === 'horizontal'
@@ -1669,8 +1899,12 @@ class InvestigationGraphComponent extends Component {
             onZoom={this.onZoom.bind(this)}
             onZoomEnd={this.handleZoomEnd.bind(this)}
             nodeRelSize={4}
-            nodeCanvasObject={
-              (node, ctx) => nodePaint(node, node.color, ctx, this.selectedNodes.has(node))
+            nodeCanvasObject={(
+              node,
+              ctx, //
+            ) =>
+              // eslint-disable-next-line implicit-arrow-linebreak
+              nodePaint(node, node.color, ctx, this.selectedNodes.has(node))
             }
             nodePointerAreaPaint={nodeAreaPaint}
             // linkDirectionalParticles={(link) => (this.selectedLinks.has(link) ? 20 : 0)}
@@ -1730,7 +1964,7 @@ class InvestigationGraphComponent extends Component {
             }}
             onLinkClick={this.handleLinkClick.bind(this)}
             onBackgroundClick={this.handleBackgroundClick.bind(this)}
-            cooldownTicks={modeFixed ? 0 : 'Infinity'}
+            cooldownTicks={modeFixed ? 0 : undefined}
             dagMode={
               // eslint-disable-next-line no-nested-ternary
               modeTree === 'horizontal'

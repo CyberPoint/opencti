@@ -57,11 +57,11 @@ const styles = () => ({
     float: 'right',
   },
   viewAsField: {
-    marginTop: -3,
+    marginTop: -6,
     float: 'left',
   },
   viewAsFieldLabel: {
-    margin: '5px 15px 0 0',
+    margin: '2px 15px 0 0',
     fontSize: 14,
     float: 'left',
   },
@@ -129,8 +129,23 @@ export const stixDomainObjectMutation = graphql`
         ... on Tool {
           aliases
         }
+        ... on Channel {
+          aliases
+        }
+        ... on Event {
+          aliases
+        }
+        ... on Narrative {
+          aliases
+        }
+        ... on Language {
+          aliases
+        }
         ... on Incident {
           aliases
+        }
+        ... on Vulnerability {
+          x_opencti_aliases
         }
       }
     }
@@ -303,16 +318,23 @@ class StixDomainObjectHeader extends Component {
           <div className={classes.aliases}>
             {R.take(5, aliases).map(
               (label) => label.length > 0 && (
-                  <Chip
+                  <Security
+                    needs={[KNOWLEDGE_KNUPDATE]}
                     key={label}
-                    classes={{ root: classes.alias }}
-                    label={label}
-                    onDelete={
-                      enableReferences
-                        ? this.handleOpenCommitDelete.bind(this, label)
-                        : this.deleteAlias.bind(this, label)
+                    placeholder={
+                      <Chip classes={{ root: classes.alias }} label={label} />
                     }
-                  />
+                  >
+                    <Chip
+                      classes={{ root: classes.alias }}
+                      label={label}
+                      onDelete={
+                        enableReferences
+                          ? this.handleOpenCommitDelete.bind(this, label)
+                          : this.deleteAlias.bind(this, label)
+                      }
+                    />
+                  </Security>
               ),
             )}
             <Security needs={[KNOWLEDGE_KNUPDATE]}>

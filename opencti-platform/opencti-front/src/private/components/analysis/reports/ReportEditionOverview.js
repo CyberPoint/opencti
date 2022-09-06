@@ -5,12 +5,11 @@ import { Formik, Field, Form } from 'formik';
 import withStyles from '@mui/styles/withStyles';
 import * as Yup from 'yup';
 import * as R from 'ramda';
-import { dateFormat, parse } from '../../../../utils/Time';
+import { buildDate, parse } from '../../../../utils/Time';
 import { QueryRenderer, commitMutation } from '../../../../relay/environment';
 import inject18n from '../../../../components/i18n';
 import TextField from '../../../../components/TextField';
 import { SubscriptionFocus } from '../../../../components/Subscription';
-import DatePickerField from '../../../../components/DatePickerField';
 import { attributesQuery } from '../../settings/attributes/AttributesLines';
 import Loader from '../../../../components/Loader';
 import CreatedByField from '../../common/form/CreatedByField';
@@ -24,6 +23,12 @@ import ItemIcon from '../../../../components/ItemIcon';
 import AutocompleteFreeSoloField from '../../../../components/AutocompleteFreeSoloField';
 import Security, { SETTINGS_SETLABELS } from '../../../../utils/Security';
 import AutocompleteField from '../../../../components/AutocompleteField';
+import {
+  convertCreatedBy,
+  convertMarkings,
+  convertStatus,
+} from '../../../../utils/Edition';
+import DateTimePickerField from '../../../../components/DateTimePickerField';
 
 const styles = (theme) => ({
   createButton: {
@@ -114,12 +119,12 @@ const reportMutationRelationDelete = graphql`
 const reportValidation = (t) => Yup.object().shape({
   name: Yup.string().required(t('This field is required')),
   published: Yup.date()
-    .typeError(t('The value must be a date (YYYY-MM-DD)'))
+    .typeError(t('The value must be a datetime (yyyy-MM-dd hh:mm (a|p)m)'))
     .required(t('This field is required')),
   report_types: Yup.array().required(t('This field is required')),
   description: Yup.string().nullable(),
   confidence: Yup.number(),
-  status_id: Yup.object(),
+  x_opencti_workflow_id: Yup.object(),
 });
 
 class ReportEditionOverviewComponent extends Component {
@@ -142,7 +147,7 @@ class ReportEditionOverviewComponent extends Component {
       R.dissoc('message'),
       R.dissoc('references'),
       R.assoc('published', parse(values.published).format()),
-      R.assoc('status_id', values.status_id?.value),
+      R.assoc('x_opencti_workflow_id', values.x_opencti_workflow_id?.value),
       R.assoc('createdBy', values.createdBy?.value),
       R.assoc('report_types', R.pluck('value', values.report_types)),
       R.assoc('objectMarking', R.pluck('value', values.objectMarking)),
@@ -172,7 +177,7 @@ class ReportEditionOverviewComponent extends Component {
   handleSubmitField(name, value) {
     if (!this.props.enableReferences) {
       let finalValue = value;
-      if (name === 'status_id') {
+      if (name === 'x_opencti_workflow_id') {
         finalValue = value.value;
       }
       if (name === 'report_types') {
@@ -247,34 +252,14 @@ class ReportEditionOverviewComponent extends Component {
 
   render() {
     const { t, report, context, enableReferences, classes } = this.props;
-    const createdBy = R.pathOr(null, ['createdBy', 'name'], report) === null
-      ? ''
-      : {
-        label: R.pathOr(null, ['createdBy', 'name'], report),
-        value: R.pathOr(null, ['createdBy', 'id'], report),
-      };
-    const objectMarking = R.pipe(
-      R.pathOr([], ['objectMarking', 'edges']),
-      R.map((n) => ({
-        label: n.node.definition,
-        value: n.node.id,
-      })),
-    )(report);
-    const status = R.pathOr(null, ['status', 'template', 'name'], report) === null
-      ? ''
-      : {
-        label: t(
-          `status_${R.pathOr(null, ['status', 'template', 'name'], report)}`,
-        ),
-        color: R.pathOr(null, ['status', 'template', 'color'], report),
-        value: R.pathOr(null, ['status', 'id'], report),
-        order: R.pathOr(null, ['status', 'order'], report),
-      };
+    const createdBy = convertCreatedBy(report);
+    const objectMarking = convertMarkings(report);
+    const status = convertStatus(t, report);
     const initialValues = R.pipe(
       R.assoc('createdBy', createdBy),
       R.assoc('objectMarking', objectMarking),
-      R.assoc('published', dateFormat(report.published)),
-      R.assoc('status_id', status),
+      R.assoc('published', buildDate(report.published)),
+      R.assoc('x_opencti_workflow_id', status),
       R.assoc(
         'report_types',
         (report.report_types || []).map((n) => ({ label: n, value: n })),
@@ -287,7 +272,7 @@ class ReportEditionOverviewComponent extends Component {
         'createdBy',
         'objectMarking',
         'confidence',
-        'status_id',
+        'x_opencti_workflow_id',
       ]),
     )(report);
     return (
@@ -425,11 +410,8 @@ class ReportEditionOverviewComponent extends Component {
                           variant="edit"
                         />
                         <Field
-                          component={DatePickerField}
+                          component={DateTimePickerField}
                           name="published"
-                          invalidDateMessage={t(
-                            'The value must be a date (mm/dd/yyyy)',
-                          )}
                           onFocus={this.handleChangeFocus.bind(this)}
                           onSubmit={this.handleSubmitField.bind(this)}
                           TextFieldProps={{
@@ -458,7 +440,7 @@ class ReportEditionOverviewComponent extends Component {
                         />
                         {report.workflowEnabled && (
                           <StatusField
-                            name="status_id"
+                            name="x_opencti_workflow_id"
                             type="Report"
                             onFocus={this.handleChangeFocus.bind(this)}
                             onChange={this.handleSubmitField.bind(this)}
@@ -467,7 +449,7 @@ class ReportEditionOverviewComponent extends Component {
                             helpertext={
                               <SubscriptionFocus
                                 context={context}
-                                fieldName="status_id"
+                                fieldName="x_opencti_workflow_id"
                               />
                             }
                           />

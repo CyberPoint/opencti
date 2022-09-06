@@ -57,7 +57,7 @@ class CourseOfActionComponent extends Component {
           <Grid item={true} xs={6}>
             <SimpleStixObjectOrStixRelationshipStixCoreRelationships
               stixObjectOrStixRelationshipId={courseOfAction.id}
-              stixObjectOrStixRelationshipLink={`/dashboard/arsenal/courses_of_action/${courseOfAction.id}`}
+              stixObjectOrStixRelationshipLink={`/dashboard/arsenal/courses_of_action/${courseOfAction.id}/knowledge`}
             />
           </Grid>
           <Grid item={true} xs={6}>
@@ -142,6 +142,15 @@ const CourseOfAction = createFragmentContainer(CourseOfActionComponent, {
       }
       name
       x_opencti_aliases
+      status {
+        id
+        order
+        template {
+          name
+          color
+        }
+      }
+      workflowEnabled
       ...CourseOfActionDetails_courseOfAction
     }
   `,

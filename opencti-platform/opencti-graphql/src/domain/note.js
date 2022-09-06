@@ -3,10 +3,10 @@ import {
   createEntity,
   distributionEntities,
   internalLoadById,
-  loadById,
+  storeLoadById,
   timeSeriesEntities,
 } from '../database/middleware';
-import { listEntities } from '../database/repository';
+import { listEntities } from '../database/middleware-loader';
 import { findAll as findIndividuals, addIndividual } from './individual';
 import { BUS_TOPICS } from '../config/conf';
 import { notify } from '../database/redis';
@@ -18,7 +18,7 @@ import { READ_INDEX_STIX_DOMAIN_OBJECTS } from '../database/utils';
 import { isStixId } from '../schema/schemaUtils';
 
 export const findById = (user, noteId) => {
-  return loadById(user, noteId, ENTITY_TYPE_CONTAINER_NOTE);
+  return storeLoadById(user, noteId, ENTITY_TYPE_CONTAINER_NOTE);
 };
 
 export const findAll = async (user, args) => {

@@ -2,6 +2,8 @@ import { GraphQLDateTime } from 'graphql-scalars';
 import { mergeResolvers } from 'merge-graphql-schemas';
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { constraintDirective } from 'graphql-constraint-directive';
+import { printSchema } from 'graphql';
+import fs from 'fs';
 import settingsResolvers from '../resolvers/settings';
 import logResolvers from '../resolvers/log';
 import attributeResolvers from '../resolvers/attribute';
@@ -55,9 +57,10 @@ import incidentResolvers from '../resolvers/incident';
 import { authDirectiveBuilder } from './authDirective';
 import connectorResolvers from '../resolvers/connector';
 import fileResolvers from '../resolvers/file';
-import schemaTypeDefs from '../../config/schema/opencti.graphql';
+import globalTypeDefs from '../../config/schema/opencti.graphql';
 import organizationOrIndividualResolvers from '../resolvers/organizationOrIndividual';
 import taxiiResolvers from '../resolvers/taxii';
+import feedResolvers from '../resolvers/feed';
 import taskResolvers from '../resolvers/task';
 import retentionResolvers from '../resolvers/retentionRule';
 import streamResolvers from '../resolvers/stream';
@@ -65,103 +68,117 @@ import userSubscriptionResolvers from '../resolvers/userSubscription';
 import statusResolvers from '../resolvers/status';
 import ruleResolvers from '../resolvers/rule';
 import stixResolvers from '../resolvers/stix';
+import { DEV_MODE } from '../config/conf';
+
+const schemaTypeDefs = [globalTypeDefs];
+
+const globalResolvers = {
+  DateTime: GraphQLDateTime,
+};
+const schemaResolvers = [
+  // INTERNAL
+  globalResolvers,
+  taxiiResolvers,
+  feedResolvers,
+  streamResolvers,
+  userSubscriptionResolvers,
+  statusResolvers,
+  logResolvers,
+  rabbitmqMetricsResolvers,
+  elasticSearchMetricsResolvers,
+  attributeResolvers,
+  workspaceResolvers,
+  subTypeResolvers,
+  fileResolvers,
+  taskResolvers,
+  retentionResolvers,
+  stixResolvers,
+  // ENTITIES
+  // INTERNAL OBJECT ENTITIES
+  internalObjectResolvers,
+  settingsResolvers,
+  groupResolvers,
+  userResolvers,
+  connectorResolvers,
+  // STIX OBJECT ENTITIES
+  // STIX META OBJECT ENTITIES
+  markingDefinitionResolvers,
+  labelResolvers,
+  externalReferenceResolvers,
+  killChainPhaseResolvers,
+  // STIX CORE OBJECT ENTITIES
+  stixCoreObjectResolvers,
+  // STIX DOMAIN OBJECT ENTITIES
+  stixDomainObjectResolvers,
+  attackPatternResolvers,
+  campaignResolvers,
+  // Containers
+  containerResolvers,
+  noteResolvers,
+  observedDataResolvers,
+  opinionResolvers,
+  reportResolvers,
+  courseOfActionResolvers,
+  // Identities
+  identityResolvers,
+  individualResolvers,
+  organizationResolvers,
+  sectorResolvers,
+  systemResolvers,
+  // Others
+  indicatorResolvers,
+  infrastructureResolvers,
+  intrusionSetResolvers,
+  ruleResolvers,
+  // Locations
+  locationResolvers,
+  cityResolvers,
+  countryResolvers,
+  regionResolvers,
+  positionResolvers,
+  // Others
+  malwareResolvers,
+  threatActorResolvers,
+  toolResolvers,
+  vulnerabilityResolvers,
+  incidentResolvers,
+  // STIX CYBER OBSERVABLE ENTITIES
+  stixCyberObservableResolvers,
+  // INTERNAL RELATIONSHIPS
+  internalRelationshipResolvers,
+  // STIX RELATIONSHIPS
+  stixRelationshipResolvers,
+  // STIX META RELATIONSHIPS
+  stixMetaRelationshipResolvers,
+  // STIX CORE RELATIONSHIPS
+  stixCoreRelationshipResolvers,
+  // STIX SIGHTING RELATIONSHIPS
+  stixSightingRelationshipResolvers,
+  // STIX CYBER OBSERVABLE RELATIONSHIPS
+  stixCyberObservableRelationResolvers,
+  // ALL
+  organizationOrIndividualResolvers,
+  stixObjectOrStixRelationshipResolvers,
+];
+export const registerGraphqlSchema = ({ schema, resolver }) => {
+  schemaTypeDefs.push(schema);
+  schemaResolvers.push(resolver);
+};
 
 const createSchema = () => {
-  const globalResolvers = {
-    DateTime: GraphQLDateTime,
-  };
-  const resolvers = mergeResolvers([
-    // INTERNAL
-    globalResolvers,
-    taxiiResolvers,
-    streamResolvers,
-    userSubscriptionResolvers,
-    statusResolvers,
-    logResolvers,
-    rabbitmqMetricsResolvers,
-    elasticSearchMetricsResolvers,
-    attributeResolvers,
-    workspaceResolvers,
-    subTypeResolvers,
-    fileResolvers,
-    taskResolvers,
-    retentionResolvers,
-    stixResolvers,
-    // ENTITIES
-    // INTERNAL OBJECT ENTITIES
-    internalObjectResolvers,
-    settingsResolvers,
-    groupResolvers,
-    userResolvers,
-    connectorResolvers,
-    // STIX OBJECT ENTITIES
-    // STIX META OBJECT ENTITIES
-    markingDefinitionResolvers,
-    labelResolvers,
-    externalReferenceResolvers,
-    killChainPhaseResolvers,
-    // STIX CORE OBJECT ENTITIES
-    stixCoreObjectResolvers,
-    // STIX DOMAIN OBJECT ENTITIES
-    stixDomainObjectResolvers,
-    attackPatternResolvers,
-    campaignResolvers,
-    // Containers
-    containerResolvers,
-    noteResolvers,
-    observedDataResolvers,
-    opinionResolvers,
-    reportResolvers,
-    courseOfActionResolvers,
-    // Identities
-    identityResolvers,
-    individualResolvers,
-    organizationResolvers,
-    sectorResolvers,
-    systemResolvers,
-    // Others
-    indicatorResolvers,
-    infrastructureResolvers,
-    intrusionSetResolvers,
-    ruleResolvers,
-    // Locations
-    locationResolvers,
-    cityResolvers,
-    countryResolvers,
-    regionResolvers,
-    positionResolvers,
-    // Others
-    malwareResolvers,
-    threatActorResolvers,
-    toolResolvers,
-    vulnerabilityResolvers,
-    incidentResolvers,
-    // STIX CYBER OBSERVABLE ENTITIES
-    stixCyberObservableResolvers,
-    // INTERNAL RELATIONSHIPS
-    internalRelationshipResolvers,
-    // STIX RELATIONSHIPS
-    stixRelationshipResolvers,
-    // STIX META RELATIONSHIPS
-    stixMetaRelationshipResolvers,
-    // STIX CORE RELATIONSHIPS
-    stixCoreRelationshipResolvers,
-    // STIX SIGHTING RELATIONSHIPS
-    stixSightingRelationshipResolvers,
-    // STIX CYBER OBSERVABLE RELATIONSHIPS
-    stixCyberObservableRelationResolvers,
-    // ALL
-    organizationOrIndividualResolvers,
-    stixObjectOrStixRelationshipResolvers,
-  ]);
+  const resolvers = mergeResolvers(schemaResolvers);
   const { authDirectiveTransformer } = authDirectiveBuilder('auth');
   let schema = makeExecutableSchema({
-    typeDefs: [schemaTypeDefs],
+    typeDefs: schemaTypeDefs,
     resolvers,
     inheritResolversFromInterfaces: true,
   });
   schema = constraintDirective()(schema);
   schema = authDirectiveTransformer(schema);
+  if (DEV_MODE) {
+    const globalSchema = printSchema(schema);
+    fs.writeFileSync('../opencti-front/relay.schema.graphql', globalSchema);
+  }
   return schema;
 };
 

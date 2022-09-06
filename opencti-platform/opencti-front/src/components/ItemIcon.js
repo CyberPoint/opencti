@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React from 'react';
 import * as PropTypes from 'prop-types';
 import {
   FlagOutlined,
@@ -19,13 +19,17 @@ import {
   Visibility,
   PlaceOutlined,
   StorageOutlined,
+  WebAssetOutlined,
+  SurroundSoundOutlined,
+  EventOutlined,
+  SpeakerNotesOutlined,
+  TranslateOutlined,
 } from '@mui/icons-material';
 import {
   Biohazard,
   DiamondOutline,
   ChessKnight,
   LockPattern,
-  Application,
   Fire,
   CityVariantOutline,
   LabelOutline,
@@ -120,11 +124,23 @@ const iconSelector = (type, variant, fontSize, color) => {
     case 'Threat-Actor':
       return <PublicOutlined style={style} fontSize={fontSize} role="img" />;
     case 'Tool':
-      return <Application style={style} fontSize={fontSize} role="img" />;
+      return <WebAssetOutlined style={style} fontSize={fontSize} role="img" />;
     case 'Vulnerability':
       return <BugReportOutlined style={style} fontSize={fontSize} role="img" />;
     case 'Incident':
       return <Fire style={style} fontSize={fontSize} role="img" />;
+    case 'Channel':
+      return (
+        <SurroundSoundOutlined style={style} fontSize={fontSize} role="img" />
+      );
+    case 'Event':
+      return <EventOutlined style={style} fontSize={fontSize} role="img" />;
+    case 'Narrative':
+      return (
+        <SpeakerNotesOutlined style={style} fontSize={fontSize} role="img" />
+      );
+    case 'Language':
+      return <TranslateOutlined style={style} fontSize={fontSize} role="img" />;
     case 'Stix-Cyber-Observable':
     case 'Autonomous-System':
     case 'Directory':
@@ -146,12 +162,14 @@ const iconSelector = (type, variant, fontSize, color) => {
     case 'User-Account':
     case 'Windows-Registry-Key':
     case 'Windows-Registry-Value-Type':
-    case 'X509-V3-Extensions-Type':
-    case 'X-OpenCTI-Cryptographic-Key':
-    case 'X-OpenCTI-Cryptocurrency-Wallet':
-    case 'X-OpenCTI-Hostname':
-    case 'X-OpenCTI-Text':
-    case 'X-OpenCTI-User-Agent':
+    case 'Cryptographic-Key':
+    case 'Cryptocurrency-Wallet':
+    case 'Hostname':
+    case 'Text':
+    case 'User-Agent':
+    case 'Bank-Account':
+    case 'Phone-Number':
+    case 'Payment-Card':
       return <HexagonOutline style={style} fontSize={fontSize} role="img" />;
     case 'stix-sighting-relationship':
       return <Visibility style={style} fontSize={fontSize} role="img" />;
@@ -168,23 +186,34 @@ const iconSelector = (type, variant, fontSize, color) => {
     case 'comes-after':
     case 'attributed-to':
     case 'variant-of':
-    case 'localization':
     case 'part-of':
     case 'drops':
     case 'delivers':
+    case 'compromises':
+    case 'belongs-to':
+    case 'based-on':
+    case 'communicates-with':
+    case 'amplifies':
+    case 'analysis-of':
+    case 'authored-by':
+    case 'beacons-to':
+    case 'characterizes':
+    case 'consists-of':
+    case 'controls':
+    case 'cooperates-with':
+    case 'derived-from':
+    case 'downloads':
       return <VectorRadius style={style} fontSize={fontSize} role="img" />;
     default:
       return <HelpOutlined style={style} fontSize={fontSize} role="img" />;
   }
 };
 
-class ItemIcon extends Component {
-  render() {
-    const { type, size, variant, color } = this.props;
-    const fontSize = size || 'medium';
-    return iconSelector(type, variant, fontSize, color);
-  }
-}
+const ItemIcon = (props) => {
+  const { type, size, variant, color } = props;
+  const fontSize = size || 'medium';
+  return iconSelector(type, variant, fontSize, color);
+};
 
 ItemIcon.propTypes = {
   type: PropTypes.string,

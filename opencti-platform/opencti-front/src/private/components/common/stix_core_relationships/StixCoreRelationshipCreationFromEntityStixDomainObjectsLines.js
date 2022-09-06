@@ -17,6 +17,7 @@ import { truncate } from '../../../../utils/String';
 import ItemIcon from '../../../../components/ItemIcon';
 import inject18n from '../../../../components/i18n';
 import { defaultValue } from '../../../../utils/Graph';
+import StixCoreObjectLabels from '../stix_core_objects/StixCoreObjectLabels';
 
 const styles = (theme) => ({
   container: {
@@ -163,6 +164,11 @@ class StixCoreRelationshipCreationFromEntityLinesContainer extends Component {
                             100,
                           )}
                         />
+                        <StixCoreObjectLabels
+                          variant="inList"
+                          labels={stixDomainObject.objectLabel}
+                          revoked={stixDomainObject.revoked}
+                        />
                       </ListItem>
                     ))}
                   </List>
@@ -237,6 +243,16 @@ const StixCoreRelationshipCreationFromEntityStixDomainObjectsLines = createPagin
                 id
                 entity_type
                 parent_types
+                revoked
+                objectLabel {
+                  edges {
+                    node {
+                      id
+                      value
+                      color
+                    }
+                  }
+                }
                 ... on AttackPattern {
                   name
                   description
@@ -313,6 +329,21 @@ const StixCoreRelationshipCreationFromEntityStixDomainObjectsLines = createPagin
                 ... on Incident {
                   name
                   description
+                }
+                ... on Event {
+                  name
+                  description
+                }
+                ... on Channel {
+                  name
+                  description
+                }
+                ... on Narrative {
+                  name
+                  description
+                }
+                ... on Language {
+                  name
                 }
                 ... on ObservedData {
                   objects(first: 1) {
@@ -441,6 +472,23 @@ const StixCoreRelationshipCreationFromEntityStixDomainObjectsLines = createPagin
                           description
                           first_seen
                           last_seen
+                        }
+                        ... on Event {
+                          name
+                          start_time
+                          stop_time
+                          description
+                        }
+                        ... on Channel {
+                          name
+                          description
+                        }
+                        ... on Narrative {
+                          name
+                          description
+                        }
+                        ... on Language {
+                          name
                         }
                         ... on StixCyberObservable {
                           observable_value

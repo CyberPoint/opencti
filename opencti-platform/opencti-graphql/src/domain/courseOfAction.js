@@ -1,5 +1,5 @@
-import { createEntity, batchListThroughGetTo, loadById } from '../database/middleware';
-import { listEntities } from '../database/repository';
+import { createEntity, batchListThroughGetTo, storeLoadById } from '../database/middleware';
+import { listEntities } from '../database/middleware-loader';
 import { BUS_TOPICS } from '../config/conf';
 import { notify } from '../database/redis';
 import { ENTITY_TYPE_ATTACK_PATTERN, ENTITY_TYPE_COURSE_OF_ACTION } from '../schema/stixDomainObject';
@@ -7,7 +7,7 @@ import { ABSTRACT_STIX_DOMAIN_OBJECT } from '../schema/general';
 import { RELATION_MITIGATES } from '../schema/stixCoreRelationship';
 
 export const findById = (user, courseOfActionId) => {
-  return loadById(user, courseOfActionId, ENTITY_TYPE_COURSE_OF_ACTION);
+  return storeLoadById(user, courseOfActionId, ENTITY_TYPE_COURSE_OF_ACTION);
 };
 
 export const findAll = (user, args) => {

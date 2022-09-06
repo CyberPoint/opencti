@@ -12,11 +12,16 @@ import { SubscriptionFocus } from '../../../../components/Subscription';
 import CreatedByField from '../../common/form/CreatedByField';
 import ObjectMarkingField from '../../common/form/ObjectMarkingField';
 import ConfidenceField from '../../common/form/ConfidenceField';
-import DatePickerField from '../../../../components/DatePickerField';
 import { adaptFieldValue } from '../../../../utils/String';
 import CommitMessage from '../../common/form/CommitMessage';
 import StatusField from '../../common/form/StatusField';
-import { parse } from '../../../../utils/Time';
+import { buildDate, parse } from '../../../../utils/Time';
+import {
+  convertCreatedBy,
+  convertMarkings,
+  convertStatus,
+} from '../../../../utils/Edition';
+import DateTimePickerField from '../../../../components/DateTimePickerField';
 
 const styles = (theme) => ({
   drawerPaper: {
@@ -105,11 +110,16 @@ const observedDataMutationRelationDelete = graphql`
 `;
 
 const observedDataValidation = (t) => Yup.object().shape({
-  first_observed: Yup.date().required(t('This field is required')),
-  last_observed: Yup.date().required(t('This field is required')),
+  first_observed: Yup.date()
+    .required(t('This field is required'))
+    .typeError(t('The value must be a datetime (yyyy-MM-dd hh:mm (a|p)m)')),
+  last_observed: Yup.date()
+    .required(t('This field is required'))
+    .typeError(t('The value must be a datetime (yyyy-MM-dd hh:mm (a|p)m)')),
   number_observed: Yup.number().required(t('This field is required')),
   confidence: Yup.number(),
   references: Yup.array().required(t('This field is required')),
+  x_opencti_workflow_id: Yup.object(),
 });
 
 class ObservedDataEditionOverviewComponent extends Component {
@@ -133,14 +143,11 @@ class ObservedDataEditionOverviewComponent extends Component {
       R.dissoc('references'),
       R.assoc('first_observed', parse(values.first_observed).format()),
       R.assoc('last_observed', parse(values.last_observed).format()),
-      R.assoc('status_id', values.status_id?.value),
+      R.assoc('x_opencti_workflow_id', values.x_opencti_workflow_id?.value),
       R.assoc('createdBy', values.createdBy?.value),
       R.assoc('objectMarking', R.pluck('value', values.objectMarking)),
       R.toPairs,
-      R.map((n) => ({
-        key: n[0],
-        value: adaptFieldValue(n[1]),
-      })),
+      R.map((n) => ({ key: n[0], value: adaptFieldValue(n[1]) })),
     )(values);
     commitMutation({
       mutation: observedDataMutationFieldPatch,
@@ -161,6 +168,10 @@ class ObservedDataEditionOverviewComponent extends Component {
 
   handleSubmitField(name, value) {
     if (!this.props.enableReferences) {
+      let finalValue = value;
+      if (name === 'x_opencti_workflow_id') {
+        finalValue = value.value;
+      }
       observedDataValidation(this.props.t)
         .validateAt(name, { [name]: value })
         .then(() => {
@@ -170,7 +181,7 @@ class ObservedDataEditionOverviewComponent extends Component {
               id: this.props.observedData.id,
               input: {
                 key: name,
-                value: value || '',
+                value: finalValue ?? '',
               },
             },
           });
@@ -230,22 +241,15 @@ class ObservedDataEditionOverviewComponent extends Component {
 
   render() {
     const { t, observedData, context, enableReferences } = this.props;
-    const createdBy = R.pathOr(null, ['createdBy', 'name'], observedData) === null
-      ? ''
-      : {
-        label: R.pathOr(null, ['createdBy', 'name'], observedData),
-        value: R.pathOr(null, ['createdBy', 'id'], observedData),
-      };
-    const objectMarking = R.pipe(
-      R.pathOr([], ['objectMarking', 'edges']),
-      R.map((n) => ({
-        label: n.node.definition,
-        value: n.node.id,
-      })),
-    )(observedData);
+    const createdBy = convertCreatedBy(observedData);
+    const objectMarking = convertMarkings(observedData);
+    const status = convertStatus(t, observedData);
     const initialValues = R.pipe(
       R.assoc('createdBy', createdBy),
       R.assoc('objectMarking', objectMarking),
+      R.assoc('first_observed', buildDate(observedData.first_observed)),
+      R.assoc('last_observed', buildDate(observedData.last_observed)),
+      R.assoc('x_opencti_workflow_id', status),
       R.pick([
         'first_observed',
         'last_observed',
@@ -253,6 +257,7 @@ class ObservedDataEditionOverviewComponent extends Component {
         'confidence',
         'createdBy',
         'objectMarking',
+        'x_opencti_workflow_id',
       ]),
     )(observedData);
     return (
@@ -272,9 +277,8 @@ class ObservedDataEditionOverviewComponent extends Component {
           <div>
             <Form style={{ margin: '20px 0 20px 0' }}>
               <Field
-                component={DatePickerField}
+                component={DateTimePickerField}
                 name="first_observed"
-                invalidDateMessage={t('The value must be a date (mm/dd/yyyy)')}
                 onFocus={this.handleChangeFocus.bind(this)}
                 onSubmit={this.handleSubmitField.bind(this)}
                 TextFieldProps={{
@@ -290,9 +294,8 @@ class ObservedDataEditionOverviewComponent extends Component {
                 }}
               />
               <Field
-                component={DatePickerField}
+                component={DateTimePickerField}
                 name="last_observed"
-                invalidDateMessage={t('The value must be a date (mm/dd/yyyy)')}
                 onFocus={this.handleChangeFocus.bind(this)}
                 onSubmit={this.handleSubmitField.bind(this)}
                 TextFieldProps={{
@@ -335,7 +338,7 @@ class ObservedDataEditionOverviewComponent extends Component {
               />
               {observedData.workflowEnabled && (
                 <StatusField
-                  name="status_id"
+                  name="x_opencti_workflow_id"
                   type="Observed-Data"
                   onFocus={this.handleChangeFocus.bind(this)}
                   onChange={this.handleSubmitField.bind(this)}
@@ -344,7 +347,7 @@ class ObservedDataEditionOverviewComponent extends Component {
                   helpertext={
                     <SubscriptionFocus
                       context={context}
-                      fieldName="status_id"
+                      fieldName="x_opencti_workflow_id"
                     />
                   }
                 />
@@ -421,8 +424,16 @@ const ObservedDataEditionOverview = createFragmentContainer(
             }
           }
         }
-        workflowEnabled
         is_inferred
+        status {
+          id
+          order
+          template {
+            name
+            color
+          }
+        }
+        workflowEnabled
       }
     `,
   },

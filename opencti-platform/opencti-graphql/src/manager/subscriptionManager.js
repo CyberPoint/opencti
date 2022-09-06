@@ -10,6 +10,7 @@ import { ENTITY_TYPE_USER_SUBSCRIPTION } from '../schema/internalObject';
 import { generateDigestForSubscription } from '../domain/userSubscription';
 import { sendMail } from '../database/smtp';
 import { patchAttribute } from '../database/middleware';
+import { TYPE_LOCK_ERROR } from '../config/errors';
 
 // Expired manager responsible to monitor expired elements
 // In order to change the revoked attribute to true
@@ -18,7 +19,7 @@ import { patchAttribute } from '../database/middleware';
 const SCHEDULE_TIME = conf.get('subscription_scheduler:interval');
 const SUBSCRIPTION_MANAGER_KEY = conf.get('subscription_scheduler:lock_key');
 
-const defaultCrons = ['5-minutes', '1-hours', '24-hours', '1-weeks'];
+const defaultCrons = ['5-minutes', '1-hours', '24-hours', '1-weeks', '1-months'];
 
 const subscriptionHandler = async () => {
   let lock;
@@ -66,10 +67,13 @@ const subscriptionHandler = async () => {
       await elList(SYSTEM_USER, READ_PLATFORM_INDICES, opts);
     }
   } catch (e) {
-    // We dont care about failing to get the lock.
-    logApp.info('[OPENCTI] Subscription manager already in progress by another API');
+    if (e.name === TYPE_LOCK_ERROR) {
+      logApp.info('[OPENCTI-MODULE] Subscription manager already in progress by another API');
+    } else {
+      logApp.error('[OPENCTI-MODULE] Subscription manager failed to start', { error: e });
+    }
   } finally {
-    logApp.debug('[OPENCTI] Subscription manager done');
+    logApp.debug('[OPENCTI-MODULE] Subscription manager done');
     if (lock) await lock.unlock();
   }
 };

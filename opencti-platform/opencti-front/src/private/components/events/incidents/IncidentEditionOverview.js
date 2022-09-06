@@ -16,6 +16,11 @@ import ConfidenceField from '../../common/form/ConfidenceField';
 import CommitMessage from '../../common/form/CommitMessage';
 import { adaptFieldValue } from '../../../../utils/String';
 import StatusField from '../../common/form/StatusField';
+import {
+  convertCreatedBy,
+  convertMarkings,
+  convertStatus,
+} from '../../../../utils/Edition';
 
 const styles = (theme) => ({
   drawerPaper: {
@@ -110,7 +115,7 @@ const IncidentValidation = (t) => Yup.object().shape({
     .min(3, t('The value is too short'))
     .max(5000, t('The value is too long'))
     .required(t('This field is required')),
-  status_id: Yup.object(),
+  x_opencti_workflow_id: Yup.object(),
   references: Yup.array().required(t('This field is required')),
 });
 
@@ -133,7 +138,7 @@ class IncidentEditionOverviewComponent extends Component {
     const inputValues = R.pipe(
       R.dissoc('message'),
       R.dissoc('references'),
-      R.assoc('status_id', values.status_id?.value),
+      R.assoc('x_opencti_workflow_id', values.x_opencti_workflow_id?.value),
       R.assoc('createdBy', values.createdBy?.value),
       R.assoc('objectMarking', R.pluck('value', values.objectMarking)),
       R.toPairs,
@@ -161,7 +166,7 @@ class IncidentEditionOverviewComponent extends Component {
 
   handleSubmitField(name, value) {
     let finalValue = value;
-    if (name === 'status_id') {
+    if (name === 'x_opencti_workflow_id') {
       finalValue = value.value;
     }
     IncidentValidation(this.props.t)
@@ -230,26 +235,9 @@ class IncidentEditionOverviewComponent extends Component {
   render() {
     const { t, incident, context, enableReferences } = this.props;
     const isInferred = incident.is_inferred;
-    const createdBy = R.pathOr(null, ['createdBy', 'name'], incident) === null
-      ? ''
-      : {
-        label: R.pathOr(null, ['createdBy', 'name'], incident),
-        value: R.pathOr(null, ['createdBy', 'id'], incident),
-      };
-    const status = R.pathOr(null, ['status', 'template', 'name'], incident) === null
-      ? ''
-      : {
-        label: t(
-          `status_${R.pathOr(
-            null,
-            ['status', 'template', 'name'],
-            incident,
-          )}`,
-        ),
-        color: R.pathOr(null, ['status', 'template', 'color'], incident),
-        value: R.pathOr(null, ['status', 'id'], incident),
-        order: R.pathOr(null, ['status', 'order'], incident),
-      };
+    const createdBy = convertCreatedBy(incident);
+    const objectMarking = convertMarkings(incident);
+    const status = convertStatus(t, incident);
     const killChainPhases = R.pipe(
       R.pathOr([], ['killChainPhases', 'edges']),
       R.map((n) => ({
@@ -257,18 +245,11 @@ class IncidentEditionOverviewComponent extends Component {
         value: n.node.id,
       })),
     )(incident);
-    const objectMarking = R.pipe(
-      R.pathOr([], ['objectMarking', 'edges']),
-      R.map((n) => ({
-        label: n.node.definition,
-        value: n.node.id,
-      })),
-    )(incident);
     const initialValues = R.pipe(
       R.assoc('createdBy', createdBy),
       R.assoc('killChainPhases', killChainPhases),
       R.assoc('objectMarking', objectMarking),
-      R.assoc('status_id', status),
+      R.assoc('x_opencti_workflow_id', status),
       R.pick([
         'name',
         'confidence',
@@ -276,7 +257,7 @@ class IncidentEditionOverviewComponent extends Component {
         'createdBy',
         'killChainPhases',
         'objectMarking',
-        'status_id',
+        'x_opencti_workflow_id',
       ]),
     )(incident);
     return (
@@ -335,14 +316,17 @@ class IncidentEditionOverviewComponent extends Component {
             />
             {incident.workflowEnabled && (
               <StatusField
-                name="status_id"
+                name="x_opencti_workflow_id"
                 type="Incident"
                 onFocus={this.handleChangeFocus.bind(this)}
                 onChange={this.handleSubmitField.bind(this)}
                 setFieldValue={setFieldValue}
                 style={{ marginTop: 20 }}
                 helpertext={
-                  <SubscriptionFocus context={context} fieldName="status_id" />
+                  <SubscriptionFocus
+                    context={context}
+                    fieldName="x_opencti_workflow_id"
+                  />
                 }
               />
             )}

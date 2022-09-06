@@ -8,11 +8,16 @@ import ListItemText from '@mui/material/ListItemText';
 import Checkbox from '@mui/material/Checkbox';
 import { compose, pathOr } from 'ramda';
 import Skeleton from '@mui/material/Skeleton';
+import ListItemSecondaryAction from '@mui/material/ListItemSecondaryAction';
+import IconButton from '@mui/material/IconButton';
+import { Link } from 'react-router-dom';
+import { VisibilityOutlined } from '@mui/icons-material';
 import inject18n from '../../../../components/i18n';
 import StixCoreObjectLabels from '../../common/stix_core_objects/StixCoreObjectLabels';
 import { truncate } from '../../../../utils/String';
 import ItemIcon from '../../../../components/ItemIcon';
 import ItemMarkings from '../../../../components/ItemMarkings';
+import { resolveLink } from '../../../../utils/Entity';
 
 const styles = (theme) => ({
   item: {
@@ -29,6 +34,7 @@ const styles = (theme) => ({
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+    paddingRight: 5,
   },
   goIcon: {
     position: 'absolute',
@@ -55,8 +61,10 @@ class EntitiesStixDomainObjectLineComponent extends Component {
       onLabelClick,
       onToggleEntity,
       selectedElements,
+      deSelectedElements,
       selectAll,
     } = this.props;
+    const link = `${resolveLink(node.entity_type)}/${node.id}`;
     return (
       <ListItem
         classes={{ root: classes.item }}
@@ -71,7 +79,10 @@ class EntitiesStixDomainObjectLineComponent extends Component {
         >
           <Checkbox
             edge="start"
-            checked={selectAll || node.id in (selectedElements || {})}
+            checked={
+              (selectAll && !(node.id in (deSelectedElements || {})))
+              || node.id in (selectedElements || {})
+            }
             disableRipple={true}
             onChange={onToggleEntity.bind(this, node)}
           />
@@ -136,6 +147,16 @@ class EntitiesStixDomainObjectLineComponent extends Component {
             </div>
           }
         />
+        <ListItemSecondaryAction>
+          <IconButton
+            aria-label="Go to"
+            component={Link}
+            to={link}
+            size="large"
+          >
+            <VisibilityOutlined />
+          </IconButton>
+        </ListItemSecondaryAction>
       </ListItem>
     );
   }
@@ -150,6 +171,7 @@ EntitiesStixDomainObjectLineComponent.propTypes = {
   onLabelClick: PropTypes.func,
   onToggleEntity: PropTypes.func,
   selectedElements: PropTypes.object,
+  deSelectedElements: PropTypes.object,
 };
 
 const EntitiesStixDomainObjectLineFragment = createFragmentContainer(
@@ -396,6 +418,11 @@ class EntitiesStixDomainObjectLineDummyComponent extends Component {
             </div>
           }
         />
+        <ListItemSecondaryAction>
+          <IconButton aria-label="Go to" component={Link} disabled={true} size="large">
+            <VisibilityOutlined />
+          </IconButton>
+        </ListItemSecondaryAction>
       </ListItem>
     );
   }

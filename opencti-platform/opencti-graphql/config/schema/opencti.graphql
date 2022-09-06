@@ -383,6 +383,7 @@ type TaxiiCollectionConnection {
   pageInfo: PageInfo!
   edges: [TaxiiCollectionEdge]
 }
+
 type TaxiiCollectionEdge {
   cursor: String!
   node: TaxiiCollection!
@@ -395,6 +396,62 @@ input TaxiiCollectionAddInput {
 enum TaxiiCollectionOrdering {
   name
   description
+}
+
+type FeedMapping {
+  type: String!
+  attribute: String!
+}
+
+type FeedAttribute {
+  attribute: String!
+  mappings: [FeedMapping!]!
+}
+
+type Feed {
+  id: ID!
+  standard_id: ID!
+  name: String!
+  filters: String
+  separator: String!
+  rolling_time: Int!
+  include_header: Boolean!
+  feed_types: [String!]!
+  feed_attributes: [FeedAttribute!]!
+}
+
+input FeedMappingInput {
+  type: String!
+  attribute: String!
+}
+
+input FeedAttributeMappingInput {
+  attribute: String!
+  mappings: [FeedMappingInput!]!
+}
+
+input FeedAddInput {
+  name: String!
+  filters: String
+  separator: String!
+  rolling_time: Int!
+  include_header: Boolean!
+  feed_types: [String!]!
+  feed_attributes: [FeedAttributeMappingInput!]!
+}
+
+enum FeedOrdering {
+  name
+}
+
+type FeedEdge {
+  cursor: String!
+  node: Feed!
+}
+
+type FeedConnection {
+  pageInfo: PageInfo!
+  edges: [FeedEdge]
 }
 
 ############## Stream
@@ -424,7 +481,7 @@ enum StreamCollectionOrdering {
   description
 }
 
-############## Subcription
+############## Subscription
 type UserSubscription {
   id: ID!
   user_id: String
@@ -501,7 +558,7 @@ enum StatusFilter {
 }
 input StatusesFiltering {
   key: StatusFilter!
-  values: [String]
+  values: [String!]
   operator: String
   filterMode: FilterMode
 }
@@ -546,6 +603,7 @@ type Synchronizer {
   running: Boolean!
   current_state: String
   listen_deletion: Boolean!
+  no_dependencies: Boolean!
   ssl_verify: Boolean
 }
 
@@ -565,9 +623,11 @@ input SynchronizerAddInput {
   token: String! @constraint(minLength: 2)
   stream_id: String! @constraint(minLength: 2)
   user_id: String
+  recover: DateTime
+  current_state: DateTime
   listen_deletion: Boolean!
+  no_dependencies: Boolean!
   ssl_verify: Boolean
-  current_state: String
 }
 
 ############## Files
@@ -668,7 +728,9 @@ enum TaskActionType {
   REMOVE
   REPLACE
   MERGE
-  RESCAN
+  ENRICHMENT
+  PROMOTE
+  RULE_ELEMENT_RESCAN
 }
 enum TaskContextType {
   ATTRIBUTE
@@ -789,6 +851,7 @@ input ListTaskAddInput {
 input QueryTaskAddInput {
   filters: String!
   search: String
+  excluded_ids: [ID]
   actions: [TaskActionInput]!
 }
 
@@ -847,15 +910,16 @@ type Provider {
   provider: String
 }
 type Settings implements InternalObject & BasicObject {
-  id: ID! # internal_id
-  standard_id: String!
-  entity_type: String!
-  parent_types: [String]!
+  id: ID!
+  standard_id: String! @auth
+  entity_type: String! @auth
+  parent_types: [String]! @auth
   # Settings
   platform_title: String
+  platform_favicon: String
   platform_url: String
-  platform_email: String
-  platform_modules: [Module]
+  platform_email: String @auth
+  platform_modules: [Module] @auth
   platform_providers: [Provider]
   platform_language: String
   platform_theme: String
@@ -878,13 +942,14 @@ type Settings implements InternalObject & BasicObject {
   platform_map_tile_server_dark: String
   platform_map_tile_server_light: String
   platform_login_message: String
-  platform_enable_reference: [String]
-  platform_reference_attachment: Boolean
-  platform_feature_flags: [Module]
-  created_at: DateTime!
-  updated_at: DateTime!
+  platform_enable_reference: [String] @auth
+  platform_reference_attachment: Boolean @auth
+  platform_feature_flags: [Module] @auth
+  platform_hidden_types: [String] @auth
+  created_at: DateTime! @auth
+  updated_at: DateTime! @auth
   # Technical
-  editContext: [EditUserContext]
+  editContext: [EditUserContext] @auth(for: [SETTINGS])
 }
 
 ############## Groups
@@ -923,6 +988,8 @@ type Group implements InternalObject & BasicObject {
 input GroupAddInput {
   name: String!
   description: String
+  default_assignation: Boolean
+  auto_new_marking: Boolean
   clientMutationId: String
 }
 
@@ -956,6 +1023,10 @@ type UserEdge {
   cursor: String!
   node: User!
 }
+type OtpElement {
+  secret: String!
+  uri: String!
+}
 type User implements BasicObject & InternalObject {
   id: ID! # internal_id
   standard_id: String!
@@ -967,6 +1038,8 @@ type User implements BasicObject & InternalObject {
   name: String!
   description: String
   firstname: String
+  otp_activated: Boolean
+  otp_qr: String
   lastname: String
   theme: String
   language: String
@@ -1006,6 +1079,15 @@ input UserAddInput {
 input UserLoginInput {
   email: String!
   password: String!
+}
+
+input UserOTPLoginInput {
+  code: String!
+}
+
+input UserOTPActivationInput {
+  secret: String!
+  code: String!
 }
 
 ############## Roles
@@ -1085,6 +1167,7 @@ input RegisterConnectorInput {
 }
 type RabbitMQConnection {
   host: String!
+  vhost: String!
   use_ssl: Boolean!
   ca: [String]
   port: Int!
@@ -1309,6 +1392,7 @@ input LabelAddInput {
   created: DateTime
   modified: DateTime
   clientMutationId: String
+  update: Boolean
 }
 
 ############## ExternalReferences
@@ -1466,6 +1550,8 @@ enum StixCoreObjectsOrdering {
   indicator_pattern
 }
 enum StixCoreObjectsFilter {
+  id
+  standard_id
   name
   created
   modified
@@ -1513,6 +1599,7 @@ interface StixCoreObject {
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -1560,7 +1647,7 @@ enum StixDomainObjectsOrdering {
   valid_from
   valid_until
   indicator_pattern
-  status_id
+  x_opencti_workflow_id
   createdBy
   objectMarking
 }
@@ -1587,7 +1674,7 @@ enum StixDomainObjectsFilter {
   report_types
   x_opencti_organization_type
   published
-  status_id
+  x_opencti_workflow_id
 }
 input StixDomainObjectsFiltering {
   key: StixDomainObjectsFilter!
@@ -1622,6 +1709,7 @@ interface StixDomainObject {
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -1695,7 +1783,7 @@ enum AttackPatternsOrdering {
   modified
   created_at
   updated_at
-  status_id
+  x_opencti_workflow_id
 }
 enum AttackPatternsFilter {
   name
@@ -1710,7 +1798,7 @@ enum AttackPatternsFilter {
   labelledBy
   mitigatedBy
   revoked
-  status_id
+  x_opencti_workflow_id
 }
 input AttackPatternsFiltering {
   key: AttackPatternsFilter!
@@ -1747,6 +1835,7 @@ type AttackPattern implements BasicObject & StixObject & StixCoreObject & StixDo
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -1836,7 +1925,7 @@ enum CampaignsOrdering {
   modified
   created_at
   updated_at
-  status_id
+  x_opencti_workflow_id
 }
 enum CampaignsFilter {
   name
@@ -1848,7 +1937,7 @@ enum CampaignsFilter {
   createdBy
   markedBy
   labelledBy
-  status_id
+  x_opencti_workflow_id
   revoked
 }
 input CampaignsFiltering {
@@ -1886,6 +1975,7 @@ type Campaign implements BasicObject & StixObject & StixCoreObject & StixDomainO
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -1967,7 +2057,7 @@ enum ContainersOrdering {
   updated_at
   createdBy
   objectMarking
-  status_id
+  x_opencti_workflow_id
 }
 enum ContainersFilter {
   entity_type
@@ -1983,7 +2073,7 @@ enum ContainersFilter {
   markedBy
   labelledBy
   objectContains
-  status_id
+  x_opencti_workflow_id
   revoked
 }
 input ContainersFiltering {
@@ -2019,6 +2109,7 @@ interface Container {
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -2061,6 +2152,18 @@ interface Container {
     types: [String]
     all: Boolean
   ): StixObjectOrStixRelationshipConnection
+  relatedContainers(
+    first: Int
+    after: ID
+    orderBy: ContainersOrdering
+    orderMode: OrderingMode
+    filters: [ContainersFiltering]
+    filterMode: FilterMode
+    search: String
+    types: [String]
+    viaTypes: [String]
+  ): ContainerConnection
+  # Technical
   workflowEnabled: Boolean
   status: Status
 }
@@ -2073,7 +2176,7 @@ enum NotesOrdering {
   created_at
   updated_at
   createdBy
-  status_id
+  x_opencti_workflow_id
   objectMarking
 }
 enum NotesFilter {
@@ -2088,7 +2191,7 @@ enum NotesFilter {
   markedBy
   labelledBy
   objectContains
-  status_id
+  x_opencti_workflow_id
   revoked
 }
 input NotesFiltering {
@@ -2126,6 +2229,7 @@ type Note implements BasicObject & StixObject & StixCoreObject & StixDomainObjec
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -2168,6 +2272,17 @@ type Note implements BasicObject & StixObject & StixCoreObject & StixDomainObjec
     types: [String]
     all: Boolean
   ): StixObjectOrStixRelationshipConnection
+  relatedContainers(
+    first: Int
+    after: ID
+    orderBy: ContainersOrdering
+    orderMode: OrderingMode
+    filters: [ContainersFiltering]
+    filterMode: FilterMode
+    search: String
+    types: [String]
+    viaTypes: [String]
+  ): ContainerConnection
   # Note
   attribute_abstract: String
   content: String!
@@ -2214,7 +2329,7 @@ enum ObservedDatasOrdering {
   created_at
   updated_at
   createdBy
-  status_id
+  x_opencti_workflow_id
   objectMarking
 }
 enum ObservedDatasFilter {
@@ -2229,7 +2344,7 @@ enum ObservedDatasFilter {
   markedBy
   labelledBy
   objectContains
-  status_id
+  x_opencti_workflow_id
   revoked
 }
 input ObservedDatasFiltering {
@@ -2267,6 +2382,7 @@ type ObservedData implements BasicObject & StixObject & StixCoreObject & StixDom
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -2309,6 +2425,17 @@ type ObservedData implements BasicObject & StixObject & StixCoreObject & StixDom
     types: [String]
     all: Boolean
   ): StixObjectOrStixRelationshipConnection
+  relatedContainers(
+    first: Int
+    after: ID
+    orderBy: ContainersOrdering
+    orderMode: OrderingMode
+    filters: [ContainersFiltering]
+    filterMode: FilterMode
+    search: String
+    types: [String]
+    viaTypes: [String]
+  ): ContainerConnection
   # ObservedData
   first_observed: DateTime!
   last_observed: DateTime!
@@ -2355,7 +2482,7 @@ enum OpinionsOrdering {
   updated_at
   createdBy
   objectMarking
-  status_id
+  x_opencti_workflow_id
 }
 enum OpinionsFilter {
   explanation
@@ -2369,7 +2496,7 @@ enum OpinionsFilter {
   markedBy
   labelledBy
   objectContains
-  status_id
+  x_opencti_workflow_id
   revoked
 }
 input OpinionsFiltering {
@@ -2407,6 +2534,7 @@ type Opinion implements BasicObject & StixObject & StixCoreObject & StixDomainOb
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -2449,6 +2577,17 @@ type Opinion implements BasicObject & StixObject & StixCoreObject & StixDomainOb
     types: [String]
     all: Boolean
   ): StixObjectOrStixRelationshipConnection
+  relatedContainers(
+    first: Int
+    after: ID
+    orderBy: ContainersOrdering
+    orderMode: OrderingMode
+    filters: [ContainersFiltering]
+    filterMode: FilterMode
+    search: String
+    types: [String]
+    viaTypes: [String]
+  ): ContainerConnection
   # Opinion
   explanation: String
   authors: [String]
@@ -2495,7 +2634,7 @@ enum ReportsOrdering {
   updated_at
   createdBy
   objectMarking
-  status_id
+  x_opencti_workflow_id
 }
 enum ReportsFilter {
   name
@@ -2510,7 +2649,7 @@ enum ReportsFilter {
   markedBy
   labelledBy
   objectContains
-  status_id
+  x_opencti_workflow_id
   revoked
 }
 input ReportsFiltering {
@@ -2548,6 +2687,7 @@ type Report implements BasicObject & StixObject & StixCoreObject & StixDomainObj
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -2590,6 +2730,17 @@ type Report implements BasicObject & StixObject & StixCoreObject & StixDomainObj
     types: [String]
     all: Boolean
   ): StixObjectOrStixRelationshipConnection
+  relatedContainers(
+    first: Int
+    after: ID
+    orderBy: ContainersOrdering
+    orderMode: OrderingMode
+    filters: [ContainersFiltering]
+    filterMode: FilterMode
+    search: String
+    types: [String]
+    viaTypes: [String]
+  ): ContainerConnection
   # Report
   name: String!
   description: String
@@ -2635,7 +2786,7 @@ enum CoursesOfActionOrdering {
   modified
   created_at
   updated_at
-  status_id
+  x_opencti_workflow_id
   objectMarking
   x_mitre_id
 }
@@ -2649,7 +2800,7 @@ enum CoursesOfActionFilter {
   markedBy
   labelledBy
   mitigatedBy
-  status_id
+  x_opencti_workflow_id
   x_mitre_id
 }
 input CoursesOfActionFiltering {
@@ -2687,6 +2838,7 @@ type CourseOfAction implements BasicObject & StixObject & StixCoreObject & StixD
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -2764,7 +2916,7 @@ enum IdentitiesOrdering {
   modified
   created_at
   updated_at
-  status_id
+  x_opencti_workflow_id
 }
 enum IdentitiesFilter {
   entity_type
@@ -2779,7 +2931,7 @@ enum IdentitiesFilter {
   createdBy
   markedBy
   labelledBy
-  status_id
+  x_opencti_workflow_id
   revoked
 }
 input IdentitiesFiltering {
@@ -2821,6 +2973,7 @@ interface Identity {
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -2900,7 +3053,7 @@ enum IndividualsOrdering {
   lastname
   created
   modified
-  status_id
+  x_opencti_workflow_id
   objectMarking
 }
 enum IndividualsFilter {
@@ -2913,7 +3066,11 @@ enum IndividualsFilter {
   createdBy
   markedBy
   labelledBy
-  status_id
+  x_opencti_workflow_id
+  description
+  contact_information
+  x_opencti_firstname
+  x_opencti_lastname
 }
 input IndividualsFiltering {
   key: IndividualsFilter!
@@ -2950,6 +3107,7 @@ type Individual implements BasicObject & StixObject & StixCoreObject & StixDomai
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -3033,7 +3191,7 @@ enum OrganizationsOrdering {
   created
   modified
   x_opencti_organization_type
-  status_id
+  x_opencti_workflow_id
 }
 enum OrganizationsFilter {
   name
@@ -3047,7 +3205,9 @@ enum OrganizationsFilter {
   createdBy
   markedBy
   labelledBy
-  status_id
+  x_opencti_workflow_id
+  description
+  contact_information
   revoked
 }
 input OrganizationsFiltering {
@@ -3093,6 +3253,7 @@ type Organization implements BasicObject & StixObject & StixCoreObject & StixDom
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -3178,7 +3339,7 @@ enum SectorsOrdering {
   modified
   created_at
   updated_at
-  status_id
+  x_opencti_workflow_id
   objectMarking
 }
 enum SectorsFilter {
@@ -3192,7 +3353,7 @@ enum SectorsFilter {
   markedBy
   labelledBy
   partOf
-  status_id
+  x_opencti_workflow_id
   revoked
 }
 input SectorsFiltering {
@@ -3230,6 +3391,7 @@ type Sector implements BasicObject & StixObject & StixCoreObject & StixDomainObj
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -3313,7 +3475,7 @@ enum SystemsOrdering {
   lastname
   created
   modified
-  status_id
+  x_opencti_workflow_id
 }
 enum SystemsFilter {
   name
@@ -3325,7 +3487,7 @@ enum SystemsFilter {
   createdBy
   markedBy
   labelledBy
-  status_id
+  x_opencti_workflow_id
   revoked
 }
 input SystemsFiltering {
@@ -3363,6 +3525,7 @@ type System implements BasicObject & StixObject & StixCoreObject & StixDomainObj
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -3455,7 +3618,7 @@ enum IndicatorsOrdering {
   modified
   created_at
   updated_at
-  status_id
+  x_opencti_workflow_id
   objectMarking
 }
 enum IndicatorsFilter {
@@ -3477,7 +3640,7 @@ enum IndicatorsFilter {
   labelledBy
   basedOn
   indicates
-  status_id
+  x_opencti_workflow_id
   sightedBy
   revoked
 }
@@ -3516,6 +3679,7 @@ type Indicator implements BasicObject & StixObject & StixCoreObject & StixDomain
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -3560,7 +3724,7 @@ type Indicator implements BasicObject & StixObject & StixCoreObject & StixDomain
   x_opencti_main_observable_type: String
   x_mitre_platforms: [String]
   killChainPhases: KillChainPhaseConnection
-  observables: StixCyberObservableConnection
+  observables(first: Int): StixCyberObservableConnection
   # Technical
   creator: User
   toStix: String
@@ -3600,6 +3764,7 @@ input IndicatorAddInput {
   modified: DateTime
   clientMutationId: String
   update: Boolean
+  createObservables: Boolean
 }
 
 ############## Infrastructures
@@ -3612,7 +3777,7 @@ enum InfrastructuresOrdering {
   modified
   created_at
   updated_at
-  status_id
+  x_opencti_workflow_id
 }
 enum InfrastructuresFilter {
   name
@@ -3627,7 +3792,7 @@ enum InfrastructuresFilter {
   createdBy
   markedBy
   labelledBy
-  status_id
+  x_opencti_workflow_id
   revoked
 }
 input InfrastructuresFiltering {
@@ -3665,6 +3830,7 @@ type Infrastructure implements BasicObject & StixObject & StixCoreObject & StixD
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -3745,7 +3911,7 @@ enum IntrusionSetsOrdering {
   modified
   created_at
   updated_at
-  status_id
+  x_opencti_workflow_id
 }
 enum IntrusionSetsFilter {
   name
@@ -3757,7 +3923,7 @@ enum IntrusionSetsFilter {
   createdBy
   markedBy
   labelledBy
-  status_id
+  x_opencti_workflow_id
   revoked
 }
 input IntrusionSetsFiltering {
@@ -3795,6 +3961,7 @@ type IntrusionSet implements BasicObject & StixObject & StixCoreObject & StixDom
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -3882,7 +4049,7 @@ enum LocationsOrdering {
   modified
   created_at
   updated_at
-  status_id
+  x_opencti_workflow_id
 }
 enum LocationsFilter {
   entity_type
@@ -3896,7 +4063,7 @@ enum LocationsFilter {
   createdBy
   markedBy
   labelledBy
-  status_id
+  x_opencti_workflow_id
   revoked
 }
 input LocationsFiltering {
@@ -3938,6 +4105,7 @@ interface Location {
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -4019,7 +4187,7 @@ enum PositionsOrdering {
   modified
   created_at
   updated_at
-  status_id
+  x_opencti_workflow_id
 }
 enum PositionsFilter {
   created
@@ -4029,7 +4197,7 @@ enum PositionsFilter {
   createdBy
   markedBy
   labelledBy
-  status_id
+  x_opencti_workflow_id
   revoked
 }
 input PositionsFiltering {
@@ -4067,6 +4235,7 @@ type Position implements BasicObject & StixObject & StixCoreObject & StixDomainO
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -4155,7 +4324,7 @@ enum CitiesOrdering {
   updated_at
   objectMarking
   objectLabel
-  status_id
+  x_opencti_workflow_id
 }
 enum CitiesFilter {
   name
@@ -4166,7 +4335,7 @@ enum CitiesFilter {
   createdBy
   markedBy
   labelledBy
-  status_id
+  x_opencti_workflow_id
   revoked
 }
 input CitiesFiltering {
@@ -4204,6 +4373,7 @@ type City implements BasicObject & StixObject & StixCoreObject & StixDomainObjec
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -4285,7 +4455,7 @@ enum CountriesOrdering {
   modified
   created_at
   updated_at
-  status_id
+  x_opencti_workflow_id
 }
 enum CountriesFilter {
   created
@@ -4294,7 +4464,7 @@ enum CountriesFilter {
   createdBy
   markedBy
   labelledBy
-  status_id
+  x_opencti_workflow_id
 }
 input CountriesFiltering {
   key: CountriesFilter!
@@ -4331,6 +4501,7 @@ type Country implements BasicObject & StixObject & StixCoreObject & StixDomainOb
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -4412,7 +4583,7 @@ enum RegionsOrdering {
   modified
   created_at
   updated_at
-  status_id
+  x_opencti_workflow_id
 }
 enum RegionsFilter {
   created
@@ -4421,7 +4592,7 @@ enum RegionsFilter {
   createdBy
   markedBy
   labelledBy
-  status_id
+  x_opencti_workflow_id
 }
 input RegionsFiltering {
   key: RegionsFilter!
@@ -4458,6 +4629,7 @@ type Region implements BasicObject & StixObject & StixCoreObject & StixDomainObj
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -4546,7 +4718,7 @@ enum MalwaresOrdering {
   updated_at
   objectMarking
   objectLabel
-  status_id
+  x_opencti_workflow_id
 }
 enum MalwaresFilter {
   name
@@ -4562,7 +4734,7 @@ enum MalwaresFilter {
   createdBy
   markedBy
   labelledBy
-  status_id
+  x_opencti_workflow_id
 }
 input MalwaresFiltering {
   key: MalwaresFilter!
@@ -4599,6 +4771,7 @@ type Malware implements BasicObject & StixObject & StixCoreObject & StixDomainOb
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -4687,7 +4860,7 @@ enum ThreatActorsOrdering {
   modified
   created_at
   updated_at
-  status_id
+  x_opencti_workflow_id
 }
 enum ThreatActorsFilter {
   name
@@ -4699,7 +4872,7 @@ enum ThreatActorsFilter {
   createdBy
   markedBy
   labelledBy
-  status_id
+  x_opencti_workflow_id
 }
 input ThreatActorsFiltering {
   key: ThreatActorsFilter!
@@ -4736,6 +4909,7 @@ type ThreatActor implements BasicObject & StixObject & StixCoreObject & StixDoma
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -4802,6 +4976,7 @@ input ThreatActorAddInput {
   threat_actor_types: [String]
   first_seen: DateTime
   last_seen: DateTime
+  roles: [String]
   goals: [String]
   sophistication: String
   resource_level: String
@@ -4828,7 +5003,7 @@ enum ToolsOrdering {
   modified
   created_at
   updated_at
-  status_id
+  x_opencti_workflow_id
 }
 enum ToolsFilter {
   name
@@ -4839,7 +5014,7 @@ enum ToolsFilter {
   createdBy
   markedBy
   labelledBy
-  status_id
+  x_opencti_workflow_id
 }
 input ToolsFiltering {
   key: ToolsFilter!
@@ -4876,6 +5051,7 @@ type Tool implements StixDomainObject & StixCoreObject & StixObject & BasicObjec
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -4957,10 +5133,11 @@ enum VulnerabilitiesOrdering {
   modified
   created_at
   updated_at
-  status_id
+  x_opencti_workflow_id
 }
 enum VulnerabilitiesFilter {
   name
+  x_opencti_aliases
   x_opencti_base_score
   x_opencti_base_severity
   x_opencti_attack_vector
@@ -4970,7 +5147,7 @@ enum VulnerabilitiesFilter {
   createdBy
   markedBy
   labelledBy
-  status_id
+  x_opencti_workflow_id
 }
 input VulnerabilitiesFiltering {
   key: VulnerabilitiesFilter!
@@ -5007,6 +5184,7 @@ type Vulnerability implements StixDomainObject & StixCoreObject & StixObject & B
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -5040,12 +5218,14 @@ type Vulnerability implements StixDomainObject & StixCoreObject & StixObject & B
   # Vulnerability
   name: String!
   description: String
+  x_opencti_aliases: [String]
   x_opencti_base_score: Float
   x_opencti_base_severity: String
   x_opencti_attack_vector: String
   x_opencti_integrity_impact: String
   x_opencti_availability_impact: String
   x_opencti_confidentiality_impact: String
+  softwares: StixCyberObservableConnection
   # Technical
   creator: User
   toStix: String
@@ -5063,6 +5243,7 @@ input VulnerabilityAddInput {
   x_opencti_stix_ids: [String]
   name: String! @constraint(minLength: 2)
   description: String!
+  x_opencti_aliases: [String]
   x_opencti_base_score: Float
   x_opencti_base_severity: String
   x_opencti_attack_vector: String
@@ -5091,7 +5272,7 @@ enum IncidentsOrdering {
   modified
   created_at
   updated_at
-  status_id
+  x_opencti_workflow_id
   objectMarking
 }
 enum IncidentsFilter {
@@ -5103,7 +5284,7 @@ enum IncidentsFilter {
   createdBy
   markedBy
   labelledBy
-  status_id
+  x_opencti_workflow_id
 }
 input IncidentsFiltering {
   key: IncidentsFilter!
@@ -5140,6 +5321,7 @@ type Incident implements BasicObject & StixObject & StixCoreObject & StixDomainO
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -5276,6 +5458,7 @@ interface StixCyberObservable {
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -5303,7 +5486,7 @@ interface StixCyberObservable {
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -5358,6 +5541,7 @@ type AutonomousSystem implements BasicObject & StixObject & StixCoreObject & Sti
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -5385,7 +5569,7 @@ type AutonomousSystem implements BasicObject & StixObject & StixCoreObject & Sti
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -5410,7 +5594,7 @@ type AutonomousSystem implements BasicObject & StixObject & StixCoreObject & Sti
     filterMode: FilterMode
   ): StixCyberObservableRelationshipConnection
   # AutonomousSystem
-  number: Int!
+  number: Int
   name: String
   rir: String
   # Technical
@@ -5449,6 +5633,7 @@ type Directory implements BasicObject & StixObject & StixCoreObject & StixCyberO
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -5476,7 +5661,7 @@ type Directory implements BasicObject & StixObject & StixCoreObject & StixCyberO
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -5544,6 +5729,7 @@ type DomainName implements BasicObject & StixObject & StixCoreObject & StixCyber
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -5571,7 +5757,7 @@ type DomainName implements BasicObject & StixObject & StixCoreObject & StixCyber
   observable_value: String!
   x_opencti_score: Int
   x_opencti_description: String
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -5631,6 +5817,7 @@ type EmailAddr implements BasicObject & StixObject & StixCoreObject & StixCyberO
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -5658,7 +5845,7 @@ type EmailAddr implements BasicObject & StixObject & StixCoreObject & StixCyberO
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -5720,6 +5907,7 @@ type EmailMessage implements BasicObject & StixObject & StixCoreObject & StixCyb
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -5747,7 +5935,7 @@ type EmailMessage implements BasicObject & StixObject & StixCoreObject & StixCyb
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -5819,6 +6007,7 @@ type EmailMimePartType implements BasicObject & StixObject & StixCoreObject & St
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -5846,7 +6035,7 @@ type EmailMimePartType implements BasicObject & StixObject & StixCoreObject & St
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -5917,6 +6106,7 @@ interface HashedObservable {
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -5944,7 +6134,7 @@ interface HashedObservable {
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -6001,6 +6191,7 @@ type Artifact implements BasicObject & StixObject & StixCoreObject & StixCyberOb
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -6028,7 +6219,7 @@ type Artifact implements BasicObject & StixObject & StixCoreObject & StixCyberOb
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -6101,6 +6292,7 @@ type StixFile implements BasicObject & StixObject & StixCoreObject & StixCyberOb
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -6128,7 +6320,7 @@ type StixFile implements BasicObject & StixObject & StixCoreObject & StixCyberOb
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -6177,7 +6369,6 @@ type StixFile implements BasicObject & StixObject & StixCoreObject & StixCyberOb
 }
 input StixFileAddInput {
   hashes: [HashInput]
-  extensions: String
   size: Int
   name: String
   name_enc: String
@@ -6209,6 +6400,7 @@ type X509Certificate implements BasicObject & StixObject & StixCoreObject & Stix
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -6236,7 +6428,7 @@ type X509Certificate implements BasicObject & StixObject & StixCoreObject & Stix
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -6274,6 +6466,23 @@ type X509Certificate implements BasicObject & StixObject & StixCoreObject & Stix
   subject_public_key_exponent: Int
   validity_not_before: DateTime
   validity_not_after: DateTime
+  # X509V3ExtensionsType
+  basic_constraints: String
+  name_constraints: String
+  policy_constraints: String
+  key_usage: String
+  extended_key_usage: String
+  subject_key_identifier: String
+  authority_key_identifier: String
+  subject_alternative_name: String
+  issuer_alternative_name: String
+  subject_directory_attributes: String
+  crl_distribution_points: String
+  inhibit_any_policy: String
+  private_key_usage_period_not_before: DateTime
+  private_key_usage_period_not_after: DateTime
+  certificate_policies: String
+  policy_mappings: String
   # Technical
   creator: User
   toStix: String
@@ -6297,6 +6506,23 @@ input X509CertificateAddInput {
   subject_public_key_exponent: Int
   validity_not_before: DateTime
   validity_not_after: DateTime
+  # X509V3ExtensionsType
+  basic_constraints: String
+  name_constraints: String
+  policy_constraints: String
+  key_usage: String
+  extended_key_usage: String
+  subject_key_identifier: String
+  authority_key_identifier: String
+  subject_alternative_name: String
+  issuer_alternative_name: String
+  subject_directory_attributes: String
+  crl_distribution_points: String
+  inhibit_any_policy: String
+  private_key_usage_period_not_before: DateTime
+  private_key_usage_period_not_after: DateTime
+  certificate_policies: String
+  policy_mappings: String
 }
 type IPv4Addr implements BasicObject & StixObject & StixCoreObject & StixCyberObservable {
   id: ID! # internal_id
@@ -6319,6 +6545,7 @@ type IPv4Addr implements BasicObject & StixObject & StixCoreObject & StixCyberOb
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -6346,7 +6573,7 @@ type IPv4Addr implements BasicObject & StixObject & StixCoreObject & StixCyberOb
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -6408,6 +6635,7 @@ type IPv6Addr implements BasicObject & StixObject & StixCoreObject & StixCyberOb
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -6435,7 +6663,7 @@ type IPv6Addr implements BasicObject & StixObject & StixCoreObject & StixCyberOb
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -6495,6 +6723,7 @@ type MacAddr implements BasicObject & StixObject & StixCoreObject & StixCyberObs
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -6522,7 +6751,7 @@ type MacAddr implements BasicObject & StixObject & StixCoreObject & StixCyberObs
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -6582,6 +6811,7 @@ type Mutex implements BasicObject & StixObject & StixCoreObject & StixCyberObser
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -6609,7 +6839,7 @@ type Mutex implements BasicObject & StixObject & StixCoreObject & StixCyberObser
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -6669,6 +6899,7 @@ type NetworkTraffic implements BasicObject & StixObject & StixCoreObject & StixC
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -6696,7 +6927,7 @@ type NetworkTraffic implements BasicObject & StixObject & StixCoreObject & StixC
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -6743,7 +6974,6 @@ type NetworkTraffic implements BasicObject & StixObject & StixCoreObject & StixC
   jobs(first: Int): [Work]
 }
 input NetworkTrafficAddInput {
-  extensions: String
   start: DateTime
   end: DateTime
   is_active: Boolean
@@ -6776,6 +7006,7 @@ type Process implements BasicObject & StixObject & StixCoreObject & StixCyberObs
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -6803,7 +7034,7 @@ type Process implements BasicObject & StixObject & StixCoreObject & StixCyberObs
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -6846,12 +7077,11 @@ type Process implements BasicObject & StixObject & StixCoreObject & StixCyberObs
   jobs(first: Int): [Work]
 }
 input ProcessAddInput {
-  extensions: String
   is_hidden: Boolean
   pid: Int
   created_time: DateTime
   cwd: String
-  command_line: String
+  command_line: String!
   environment_variables: [String]
 }
 type Software implements BasicObject & StixObject & StixCoreObject & StixCyberObservable {
@@ -6875,6 +7105,7 @@ type Software implements BasicObject & StixObject & StixCoreObject & StixCyberOb
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -6902,7 +7133,7 @@ type Software implements BasicObject & StixObject & StixCoreObject & StixCyberOb
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -6933,6 +7164,7 @@ type Software implements BasicObject & StixObject & StixCoreObject & StixCyberOb
   languages: [String]
   vendor: String
   version: String
+  vulnerabilities: VulnerabilityConnection
   # Technical
   creator: User
   toStix: String
@@ -6972,6 +7204,7 @@ type Url implements BasicObject & StixObject & StixCoreObject & StixCyberObserva
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -6999,7 +7232,7 @@ type Url implements BasicObject & StixObject & StixCoreObject & StixCyberObserva
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -7059,6 +7292,7 @@ type UserAccount implements BasicObject & StixObject & StixCoreObject & StixCybe
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -7086,7 +7320,7 @@ type UserAccount implements BasicObject & StixObject & StixCoreObject & StixCybe
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -7137,7 +7371,6 @@ type UserAccount implements BasicObject & StixObject & StixCoreObject & StixCybe
   jobs(first: Int): [Work]
 }
 input UserAccountAddInput {
-  extensions: String
   user_id: String
   credential: String
   account_login: String
@@ -7174,6 +7407,7 @@ type WindowsRegistryKey implements BasicObject & StixObject & StixCoreObject & S
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -7201,7 +7435,7 @@ type WindowsRegistryKey implements BasicObject & StixObject & StixCoreObject & S
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -7265,6 +7499,7 @@ type WindowsRegistryValueType implements BasicObject & StixObject & StixCoreObje
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -7292,7 +7527,7 @@ type WindowsRegistryValueType implements BasicObject & StixObject & StixCoreObje
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -7335,7 +7570,7 @@ input WindowsRegistryValueTypeAddInput {
   data: String
   data_type: String
 }
-type X509V3ExtensionsType implements BasicObject & StixObject & StixCoreObject & StixCyberObservable {
+type CryptographicKey implements BasicObject & StixObject & StixCoreObject & StixCyberObservable {
   id: ID! # internal_id
   standard_id: String!
   entity_type: String!
@@ -7356,6 +7591,7 @@ type X509V3ExtensionsType implements BasicObject & StixObject & StixCoreObject &
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -7383,7 +7619,7 @@ type X509V3ExtensionsType implements BasicObject & StixObject & StixCoreObject &
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -7407,23 +7643,8 @@ type X509V3ExtensionsType implements BasicObject & StixObject & StixCoreObject &
     filters: [StixCyberObservableRelationshipsFiltering]
     filterMode: FilterMode
   ): StixCyberObservableRelationshipConnection
-  # X509V3ExtensionsType
-  basic_constraints: String
-  name_constraints: String
-  policy_constraints: String
-  key_usage: String
-  extended_key_usage: String
-  subject_key_identifier: String
-  authority_key_identifier: String
-  subject_alternative_name: String
-  issuer_alternative_name: String
-  subject_directory_attributes: String
-  crl_distribution_points: String
-  inhibit_any_policy: String
-  private_key_usage_period_not_before: DateTime
-  private_key_usage_period_not_after: DateTime
-  certificate_policies: String
-  policy_mappings: String
+  # CryptographicKey
+  value: String
   # Technical
   creator: User
   toStix: String
@@ -7434,25 +7655,10 @@ type X509V3ExtensionsType implements BasicObject & StixObject & StixCoreObject &
   connectors(onlyAlive: Boolean): [Connector]
   jobs(first: Int): [Work]
 }
-input X509V3ExtensionsTypeAddInput {
-  basic_constraints: String
-  name_constraints: String
-  policy_constraints: String
-  key_usage: String
-  extended_key_usage: String
-  subject_key_identifier: String
-  authority_key_identifier: String
-  subject_alternative_name: String
-  issuer_alternative_name: String
-  subject_directory_attributes: String
-  crl_distribution_points: String
-  inhibit_any_policy: String
-  private_key_usage_period_not_before: DateTime
-  private_key_usage_period_not_after: DateTime
-  certificate_policies: String
-  policy_mappings: String
+input CryptographicKeyAddInput {
+  value: String
 }
-type XOpenCTICryptographicKey implements BasicObject & StixObject & StixCoreObject & StixCyberObservable {
+type CryptocurrencyWallet implements BasicObject & StixObject & StixCoreObject & StixCyberObservable {
   id: ID! # internal_id
   standard_id: String!
   entity_type: String!
@@ -7473,6 +7679,7 @@ type XOpenCTICryptographicKey implements BasicObject & StixObject & StixCoreObje
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -7500,7 +7707,7 @@ type XOpenCTICryptographicKey implements BasicObject & StixObject & StixCoreObje
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -7524,7 +7731,7 @@ type XOpenCTICryptographicKey implements BasicObject & StixObject & StixCoreObje
     filters: [StixCyberObservableRelationshipsFiltering]
     filterMode: FilterMode
   ): StixCyberObservableRelationshipConnection
-  # XOpenCTICryptographicKey
+  # CryptocurrencyWallet
   value: String
   # Technical
   creator: User
@@ -7536,10 +7743,10 @@ type XOpenCTICryptographicKey implements BasicObject & StixObject & StixCoreObje
   connectors(onlyAlive: Boolean): [Connector]
   jobs(first: Int): [Work]
 }
-input XOpenCTICryptographicKeyAddInput {
+input CryptocurrencyWalletAddInput {
   value: String
 }
-type XOpenCTICryptocurrencyWallet implements BasicObject & StixObject & StixCoreObject & StixCyberObservable {
+type Hostname implements BasicObject & StixObject & StixCoreObject & StixCyberObservable {
   id: ID! # internal_id
   standard_id: String!
   entity_type: String!
@@ -7560,6 +7767,7 @@ type XOpenCTICryptocurrencyWallet implements BasicObject & StixObject & StixCore
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -7587,7 +7795,7 @@ type XOpenCTICryptocurrencyWallet implements BasicObject & StixObject & StixCore
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -7611,7 +7819,7 @@ type XOpenCTICryptocurrencyWallet implements BasicObject & StixObject & StixCore
     filters: [StixCyberObservableRelationshipsFiltering]
     filterMode: FilterMode
   ): StixCyberObservableRelationshipConnection
-  # XOpenCTICryptocurrencyWallet
+  # Hostname
   value: String
   # Technical
   creator: User
@@ -7623,10 +7831,10 @@ type XOpenCTICryptocurrencyWallet implements BasicObject & StixObject & StixCore
   connectors(onlyAlive: Boolean): [Connector]
   jobs(first: Int): [Work]
 }
-input XOpenCTICryptocurrencyWalletAddInput {
+input HostnameAddInput {
   value: String
 }
-type XOpenCTIHostname implements BasicObject & StixObject & StixCoreObject & StixCyberObservable {
+type Text implements BasicObject & StixObject & StixCoreObject & StixCyberObservable {
   id: ID! # internal_id
   standard_id: String!
   entity_type: String!
@@ -7647,6 +7855,7 @@ type XOpenCTIHostname implements BasicObject & StixObject & StixCoreObject & Sti
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -7674,7 +7883,7 @@ type XOpenCTIHostname implements BasicObject & StixObject & StixCoreObject & Sti
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -7698,7 +7907,7 @@ type XOpenCTIHostname implements BasicObject & StixObject & StixCoreObject & Sti
     filters: [StixCyberObservableRelationshipsFiltering]
     filterMode: FilterMode
   ): StixCyberObservableRelationshipConnection
-  # XOpenCTIHostname
+  # Text
   value: String
   # Technical
   creator: User
@@ -7710,10 +7919,10 @@ type XOpenCTIHostname implements BasicObject & StixObject & StixCoreObject & Sti
   connectors(onlyAlive: Boolean): [Connector]
   jobs(first: Int): [Work]
 }
-input XOpenCTIHostnameAddInput {
+input TextAddInput {
   value: String
 }
-type XOpenCTIText implements BasicObject & StixObject & StixCoreObject & StixCyberObservable {
+type UserAgent implements BasicObject & StixObject & StixCoreObject & StixCyberObservable {
   id: ID! # internal_id
   standard_id: String!
   entity_type: String!
@@ -7734,6 +7943,7 @@ type XOpenCTIText implements BasicObject & StixObject & StixCoreObject & StixCyb
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -7761,7 +7971,7 @@ type XOpenCTIText implements BasicObject & StixObject & StixCoreObject & StixCyb
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -7785,7 +7995,7 @@ type XOpenCTIText implements BasicObject & StixObject & StixCoreObject & StixCyb
     filters: [StixCyberObservableRelationshipsFiltering]
     filterMode: FilterMode
   ): StixCyberObservableRelationshipConnection
-  # XOpenCTIText
+  # UserAgent
   value: String
   # Technical
   creator: User
@@ -7797,10 +8007,10 @@ type XOpenCTIText implements BasicObject & StixObject & StixCoreObject & StixCyb
   connectors(onlyAlive: Boolean): [Connector]
   jobs(first: Int): [Work]
 }
-input XOpenCTITextAddInput {
+input UserAgentAddInput {
   value: String
 }
-type XOpenCTIUserAgent implements BasicObject & StixObject & StixCoreObject & StixCyberObservable {
+type BankAccount implements BasicObject & StixObject & StixCoreObject & StixCyberObservable {
   id: ID! # internal_id
   standard_id: String!
   entity_type: String!
@@ -7821,6 +8031,7 @@ type XOpenCTIUserAgent implements BasicObject & StixObject & StixCoreObject & St
   reports(first: Int): ReportConnection
   notes(first: Int): NoteConnection
   opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
   stixCoreRelationships(
     first: Int
     after: ID
@@ -7848,7 +8059,7 @@ type XOpenCTIUserAgent implements BasicObject & StixObject & StixCoreObject & St
   x_opencti_score: Int
   x_opencti_description: String
   observable_value: String!
-  indicators: IndicatorConnection
+  indicators(first: Int): IndicatorConnection
   stixCyberObservableRelationships(
     first: Int
     after: ID
@@ -7872,7 +8083,99 @@ type XOpenCTIUserAgent implements BasicObject & StixObject & StixCoreObject & St
     filters: [StixCyberObservableRelationshipsFiltering]
     filterMode: FilterMode
   ): StixCyberObservableRelationshipConnection
-  # XOpenCTIUserAgent
+  # BankAccount
+  iban: String
+  bic: String
+  account_number: String
+  # Technical
+  creator: User
+  toStix: String
+  importFiles(first: Int): FileConnection
+  pendingFiles(first: Int): FileConnection
+  exportFiles(first: Int): FileConnection
+  editContext: [EditUserContext]
+  connectors(onlyAlive: Boolean): [Connector]
+  jobs(first: Int): [Work]
+}
+input BankAccountAddInput {
+  iban: String
+  bic: String
+  account_number: String
+}
+type PhoneNumber implements BasicObject & StixObject & StixCoreObject & StixCyberObservable {
+  id: ID! # internal_id
+  standard_id: String!
+  entity_type: String!
+  parent_types: [String]!
+  # StixObject
+  x_opencti_stix_ids: [String]
+  is_inferred: Boolean!
+  spec_version: String!
+  created_at: DateTime!
+  updated_at: DateTime!
+  # inferences
+  x_opencti_inferences: [Inference]
+  # StixCoreObject
+  createdBy: Identity
+  objectMarking: MarkingDefinitionConnection
+  objectLabel: LabelConnection
+  externalReferences(first: Int): ExternalReferenceConnection
+  reports(first: Int): ReportConnection
+  notes(first: Int): NoteConnection
+  opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
+  stixCoreRelationships(
+    first: Int
+    after: ID
+    orderBy: StixCoreRelationshipsOrdering
+    orderMode: OrderingMode
+    fromId: String
+    toId: String
+    fromTypes: [String]
+    toTypes: [String]
+    relationship_type: String
+    startTimeStart: DateTime
+    startTimeStop: DateTime
+    stopTimeStart: DateTime
+    stopTimeStop: DateTime
+    firstSeenStart: DateTime
+    firstSeenStop: DateTime
+    lastSeenStart: DateTime
+    lastSeenStop: DateTime
+    confidences: [Int]
+    search: String
+    filters: [StixCoreRelationshipsFiltering]
+    filterMode: FilterMode
+  ): StixCoreRelationshipConnection
+  # StixCyberObservable
+  x_opencti_score: Int
+  x_opencti_description: String
+  observable_value: String!
+  indicators(first: Int): IndicatorConnection
+  stixCyberObservableRelationships(
+    first: Int
+    after: ID
+    orderBy: StixCyberObservableRelationshipsOrdering
+    orderMode: OrderingMode
+    fromId: String
+    toId: String
+    fromTypes: [String]
+    toTypes: [String]
+    relationship_type: String
+    startTimeStart: DateTime
+    startTimeStop: DateTime
+    stopTimeStart: DateTime
+    stopTimeStop: DateTime
+    firstSeenStart: DateTime
+    firstSeenStop: DateTime
+    lastSeenStart: DateTime
+    lastSeenStop: DateTime
+    confidences: [Int]
+    search: String
+    filters: [StixCyberObservableRelationshipsFiltering]
+    filterMode: FilterMode
+  ): StixCyberObservableRelationshipConnection
+  # PhoneNumber
   value: String
   # Technical
   creator: User
@@ -7884,8 +8187,102 @@ type XOpenCTIUserAgent implements BasicObject & StixObject & StixCoreObject & St
   connectors(onlyAlive: Boolean): [Connector]
   jobs(first: Int): [Work]
 }
-input XOpenCTIUserAgentAddInput {
+input PhoneNumberAddInput {
   value: String
+}
+type PaymentCard implements BasicObject & StixObject & StixCoreObject & StixCyberObservable {
+  id: ID! # internal_id
+  standard_id: String!
+  entity_type: String!
+  parent_types: [String]!
+  # StixObject
+  x_opencti_stix_ids: [String]
+  is_inferred: Boolean!
+  spec_version: String!
+  created_at: DateTime!
+  updated_at: DateTime!
+  # inferences
+  x_opencti_inferences: [Inference]
+  # StixCoreObject
+  createdBy: Identity
+  objectMarking: MarkingDefinitionConnection
+  objectLabel: LabelConnection
+  externalReferences(first: Int): ExternalReferenceConnection
+  reports(first: Int): ReportConnection
+  notes(first: Int): NoteConnection
+  opinions(first: Int): OpinionConnection
+  observedData(first: Int): ObservedDataConnection
+  stixCoreRelationships(
+    first: Int
+    after: ID
+    orderBy: StixCoreRelationshipsOrdering
+    orderMode: OrderingMode
+    fromId: String
+    toId: String
+    fromTypes: [String]
+    toTypes: [String]
+    relationship_type: String
+    startTimeStart: DateTime
+    startTimeStop: DateTime
+    stopTimeStart: DateTime
+    stopTimeStop: DateTime
+    firstSeenStart: DateTime
+    firstSeenStop: DateTime
+    lastSeenStart: DateTime
+    lastSeenStop: DateTime
+    confidences: [Int]
+    search: String
+    filters: [StixCoreRelationshipsFiltering]
+    filterMode: FilterMode
+  ): StixCoreRelationshipConnection
+  # StixCyberObservable
+  x_opencti_score: Int
+  x_opencti_description: String
+  observable_value: String!
+  indicators(first: Int): IndicatorConnection
+  stixCyberObservableRelationships(
+    first: Int
+    after: ID
+    orderBy: StixCyberObservableRelationshipsOrdering
+    orderMode: OrderingMode
+    fromId: String
+    toId: String
+    fromTypes: [String]
+    toTypes: [String]
+    relationship_type: String
+    startTimeStart: DateTime
+    startTimeStop: DateTime
+    stopTimeStart: DateTime
+    stopTimeStop: DateTime
+    firstSeenStart: DateTime
+    firstSeenStop: DateTime
+    lastSeenStart: DateTime
+    lastSeenStop: DateTime
+    confidences: [Int]
+    search: String
+    filters: [StixCyberObservableRelationshipsFiltering]
+    filterMode: FilterMode
+  ): StixCyberObservableRelationshipConnection
+  # CreditCard
+  card_number: String
+  expiration_date: DateTime
+  cvv: Int
+  holder_name: String
+  # Technical
+  creator: User
+  toStix: String
+  importFiles(first: Int): FileConnection
+  pendingFiles(first: Int): FileConnection
+  exportFiles(first: Int): FileConnection
+  editContext: [EditUserContext]
+  connectors(onlyAlive: Boolean): [Connector]
+  jobs(first: Int): [Work]
+}
+input PaymentCardAddInput {
+  card_number: String!
+  expiration_date: DateTime
+  cvv: Int
+  holder_name: String
 }
 
 ###### RELATIONSHIPS
@@ -7940,6 +8337,22 @@ enum StixObjectOrStixRelationshipsFilter {
   createdBy
   markedBy
   labelledBy
+  entity_type
+  x_opencti_score
+  x_opencti_organization_type
+  created
+  modified
+  relatedTo
+  objectContained
+  containedBy
+  hasExternalReference
+  sightedBy
+  value
+  name
+  confidence
+  hashes_MD5
+  hashes_SHA1
+  hashes_SHA256
 }
 input StixObjectOrStixRelationshipsFiltering {
   key: StixObjectOrStixRelationshipsFilter!
@@ -7956,26 +8369,28 @@ type StixObjectOrStixRelationshipEdge {
   node: StixObjectOrStixRelationship!
 }
 union StixObjectOrStixRelationship =
-    #### Stix Core Objects
-  ## Stix Meta Objects
   MarkingDefinition
   | Label
   | KillChainPhase
-  | ExternalReference ## Stix Domain Objects
+  | ExternalReference
   | AttackPattern
-  | Campaign # Containers
+  | Campaign
+  | Channel
+  | Event
+  | Narrative
   | Note
   | ObservedData
   | Opinion
   | Report
-  | CourseOfAction # Identity
+  | CourseOfAction
   | Individual
   | Organization
   | Sector
   | System
   | Indicator
   | Infrastructure
-  | IntrusionSet # Location
+  | IntrusionSet
+  | Language
   | City
   | Country
   | Region
@@ -7984,7 +8399,7 @@ union StixObjectOrStixRelationship =
   | ThreatActor
   | Tool
   | Vulnerability
-  | Incident ## Six Cyber Observables
+  | Incident
   | AutonomousSystem
   | Directory
   | DomainName
@@ -8005,12 +8420,14 @@ union StixObjectOrStixRelationship =
   | UserAccount
   | WindowsRegistryKey
   | WindowsRegistryValueType
-  | X509V3ExtensionsType
-  | XOpenCTICryptographicKey
-  | XOpenCTICryptocurrencyWallet
-  | XOpenCTIHostname
-  | XOpenCTIText
-  | XOpenCTIUserAgent ### Stix Relationships
+  | CryptographicKey
+  | CryptocurrencyWallet
+  | Hostname
+  | Text
+  | UserAgent
+  | BankAccount
+  | PhoneNumber
+  | PaymentCard
   | StixCoreRelationship
   | StixMetaRelationship
   | StixSightingRelationship
@@ -8019,23 +8436,27 @@ union StixCoreObjectOrStixCoreRelationship =
     #### Stix Core Objects
   ## Stix Domain Objects
   AttackPattern
-  | Campaign # Containers
+  | Campaign
+  | Channel
+  | Event
   | Note
   | ObservedData
   | Opinion
   | Report
-  | CourseOfAction # Identity
+  | CourseOfAction
   | Individual
   | Organization
   | Sector
   | Indicator
   | Infrastructure
-  | IntrusionSet # Location
+  | IntrusionSet
+  | Language
   | City
   | Country
   | Region
   | Position
   | Malware
+  | Narrative
   | ThreatActor
   | Tool
   | Vulnerability
@@ -8060,12 +8481,14 @@ union StixCoreObjectOrStixCoreRelationship =
   | UserAccount
   | WindowsRegistryKey
   | WindowsRegistryValueType
-  | X509V3ExtensionsType
-  | XOpenCTICryptographicKey
-  | XOpenCTICryptocurrencyWallet
-  | XOpenCTIHostname
-  | XOpenCTIText
-  | XOpenCTIUserAgent ### Stix Relationships
+  | CryptographicKey
+  | CryptocurrencyWallet
+  | Hostname
+  | Text
+  | UserAgent
+  | BankAccount
+  | PhoneNumber
+  | PaymentCard
   | StixCoreRelationship
 
 enum StixRelationshipsOrdering {
@@ -8148,7 +8571,8 @@ enum StixCoreRelationshipsOrdering {
   toValidUntil
   toObservableValue
   toPatternType
-  status_id
+  x_opencti_workflow_id
+  createdBy
 }
 enum StixCoreRelationshipsFilter {
   fromId
@@ -8164,8 +8588,11 @@ enum StixCoreRelationshipsFilter {
   toCreatedAt
   toPatternType
   toMainObservableType
-  status_id
+  x_opencti_workflow_id
   revoked
+  relationship_type
+  fromTypes
+  toTypes
 }
 input StixCoreRelationshipsFiltering {
   key: StixCoreRelationshipsFilter!
@@ -8287,7 +8714,7 @@ enum StixSightingRelationshipsOrdering {
   toPatternType
   toCreatedAt
   attribute_count
-  status_id
+  x_opencti_workflow_id
 }
 enum StixSightingRelationshipsFilter {
   fromId
@@ -8303,7 +8730,7 @@ enum StixSightingRelationshipsFilter {
   labelledBy
   toPatternType
   toMainObservableType
-  status_id
+  x_opencti_workflow_id
 }
 input StixSightingRelationshipsFiltering {
   key: StixSightingRelationshipsFilter!
@@ -8337,6 +8764,7 @@ type StixSightingRelationship implements BasicRelationship & StixRelationship {
   to: StixObjectOrStixRelationship
   x_opencti_inferences: [Inference]
   # StixSightingRelationship
+  relationship_type: String!
   description: String
   first_seen: DateTime
   last_seen: DateTime
@@ -8382,6 +8810,7 @@ input StixSightingRelationshipAddInput {
 
 ############## StixCyberObservableRelationships
 enum StixCyberObservableRelationshipsOrdering {
+  relationship_type
   entity_type
   confidence
   start_time
@@ -8430,10 +8859,15 @@ type StixCyberObservableRelationship implements BasicRelationship & StixRelation
   from: StixObjectOrStixRelationship
   to: StixObjectOrStixRelationship
   x_opencti_inferences: [Inference]
+  reports(first: Int): ReportConnection
+  notes(first: Int): NoteConnection
+  opinions(first: Int): OpinionConnection
   # StixCyberObservableRelationship
   relationship_type: String!
   start_time: DateTime
   stop_time: DateTime
+  confidence: Int
+  objectMarking: MarkingDefinitionConnection
   # Technical
   editContext: [EditUserContext]
 }
@@ -8510,6 +8944,8 @@ input StixMetaRelationshipsAddInput {
 ### QUERIES
 
 type Query {
+  stix(id: String!): String @auth(for: [KNOWLEDGE])
+  enrichmentConnectors(type: String!): [Connector] @auth(for: [MODULES])
   ###### INTERNAL
 
   platform_theme: String
@@ -8559,6 +8995,7 @@ type Query {
   roles(first: Int, after: ID, orderBy: RolesOrdering, orderMode: OrderingMode, search: String): RoleConnection
     @auth(for: [SETTINGS_SETACCESSES])
   me: User @auth
+  otpGeneration: OtpElement @auth
   user(id: String!): User @auth(for: [SETTINGS_SETACCESSES])
   users(
     first: Int
@@ -8575,6 +9012,7 @@ type Query {
   capabilities(first: Int): CapabilityConnection @auth(for: [SETTINGS_SETACCESSES])
   connector(id: String!): Connector @auth(for: [MODULES])
   connectors: [Connector] @auth(for: [MODULES])
+  connectorsForWorker: [Connector] @auth(for: [MODULES])
   connectorsForExport: [Connector] @auth(for: [KNOWLEDGE])
   connectorsForImport: [Connector] @auth(for: [KNOWLEDGE])
   work(id: ID!): Work @auth(for: [MODULES])
@@ -8615,6 +9053,14 @@ type Query {
     search: String
   ): TaxiiCollectionConnection @auth(for: [TAXIIAPI_SETCOLLECTIONS])
   streamCollection(id: String!): StreamCollection @auth(for: [TAXIIAPI_SETCOLLECTIONS])
+  feed(id: String!): Feed @auth(for: [TAXIIAPI_SETCOLLECTIONS])
+  feeds(
+    first: Int
+    after: ID
+    orderBy: FeedOrdering
+    orderMode: OrderingMode
+    search: String
+  ): FeedConnection @auth(for: [TAXIIAPI_SETCOLLECTIONS])
   streamCollections(
     first: Int
     after: ID
@@ -8643,7 +9089,7 @@ type Query {
     after: ID
     orderBy: StatusOrdering
     orderMode: OrderingMode
-    filters: [StatusesFiltering]
+    filters: [StatusesFiltering!]
     filterMode: FilterMode
     search: String
   ): StatusConnection @auth
@@ -9296,12 +9742,12 @@ type Query {
     after: ID
     orderBy: StixCoreRelationshipsOrdering
     orderMode: OrderingMode
-    elementId: String
+    elementId: [String]
     elementWithTargetTypes: [String]
-    fromId: String
+    fromId: [String]
     fromRole: String
     fromTypes: [String]
-    toId: String
+    toId: [String]
     toRole: String
     toTypes: [String]
     relationship_type: [String]
@@ -9353,6 +9799,7 @@ type Query {
     noDirection: Boolean
     endDate: DateTime
   ): Number @auth(for: [KNOWLEDGE, EXPLORE])
+  stixCoreRelationshipsExportFiles(first: Int, type: String!): FileConnection @auth(for: [KNOWLEDGE_KNGETEXPORT])
 
   ######## STIX SIGHTING RELATIONSHIPS
 
@@ -9706,12 +10153,12 @@ type IdentityEditMutations {
   relationDelete(toId: String!, relationship_type: String!): Identity @auth(for: [KNOWLEDGE_KNUPDATE])
 }
 type IndividualEditMutations {
-  delete: ID
-  fieldPatch(input: [EditInput]!, commitMessage: String, references: [String]): Individual
-  contextPatch(input: EditContext): Individual
-  contextClean: Individual
-  relationAdd(input: StixMetaRelationshipAddInput): StixMetaRelationship
-  relationDelete(toId: String!, relationship_type: String!): Individual
+  delete: ID @auth(for: [KNOWLEDGE_KNUPDATE_KNDELETE])
+  fieldPatch(input: [EditInput]!, commitMessage: String, references: [String]): Individual @auth(for: [KNOWLEDGE_KNUPDATE])
+  contextPatch(input: EditContext): Individual @auth(for: [KNOWLEDGE_KNUPDATE])
+  contextClean: Individual @auth(for: [KNOWLEDGE_KNUPDATE])
+  relationAdd(input: StixMetaRelationshipAddInput): StixMetaRelationship @auth(for: [KNOWLEDGE_KNUPDATE])
+  relationDelete(toId: String!, relationship_type: String!): Individual @auth(for: [KNOWLEDGE_KNUPDATE])
 }
 type OrganizationEditMutations {
   delete: ID @auth(for: [KNOWLEDGE_KNUPDATE_KNDELETE])
@@ -9872,6 +10319,10 @@ type StixCyberObservableEditMutations {
 
 ######## STIX RELATIONSHIPS
 
+type StixRelationshipEditMutations {
+  delete: ID
+}
+
 ######## STIX CORE RELATIONSHIPS
 
 type StixCoreRelationshipEditMutations {
@@ -9942,6 +10393,10 @@ type Mutation {
 
   ######## INTERNAL OBJECT ENTITIES
   token(input: UserLoginInput): String
+  otpActivation(input: UserOTPActivationInput): User @auth
+  otpDeactivation: User @auth
+  otpUserDeactivation(id: ID!): User @auth(for: [SETTINGS_SETACCESSES])
+  otpLogin(input: UserOTPLoginInput): Boolean @auth
   settingsEdit(id: ID!): SettingsEditMutations @auth(for: [SETTINGS])
   subTypeEdit(id: ID!): SubTypeEditMutations @auth(for: [SETTINGS])
   groupAdd(input: GroupAddInput): Group @auth(for: [SETTINGS_SETACCESSES])
@@ -9949,7 +10404,7 @@ type Mutation {
   userAdd(input: UserAddInput): User @auth(for: [SETTINGS_SETACCESSES])
   userEdit(id: ID!): UserEditMutations @auth(for: [SETTINGS_SETACCESSES])
   meTokenRenew: User @auth
-  meEdit(input: [EditInput]!): User @auth
+  meEdit(input: [EditInput]!, password: String): User @auth
   bookmarkAdd(id: ID!, type: String!): StixDomainObject @auth(for: [KNOWLEDGE])
   bookmarkDelete(id: ID!): ID @auth(for: [KNOWLEDGE])
   logout: ID @auth
@@ -9964,6 +10419,9 @@ type Mutation {
   runtimeAttributeEdit(id: String!, previous: String!, current: String!): ID! @auth(for: [SETTINGS])
   workspaceAdd(input: WorkspaceAddInput): Workspace @auth(for: [EXPLORE_EXUPDATE])
   workspaceEdit(id: ID!): WorkspaceEditMutations @auth(for: [EXPLORE_EXUPDATE])
+  feedAdd(input: FeedAddInput!): Feed @auth(for: [TAXIIAPI_SETCOLLECTIONS])
+  feedDelete(id: ID!): ID! @auth(for: [TAXIIAPI_SETCOLLECTIONS])
+  feedEdit(id: ID!, input: FeedAddInput!): Feed! @auth(for: [TAXIIAPI_SETCOLLECTIONS])
   taxiiCollectionAdd(input: TaxiiCollectionAddInput): TaxiiCollection @auth(for: [TAXIIAPI_SETCOLLECTIONS])
   taxiiCollectionEdit(id: ID!): TaxiiCollectionEditMutations @auth(for: [TAXIIAPI_SETCOLLECTIONS])
   streamCollectionAdd(input: StreamCollectionAddInput): StreamCollection @auth(for: [TAXIIAPI_SETCOLLECTIONS])
@@ -10026,7 +10484,7 @@ type Mutation {
   identityAdd(input: IdentityAddInput): Identity @auth(for: [KNOWLEDGE_KNUPDATE])
   identityEdit(id: ID!): IdentityEditMutations
   individualAdd(input: IndividualAddInput): Individual @auth(for: [KNOWLEDGE_KNUPDATE])
-  individualEdit(id: ID!): IndividualEditMutations @auth(for: [KNOWLEDGE_KNUPDATE])
+  individualEdit(id: ID!): IndividualEditMutations
   organizationAdd(input: OrganizationAddInput): Organization @auth(for: [KNOWLEDGE_KNUPDATE])
   organizationEdit(id: ID!): OrganizationEditMutations
   sectorAdd(input: SectorAddInput): Sector @auth(for: [KNOWLEDGE_KNUPDATE])
@@ -10094,12 +10552,14 @@ type Mutation {
     UserAccount: UserAccountAddInput
     WindowsRegistryKey: WindowsRegistryKeyAddInput
     WindowsRegistryValueType: WindowsRegistryValueTypeAddInput
-    X509V3ExtensionsType: X509V3ExtensionsTypeAddInput
-    XOpenCTICryptographicKey: XOpenCTICryptographicKeyAddInput
-    XOpenCTICryptocurrencyWallet: XOpenCTICryptocurrencyWalletAddInput
-    XOpenCTIHostname: XOpenCTIHostnameAddInput
-    XOpenCTIText: XOpenCTITextAddInput
-    XOpenCTIUserAgent: XOpenCTIUserAgentAddInput
+    CryptographicKey: CryptographicKeyAddInput
+    CryptocurrencyWallet: CryptocurrencyWalletAddInput
+    Hostname: HostnameAddInput
+    Text: TextAddInput
+    UserAgent: UserAgentAddInput
+    BankAccount: BankAccountAddInput
+    PhoneNumber: PhoneNumberAddInput
+    PaymentCard: PaymentCardAddInput
   ): StixCyberObservable @auth(for: [KNOWLEDGE_KNUPDATE])
   stixCyberObservableEdit(id: ID!): StixCyberObservableEditMutations
   stixCyberObservablesExportAsk(
@@ -10124,13 +10584,27 @@ type Mutation {
   ): Artifact
 
   ######## STIX RELATIONSHIPS
+  stixRelationshipEdit(id: ID!): StixRelationshipEditMutations @auth(for: [KNOWLEDGE_KNUPDATE])
 
   ######## STIX CORE RELATIONSHIPS
   stixCoreRelationshipAdd(input: StixCoreRelationshipAddInput, reversedReturn: Boolean): StixCoreRelationship
     @auth(for: [KNOWLEDGE_KNUPDATE])
   stixCoreRelationshipEdit(id: ID!): StixCoreRelationshipEditMutations @auth(for: [KNOWLEDGE_KNUPDATE])
+  stixCoreRelationshipsExportAsk(
+    type: String!
+    format: String!
+    exportType: String!
+    maxMarkingDefinition: String
+    context: String
+    search: String
+    orderBy: StixCoreRelationshipsOrdering
+    orderMode: OrderingMode
+    filters: [StixCoreRelationshipsFiltering]
+    filterMode: FilterMode
+  ): FileConnection @auth(for: [KNOWLEDGE_KNGETEXPORT_KNASKEXPORT])
   stixCoreRelationshipDelete(fromId: String!, toId: String!, relationship_type: String!): Boolean!
     @auth(for: [KNOWLEDGE_KNUPDATE])
+  stixCoreRelationshipsExportPush(type: String!, file: Upload!, listFilters: String): Boolean @auth(for: [CONNECTORAPI])
 
   ######## STIX CYBER OBSERVABLE RELATIONSHIPS
   stixCyberObservableRelationshipAdd(input: StixCyberObservableRelationshipAddInput): StixCyberObservableRelationship

@@ -1,19 +1,20 @@
 // 'If **observed-data A** (`created-by` **identity X**) have `object` **observable B** and **indicator C** ' +
 // 'is `based-on` **observable B**, then **indicator C** is `sighted` in **identity X**.';
 
-import { FIVE_MINUTES, sleep, FIVE_SECS } from '../utils/testQuery';
+import { FIVE_MINUTES, TEN_SECONDS } from '../utils/testQuery';
 import RuleObserveSighting from '../../src/rules/observed-sighting/ObserveSightingRule';
 import { RULE_PREFIX } from '../../src/schema/general';
 import { shutdownModules, startModules } from '../../src/modules';
 import { activateRule, disableRule, getInferences, inferenceLookup } from '../utils/rule-utils';
-import { createRelation, deleteElement, patchAttribute } from '../../src/database/middleware';
+import { createRelation, internalDeleteElementById, patchAttribute } from '../../src/database/middleware';
 import { SYSTEM_USER } from '../../src/utils/access';
 import { ENTITY_TYPE_CONTAINER_OBSERVED_DATA, ENTITY_TYPE_INDICATOR } from '../../src/schema/stixDomainObject';
 import { STIX_SIGHTING_RELATIONSHIP } from '../../src/schema/stixSightingRelationship';
 import { RELATION_BASED_ON } from '../../src/schema/stixCoreRelationship';
+import { wait } from '../../src/database/utils';
 
 const RULE = RULE_PREFIX + RuleObserveSighting.id;
-const TLP_WHITE_ID = 'marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9';
+const TLP_CLEAR_ID = 'marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9';
 const OBSERVED_DATA = 'observed-data--7d258c31-9a26-4543-aecb-2abc5ed366be'; // observed-data A
 const OBSERVED_FILE = 'file--702e320e-43b6-552a-b7e7-d045bf9c887d'; // observable B
 const ANSSI = 'identity--18fe5225-fee1-5627-ad3e-20c14435b024'; // Organization X
@@ -22,13 +23,12 @@ const CBRICKSDOC = 'indicator--c5c0c0f9-dfa1-5b7d-a12a-ea95072d3e45'; // indicat
 
 describe('Observed sighting rule', () => {
   const assertInferencesSize = async (expected) => {
-    await sleep(FIVE_SECS); // let some time to rule manager to create the elements
+    await wait(TEN_SECONDS); // let some time to rule manager to create the elements
     const inferences = await getInferences(STIX_SIGHTING_RELATIONSHIP);
     expect(inferences.length).toBe(expected);
     return inferences;
   };
 
-  // eslint-disable-next-line prettier/prettier
   it(
     'Should rule successfully activated',
     async () => {
@@ -50,7 +50,7 @@ describe('Observed sighting rule', () => {
         stop_time: '2020-02-20T00:00:00.000Z',
         confidence: 100,
         relationship_type: RELATION_BASED_ON,
-        objectMarking: [TLP_WHITE_ID],
+        objectMarking: [TLP_CLEAR_ID],
       });
       const afterLiveRelations = await assertInferencesSize(1);
       const cbrickToAnssi = await inferenceLookup(afterLiveRelations, CBRICKSDOC, ANSSI, STIX_SIGHTING_RELATIONSHIP);
@@ -85,7 +85,7 @@ describe('Observed sighting rule', () => {
       expect(cbrickToMitreRescan.i_inference_weight).toBeUndefined();
       expect((cbrickToMitreRescan.object_marking_refs || []).length).toBe(0);
       // Cleanup
-      await deleteElement(SYSTEM_USER, cbrickToFile);
+      await internalDeleteElementById(SYSTEM_USER, cbrickToFile.internal_id);
       await assertInferencesSize(0);
       // Disable the rule
       await disableRule(RuleObserveSighting.id);

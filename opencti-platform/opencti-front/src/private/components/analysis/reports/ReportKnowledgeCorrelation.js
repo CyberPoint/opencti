@@ -281,6 +281,7 @@ class ReportKnowledgeCorrelationComponent extends Component {
       createdBy,
       numberOfSelectedNodes: 0,
       numberOfSelectedLinks: 0,
+      keyword: '',
     };
     const filterAdjust = {
       markedBy,
@@ -432,6 +433,7 @@ class ReportKnowledgeCorrelationComponent extends Component {
         ? R.filter((t) => t !== type, stixCoreObjectsTypes)
         : R.append(type, stixCoreObjectsTypes),
       selectedTimeRangeInterval: this.state.selectedTimeRangeInterval,
+      keyword: this.state.keyword,
     };
     this.setState(
       {
@@ -456,6 +458,7 @@ class ReportKnowledgeCorrelationComponent extends Component {
       createdBy: this.state.createdBy,
       stixCoreObjectsTypes: this.state.stixCoreObjectsTypes,
       selectedTimeRangeInterval: this.state.selectedTimeRangeInterval,
+      keyword: this.state.keyword,
     };
     this.setState(
       {
@@ -480,6 +483,7 @@ class ReportKnowledgeCorrelationComponent extends Component {
         : R.append(createdByRef, createdBy),
       stixCoreObjectsTypes: this.state.stixCoreObjectsTypes,
       selectedTimeRangeInterval: this.state.selectedTimeRangeInterval,
+      keyword: this.state.keyword,
     };
     this.setState(
       {
@@ -662,6 +666,29 @@ class ReportKnowledgeCorrelationComponent extends Component {
       markedBy: this.state.markedBy,
       createdBy: this.state.createdBy,
       stixCoreObjectsTypes: this.state.stixCoreObjectsTypes,
+      keyword: this.state.keyword,
+    };
+    this.setState(
+      {
+        selectedTimeRangeInterval: filterAdjust.selectedTimeRangeInterval,
+        graphData: buildCorrelationData(
+          this.graphObjects,
+          decodeGraphData(this.props.report.x_opencti_graph_data),
+          this.props.t,
+          filterAdjust,
+        ),
+      },
+      () => this.saveParameters(false),
+    );
+  }
+
+  handleSearch(keyword) {
+    const filterAdjust = {
+      selectedTimeRangeInterval: this.state.selectedTimeRangeInterval,
+      markedBy: this.state.markedBy,
+      createdBy: this.state.createdBy,
+      stixCoreObjectsTypes: this.state.stixCoreObjectsTypes,
+      keyword,
     };
     this.setState(
       {
@@ -807,6 +834,7 @@ class ReportKnowledgeCorrelationComponent extends Component {
           selectedTimeRangeInterval={selectedTimeRangeInterval}
           handleTimeRangeChange={this.handleTimeRangeChange.bind(this)}
           timeRangeValues={timeRangeValues}
+          handleSearch={this.handleSearch.bind(this)}
         />
         {mode3D ? (
           <ForceGraph3D
@@ -890,7 +918,7 @@ class ReportKnowledgeCorrelationComponent extends Component {
             }}
             onLinkClick={this.handleLinkClick.bind(this)}
             onBackgroundClick={this.handleBackgroundClick.bind(this)}
-            cooldownTicks={modeFixed ? 0 : 'Infinity'}
+            cooldownTicks={modeFixed ? 0 : undefined}
             dagMode={
               // eslint-disable-next-line no-nested-ternary
               modeTree === 'horizontal'
@@ -909,15 +937,24 @@ class ReportKnowledgeCorrelationComponent extends Component {
             onZoom={this.onZoom.bind(this)}
             onZoomEnd={this.handleZoomEnd.bind(this)}
             nodeRelSize={4}
-            nodeCanvasObject={
-              (node, ctx) => nodePaint(node, node.color, ctx, this.selectedNodes.has(node))
+            nodeCanvasObject={(
+              node,
+              ctx, //
+            ) =>
+              // eslint-disable-next-line implicit-arrow-linebreak
+              nodePaint(node, node.color, ctx, this.selectedNodes.has(node))
             }
             nodePointerAreaPaint={nodeAreaPaint}
             // linkDirectionalParticles={(link) => (this.selectedLinks.has(link) ? 20 : 0)}
             // linkDirectionalParticleWidth={1}
             // linkDirectionalParticleSpeed={() => 0.004}
             linkCanvasObjectMode={() => 'after'}
-            linkCanvasObject={(link, ctx) => linkPaint(link, ctx, theme.palette.text.primary)
+            linkCanvasObject={(
+              link,
+              ctx, //
+            ) =>
+              // eslint-disable-next-line implicit-arrow-linebreak
+              linkPaint(link, ctx, theme.palette.text.primary)
             }
             linkColor={(link) => (this.selectedLinks.has(link)
               ? theme.palette.secondary.main
@@ -970,7 +1007,7 @@ class ReportKnowledgeCorrelationComponent extends Component {
             }}
             onLinkClick={this.handleLinkClick.bind(this)}
             onBackgroundClick={this.handleBackgroundClick.bind(this)}
-            cooldownTicks={modeFixed ? 0 : 'Infinity'}
+            cooldownTicks={modeFixed ? 0 : undefined}
             dagMode={
               // eslint-disable-next-line no-nested-ternary
               modeTree === 'horizontal'

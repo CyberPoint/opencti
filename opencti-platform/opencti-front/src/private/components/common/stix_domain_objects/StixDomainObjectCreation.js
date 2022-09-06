@@ -48,9 +48,12 @@ const typesWithOpenCTIAliases = [
   'City',
   'Country',
   'Region',
+  'Event',
+  'Channel',
+  'Narrative',
 ];
 
-const typesWithoutAliases = ['Indicator', 'Vulnerability'];
+const typesWithoutAliases = ['Indicator', 'Vulnerability', 'Language'];
 
 const styles = (theme) => ({
   drawerPaper: {
@@ -102,6 +105,16 @@ const stixDomainObjectCreationMutation = graphql`
       id
       entity_type
       parent_types
+      revoked
+      objectLabel {
+        edges {
+          node {
+            id
+            value
+            color
+          }
+        }
+      }
       createdBy {
         ... on Identity {
           id
@@ -192,6 +205,21 @@ const stixDomainObjectCreationMutation = graphql`
       ... on Incident {
         name
         description
+      }
+      ... on Event {
+        name
+        description
+      }
+      ... on Channel {
+        name
+        description
+      }
+      ... on Narrative {
+        name
+        description
+      }
+      ... on Language {
+        name
       }
     }
   }
@@ -356,6 +384,18 @@ class StixDomainObjectCreation extends Component {
           ) && <MenuItem value="Malware">{t('Malware')}</MenuItem>)}
         {targetStixDomainObjectTypes === undefined
           || (targetStixDomainObjectTypes.some(
+            (r) => ['Stix-Domain-Object', 'Channel'].indexOf(r) >= 0,
+          ) && <MenuItem value="Channel">{t('Channel')}</MenuItem>)}
+        {targetStixDomainObjectTypes === undefined
+          || (targetStixDomainObjectTypes.some(
+            (r) => ['Stix-Domain-Object', 'Narrative'].indexOf(r) >= 0,
+          ) && <MenuItem value="Narrative">{t('Narrative')}</MenuItem>)}
+        {targetStixDomainObjectTypes === undefined
+          || (targetStixDomainObjectTypes.some(
+            (r) => ['Stix-Domain-Object', 'Event'].indexOf(r) >= 0,
+          ) && <MenuItem value="Event">{t('Event')}</MenuItem>)}
+        {targetStixDomainObjectTypes === undefined
+          || (targetStixDomainObjectTypes.some(
             (r) => ['Stix-Domain-Object', 'Tool'].indexOf(r) >= 0,
           ) && <MenuItem value="Tool">{t('Tool')}</MenuItem>)}
         {targetStixDomainObjectTypes === undefined
@@ -439,7 +479,7 @@ class StixDomainObjectCreation extends Component {
               initialValues={{
                 type: '',
                 name: '',
-                confidence: 15,
+                confidence: 75,
                 description: '',
                 pattern_type: '',
                 pattern: '',
@@ -503,6 +543,7 @@ class StixDomainObjectCreation extends Component {
                         <MenuItem value="yara">YARA</MenuItem>
                         <MenuItem value="tanium-signal">Tanium Signal</MenuItem>
                         <MenuItem value="spl">Splunk SPL</MenuItem>
+                        <MenuItem value="eql">Elastic EQL</MenuItem>
                       </Field>
                       <Field
                         component={TextField}
@@ -696,6 +737,7 @@ class StixDomainObjectCreation extends Component {
                         <MenuItem value="yara">YARA</MenuItem>
                         <MenuItem value="tanium-signal">Tanium Signal</MenuItem>
                         <MenuItem value="spl">Splunk SPL</MenuItem>
+                        <MenuItem value="eql">Elastic EQL</MenuItem>
                       </Field>
                       <Field
                         component={TextField}

@@ -9,7 +9,6 @@ import Grid from '@mui/material/Grid';
 import inject18n from '../../../../components/i18n';
 import EntityStixCoreRelationshipsDonut from '../../common/stix_core_relationships/EntityStixCoreRelationshipsDonut';
 import ExpandableMarkdown from '../../../../components/ExpandableMarkdown';
-import ItemStatus from '../../../../components/ItemStatus';
 
 const styles = () => ({
   paper: {
@@ -23,7 +22,7 @@ const styles = () => ({
 
 class IncidentDetailsComponent extends Component {
   render() {
-    const { fld, t, classes, incident } = this.props;
+    const { fldt, t, classes, incident } = this.props;
     return (
       <div style={{ height: '100%' }}>
         <Typography variant="h4" gutterBottom={true}>
@@ -36,23 +35,12 @@ class IncidentDetailsComponent extends Component {
                 {t('Description')}
               </Typography>
               <ExpandableMarkdown source={incident.description} limit={400} />
-              <Typography
-                variant="h3"
-                gutterBottom={true}
-                style={{ marginTop: 20 }}
-              >
-                {t('Processing status')}
-              </Typography>
-              <ItemStatus
-                status={incident.status}
-                disabled={!incident.workflowEnabled}
-              />
             </Grid>
             <Grid item={true} xs={6}>
               <Typography variant="h3" gutterBottom={true}>
                 {t('First seen')}
               </Typography>
-              {fld(incident.first_seen)}
+              {fldt(incident.first_seen)}
               <Typography
                 variant="h3"
                 gutterBottom={true}
@@ -60,7 +48,7 @@ class IncidentDetailsComponent extends Component {
               >
                 {t('Last seen')}
               </Typography>
-              {fld(incident.last_seen)}
+              {fldt(incident.last_seen)}
               <Typography
                 variant="h3"
                 gutterBottom={true}
@@ -70,16 +58,31 @@ class IncidentDetailsComponent extends Component {
               </Typography>
               <ExpandableMarkdown source={incident.objective} limit={100} />
             </Grid>
+            <Grid item={true} xs={6}>
+              <EntityStixCoreRelationshipsDonut
+                entityId={incident.id}
+                toTypes={['Stix-Domain-Object']}
+                relationshipType="stix-core-relationship"
+                field="entity_type"
+                height={260}
+                variant="inEntity"
+                isTo={false}
+                title={t('Entities distribution')}
+              />
+            </Grid>
+            <Grid item={true} xs={6}>
+              <EntityStixCoreRelationshipsDonut
+                entityId={incident.id}
+                toTypes={['Stix-Cyber-Observable']}
+                relationshipType="stix-core-relationship"
+                field="entity_type"
+                height={260}
+                variant="inEntity"
+                isTo={true}
+                title={t('Observables distribution')}
+              />
+            </Grid>
           </Grid>
-          <EntityStixCoreRelationshipsDonut
-            entityId={incident.id}
-            toTypes={['Stix-Cyber-Observable']}
-            relationshipType="related-to"
-            field="entity_type"
-            height={260}
-            variant="inEntity"
-            isTo={true}
-          />
         </Paper>
       </div>
     );

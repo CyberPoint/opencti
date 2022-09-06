@@ -34,6 +34,7 @@ const styles = (theme) => ({
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+    paddingRight: 5,
   },
   goIcon: {
     position: 'absolute',
@@ -59,6 +60,7 @@ class ReportLineComponent extends Component {
       onLabelClick,
       onToggleEntity,
       selectedElements,
+      deSelectedElements,
       selectAll,
     } = this.props;
     return (
@@ -76,7 +78,10 @@ class ReportLineComponent extends Component {
         >
           <Checkbox
             edge="start"
-            checked={selectAll || node.id in (selectedElements || {})}
+            checked={
+              (selectAll && !(node.id in (deSelectedElements || {})))
+              || node.id in (selectedElements || {})
+            }
             disableRipple={true}
           />
         </ListItemIcon>
@@ -118,7 +123,7 @@ class ReportLineComponent extends Component {
               </div>
               <div
                 className={classes.bodyItem}
-                style={{ width: dataColumns.status_id.width }}
+                style={{ width: dataColumns.x_opencti_workflow_id.width }}
               >
                 <ItemStatus
                   status={node.status}
@@ -160,6 +165,7 @@ ReportLineComponent.propTypes = {
   onLabelClick: PropTypes.func,
   onToggleEntity: PropTypes.func,
   selectedElements: PropTypes.object,
+  deSelectedElements: PropTypes.object,
   selectAll: PropTypes.bool,
 };
 
@@ -282,7 +288,7 @@ class ReportLineDummyComponent extends Component {
               </div>
               <div
                 className={classes.bodyItem}
-                style={{ width: dataColumns.status_id.width }}
+                style={{ width: dataColumns.x_opencti_workflow_id.width }}
               >
                 <Skeleton
                   animation="wave"

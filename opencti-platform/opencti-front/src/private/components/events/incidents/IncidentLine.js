@@ -30,6 +30,7 @@ const styles = (theme) => ({
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+    paddingRight: 5,
   },
   goIcon: {
     position: 'absolute',
@@ -92,7 +93,7 @@ class IncidentLineComponent extends Component {
               </div>
               <div
                 className={classes.bodyItem}
-                style={{ width: dataColumns.status.width }}
+                style={{ width: dataColumns.x_opencti_workflow_id.width }}
               >
                 <ItemStatus
                   status={node.status}
@@ -237,7 +238,7 @@ class IncidentLineDummyComponent extends Component {
               </div>
               <div
                 className={classes.bodyItem}
-                style={{ width: dataColumns.status.width }}
+                style={{ width: dataColumns.x_opencti_workflow_id.width }}
               >
                 <Skeleton
                   animation="wave"

@@ -52,7 +52,7 @@ class PositionComponent extends Component {
                   : [48.8566969, 2.3514616]
               }
               position={position}
-              zoom={5}
+              zoom={8}
             />
           </Grid>
         </Grid>
@@ -150,6 +150,15 @@ const Position = createFragmentContainer(PositionComponent, {
       latitude
       longitude
       x_opencti_aliases
+      status {
+        id
+        order
+        template {
+          name
+          color
+        }
+      }
+      workflowEnabled
     }
   `,
 });

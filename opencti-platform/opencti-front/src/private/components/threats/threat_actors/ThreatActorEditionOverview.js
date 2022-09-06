@@ -18,6 +18,11 @@ import ConfidenceField from '../../common/form/ConfidenceField';
 import CommitMessage from '../../common/form/CommitMessage';
 import { adaptFieldValue } from '../../../../utils/String';
 import StatusField from '../../common/form/StatusField';
+import {
+  convertCreatedBy,
+  convertMarkings,
+  convertStatus,
+} from '../../../../utils/Edition';
 
 const styles = (theme) => ({
   drawerPaper: {
@@ -114,7 +119,7 @@ const threatActorValidation = (t) => Yup.object().shape({
     .max(5000, t('The value is too long'))
     .required(t('This field is required')),
   references: Yup.array().required(t('This field is required')),
-  status_id: Yup.object(),
+  x_opencti_workflow_id: Yup.object(),
 });
 
 class ThreatActorEditionOverviewComponent extends Component {
@@ -136,14 +141,11 @@ class ThreatActorEditionOverviewComponent extends Component {
     const inputValues = R.pipe(
       R.dissoc('message'),
       R.dissoc('references'),
-      R.assoc('status_id', values.status_id?.value),
+      R.assoc('x_opencti_workflow_id', values.x_opencti_workflow_id?.value),
       R.assoc('createdBy', values.createdBy?.value),
       R.assoc('objectMarking', R.pluck('value', values.objectMarking)),
       R.toPairs,
-      R.map((n) => ({
-        key: n[0],
-        value: adaptFieldValue(n[1]),
-      })),
+      R.map((n) => ({ key: n[0], value: adaptFieldValue(n[1]) })),
     )(values);
     commitMutation({
       mutation: threatActorMutationFieldPatch,
@@ -165,7 +167,7 @@ class ThreatActorEditionOverviewComponent extends Component {
   handleSubmitField(name, value) {
     if (!this.props.enableReferences) {
       let finalValue = value;
-      if (name === 'status_id') {
+      if (name === 'x_opencti_workflow_id') {
         finalValue = value.value;
       }
       threatActorValidation(this.props.t)
@@ -175,7 +177,7 @@ class ThreatActorEditionOverviewComponent extends Component {
             mutation: threatActorMutationFieldPatch,
             variables: {
               id: this.props.threatActor.id,
-              input: { key: name, value: finalValue || '' },
+              input: { key: name, value: finalValue ?? '' },
             },
           });
         })
@@ -234,12 +236,9 @@ class ThreatActorEditionOverviewComponent extends Component {
 
   render() {
     const { t, threatActor, context, enableReferences } = this.props;
-    const createdBy = R.pathOr(null, ['createdBy', 'name'], threatActor) === null
-      ? ''
-      : {
-        label: R.pathOr(null, ['createdBy', 'name'], threatActor),
-        value: R.pathOr(null, ['createdBy', 'id'], threatActor),
-      };
+    const createdBy = convertCreatedBy(threatActor);
+    const objectMarking = convertMarkings(threatActor);
+    const status = convertStatus(t, threatActor);
     const killChainPhases = R.pipe(
       R.pathOr([], ['killChainPhases', 'edges']),
       R.map((n) => ({
@@ -247,32 +246,11 @@ class ThreatActorEditionOverviewComponent extends Component {
         value: n.node.id,
       })),
     )(threatActor);
-    const objectMarking = R.pipe(
-      R.pathOr([], ['objectMarking', 'edges']),
-      R.map((n) => ({
-        label: n.node.definition,
-        value: n.node.id,
-      })),
-    )(threatActor);
-    const status = R.pathOr(null, ['status', 'template', 'name'], threatActor) === null
-      ? ''
-      : {
-        label: t(
-          `status_${R.pathOr(
-            null,
-            ['status', 'template', 'name'],
-            threatActor,
-          )}`,
-        ),
-        color: R.pathOr(null, ['status', 'template', 'color'], threatActor),
-        value: R.pathOr(null, ['status', 'id'], threatActor),
-        order: R.pathOr(null, ['status', 'order'], threatActor),
-      };
     const initialValues = R.pipe(
       R.assoc('createdBy', createdBy),
       R.assoc('killChainPhases', killChainPhases),
       R.assoc('objectMarking', objectMarking),
-      R.assoc('status_id', status),
+      R.assoc('x_opencti_workflow_id', status),
       R.assoc(
         'threat_actor_types',
         threatActor.threat_actor_types ? threatActor.threat_actor_types : [],
@@ -285,7 +263,7 @@ class ThreatActorEditionOverviewComponent extends Component {
         'createdBy',
         'killChainPhases',
         'objectMarking',
-        'status_id',
+        'x_opencti_workflow_id',
       ]),
     )(threatActor);
     return (
@@ -395,14 +373,17 @@ class ThreatActorEditionOverviewComponent extends Component {
             />
             {threatActor.workflowEnabled && (
               <StatusField
-                name="status_id"
+                name="x_opencti_workflow_id"
                 type="Threat-Actor"
                 onFocus={this.handleChangeFocus.bind(this)}
                 onChange={this.handleSubmitField.bind(this)}
                 setFieldValue={setFieldValue}
                 style={{ marginTop: 20 }}
                 helpertext={
-                  <SubscriptionFocus context={context} fieldName="status_id" />
+                  <SubscriptionFocus
+                    context={context}
+                    field="x_opencti_workflow_id"
+                  />
                 }
               />
             )}
@@ -463,7 +444,6 @@ const ThreatActorEditionOverview = createFragmentContainer(
         threat_actor_types
         confidence
         description
-        workflowEnabled
         createdBy {
           ... on Identity {
             id

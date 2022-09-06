@@ -54,6 +54,8 @@ class StixDomainObjectVictimologyRegionsComponent extends Component {
       stixDomainObjectId,
       handleChangeView,
       currentView,
+      defaultStartTime,
+      defaultStopTime,
     } = this.props;
     return (
       <div style={{ marginTop: -10 }}>
@@ -110,6 +112,8 @@ class StixDomainObjectVictimologyRegionsComponent extends Component {
             targetStixDomainObjectTypes={['Region', 'Country', 'City']}
             allowedRelationshipTypes={['targets']}
             paginationOptions={paginationOptions}
+            defaultStartTime={defaultStartTime}
+            defaultStopTime={defaultStopTime}
           />
         </Security>
       </div>
@@ -126,11 +130,13 @@ StixDomainObjectVictimologyRegionsComponent.propTypes = {
   paginationOptions: PropTypes.object,
   classes: PropTypes.object,
   t: PropTypes.func,
+  defaultStartTime: PropTypes.string,
+  defaultStopTime: PropTypes.string,
 };
 
 export const stixDomainObjectVictimologyRegionsStixCoreRelationshipsQuery = graphql`
   query StixDomainObjectVictimologyRegionsStixCoreRelationshipsQuery(
-    $fromId: String
+    $fromId: [String]
     $toTypes: [String]
     $relationship_type: [String]
     $first: Int

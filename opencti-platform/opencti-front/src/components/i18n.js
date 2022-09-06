@@ -7,13 +7,14 @@ export const isDateStringNone = (dateString) => {
   if (!dateString) return true;
   return (
     dateString.startsWith('Invalid')
-      || dateString.startsWith('1970')
-      || dateString.startsWith('5138')
+    || dateString.startsWith('1970')
+    || dateString.startsWith('5138')
   );
 };
 
 export const isNone = (date) => {
   if (!date) return true;
+  if (date.length === 0) return true;
   const parsedDate = moment(date).format();
   return isDateStringNone(parsedDate);
 };

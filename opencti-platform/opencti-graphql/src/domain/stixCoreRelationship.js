@@ -1,24 +1,24 @@
 import * as R from 'ramda';
+import { map } from 'ramda';
 import { delEditContext, notify, setEditContext } from '../database/redis';
 import {
   createRelation,
   deleteElementById,
   deleteRelationsByFromAndTo,
   batchListThroughGetFrom,
-  listRelations,
   batchListThroughGetTo,
-  loadById,
-  updateAttribute,
+  storeLoadById,
+  updateAttribute, internalLoadById
 } from '../database/middleware';
 import { BUS_TOPICS } from '../config/conf';
 import { FunctionalError } from '../config/errors';
 import { elCount } from '../database/engine';
 import { INDEX_INFERRED_RELATIONSHIPS, READ_INDEX_STIX_CORE_RELATIONSHIPS } from '../database/utils';
-import { isStixCoreRelationship } from '../schema/stixCoreRelationship';
+import { isStixCoreRelationship, stixCoreRelationshipOptions } from '../schema/stixCoreRelationship';
 import {
   ABSTRACT_STIX_CORE_RELATIONSHIP,
   ABSTRACT_STIX_META_RELATIONSHIP,
-  ENTITY_TYPE_IDENTITY,
+  ENTITY_TYPE_IDENTITY
 } from '../schema/general';
 import {
   isStixMetaRelationship,
@@ -40,13 +40,17 @@ import {
   ENTITY_TYPE_LABEL,
   ENTITY_TYPE_MARKING_DEFINITION,
 } from '../schema/stixMetaObject';
+import { listRelations } from '../database/middleware-loader';
+import { askEntityExport, askListExport, exportTransformFilters } from './stix';
+import { workToExportFile } from './work';
+import { upload } from '../database/file-storage';
 
 export const findAll = async (user, args) => {
   return listRelations(user, R.propOr(ABSTRACT_STIX_CORE_RELATIONSHIP, 'relationship_type', args), args);
 };
 
 export const findById = (user, stixCoreRelationshipId) => {
-  return loadById(user, stixCoreRelationshipId, ABSTRACT_STIX_CORE_RELATIONSHIP);
+  return storeLoadById(user, stixCoreRelationshipId, ABSTRACT_STIX_CORE_RELATIONSHIP);
 };
 
 export const stixCoreRelationshipsNumber = (user, args) => {
@@ -118,6 +122,59 @@ export const stixRelations = (user, stixCoreObjectId, args) => {
   return findAll(user, finalArgs);
 };
 
+// region export
+export const stixCoreRelationshipsExportAsk = async (user, args) => {
+  const { format, type, exportType, maxMarkingDefinition } = args;
+  const { search, orderBy, orderMode, filters, filterMode } = args;
+  const argsFilters = { search, orderBy, orderMode, filters, filterMode };
+  const filtersOpts = stixCoreRelationshipOptions.StixCoreRelationshipsFilter;
+  const ordersOpts = stixCoreRelationshipOptions.StixCoreRelationshipsOrdering;
+  let newArgsFiltersFilters = argsFilters.filters;
+  const initialParams = {};
+  if (argsFilters.filters && argsFilters.filters.length > 0) {
+    if (argsFilters.filters.filter((n) => n.key === 'relationship_type').length > 0) {
+      initialParams.relationship_type = R.head(R.head(argsFilters.filters.filter((n) => n.key === 'relationship_type')).values);
+      newArgsFiltersFilters = newArgsFiltersFilters.filter((n) => n.key !== 'relationship_type');
+    }
+    if (argsFilters.filters.filter((n) => n.key === 'fromId').length > 0) {
+      initialParams.fromId = R.head(R.head(argsFilters.filters.filter((n) => n.key === 'fromId')).values);
+      newArgsFiltersFilters = newArgsFiltersFilters.filter((n) => n.key !== 'fromId');
+    }
+    if (argsFilters.filters.filter((n) => n.key === 'toId').length > 0) {
+      initialParams.toId = R.head(R.head(argsFilters.filters.filter((n) => n.key === 'toId')).values);
+      newArgsFiltersFilters = newArgsFiltersFilters.filter((n) => n.key !== 'toId');
+    }
+    if (argsFilters.filters.filter((n) => n.key === 'fromTypes').length > 0) {
+      initialParams.fromTypes = R.head(argsFilters.filters.filter((n) => n.key === 'fromTypes')).values;
+      newArgsFiltersFilters = newArgsFiltersFilters.filter((n) => n.key !== 'fromTypes');
+    }
+    if (argsFilters.filters.filter((n) => n.key === 'toTypes').length > 0) {
+      initialParams.toTypes = R.head(argsFilters.filters.filter((n) => n.key === 'toTypes')).values;
+      newArgsFiltersFilters = newArgsFiltersFilters.filter((n) => n.key !== 'toTypes');
+    }
+  }
+  const finalArgsFilter = R.assoc('filters', newArgsFiltersFilters, argsFilters);
+  const listParams = { ...initialParams, ...exportTransformFilters(finalArgsFilter, filtersOpts, ordersOpts) };
+  const works = await askListExport(user, format, type, listParams, exportType, maxMarkingDefinition);
+  return map((w) => workToExportFile(w), works);
+};
+export const stixCoreRelationshipExportAsk = async (user, args) => {
+  const { format, stixCoreRelationshipId = null, exportType = null, maxMarkingDefinition = null } = args;
+  const entity = stixCoreRelationshipId ? await storeLoadById(user, stixCoreRelationshipId, ABSTRACT_STIX_CORE_RELATIONSHIP) : null;
+  const works = await askEntityExport(user, format, entity, exportType, maxMarkingDefinition);
+  return map((w) => workToExportFile(w), works);
+};
+export const stixCoreRelationshipsExportPush = async (user, type, file, listFilters) => {
+  await upload(user, `export/${type}`, file, { list_filters: listFilters });
+  return true;
+};
+export const stixCoreRelationshipExportPush = async (user, entityId, file) => {
+  const entity = await internalLoadById(user, entityId);
+  await upload(user, `export/${entity.entity_type}/${entityId}`, file, { entity_id: entityId });
+  return true;
+};
+// endregion
+
 // region mutations
 export const addStixCoreRelationship = async (user, stixCoreRelationship) => {
   if (!isStixCoreRelationship(stixCoreRelationship.relationship_type)) {
@@ -140,7 +197,7 @@ export const stixCoreRelationshipDeleteByFromAndTo = async (user, fromId, toId, 
 };
 
 export const stixCoreRelationshipEditField = async (user, stixCoreRelationshipId, input, opts = {}) => {
-  const stixCoreRelationship = await loadById(user, stixCoreRelationshipId, ABSTRACT_STIX_CORE_RELATIONSHIP);
+  const stixCoreRelationship = await storeLoadById(user, stixCoreRelationshipId, ABSTRACT_STIX_CORE_RELATIONSHIP);
   if (!stixCoreRelationship) {
     throw FunctionalError('Cannot edit the field, stix-core-relationship cannot be found.');
   }
@@ -149,7 +206,7 @@ export const stixCoreRelationshipEditField = async (user, stixCoreRelationshipId
 };
 
 export const stixCoreRelationshipAddRelation = async (user, stixCoreRelationshipId, input) => {
-  const stixCoreRelationship = await loadById(user, stixCoreRelationshipId, ABSTRACT_STIX_CORE_RELATIONSHIP);
+  const stixCoreRelationship = await storeLoadById(user, stixCoreRelationshipId, ABSTRACT_STIX_CORE_RELATIONSHIP);
   if (!stixCoreRelationship) {
     throw FunctionalError('Cannot add the relation, stix-core-relationship cannot be found.');
   }
@@ -164,7 +221,7 @@ export const stixCoreRelationshipAddRelation = async (user, stixCoreRelationship
 };
 
 export const stixCoreRelationshipDeleteRelation = async (user, stixCoreRelationshipId, toId, relationshipType) => {
-  const stixCoreRelationship = await loadById(user, stixCoreRelationshipId, ABSTRACT_STIX_CORE_RELATIONSHIP);
+  const stixCoreRelationship = await storeLoadById(user, stixCoreRelationshipId, ABSTRACT_STIX_CORE_RELATIONSHIP);
   if (!stixCoreRelationship) {
     throw FunctionalError(`Cannot delete the relation, ${ABSTRACT_STIX_CORE_RELATIONSHIP} cannot be found.`);
   }
@@ -185,14 +242,14 @@ export const stixCoreRelationshipDeleteRelation = async (user, stixCoreRelations
 // region context
 export const stixCoreRelationshipCleanContext = (user, stixCoreRelationshipId) => {
   delEditContext(user, stixCoreRelationshipId);
-  return loadById(user, stixCoreRelationshipId, ABSTRACT_STIX_CORE_RELATIONSHIP).then((stixCoreRelationship) => {
+  return storeLoadById(user, stixCoreRelationshipId, ABSTRACT_STIX_CORE_RELATIONSHIP).then((stixCoreRelationship) => {
     return notify(BUS_TOPICS[ABSTRACT_STIX_CORE_RELATIONSHIP].EDIT_TOPIC, stixCoreRelationship, user);
   });
 };
 
 export const stixCoreRelationshipEditContext = (user, stixCoreRelationshipId, input) => {
   setEditContext(user, stixCoreRelationshipId, input);
-  return loadById(user, stixCoreRelationshipId, ABSTRACT_STIX_CORE_RELATIONSHIP).then((stixCoreRelationship) => {
+  return storeLoadById(user, stixCoreRelationshipId, ABSTRACT_STIX_CORE_RELATIONSHIP).then((stixCoreRelationship) => {
     return notify(BUS_TOPICS[ABSTRACT_STIX_CORE_RELATIONSHIP].EDIT_TOPIC, stixCoreRelationship, user);
   });
 };

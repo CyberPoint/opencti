@@ -1,13 +1,13 @@
-import { batchListThroughGetFrom, createEntity, batchListThroughGetTo, loadById } from '../database/middleware';
+import { batchListThroughGetFrom, createEntity, batchListThroughGetTo, storeLoadById } from '../database/middleware';
 import { BUS_TOPICS } from '../config/conf';
 import { notify } from '../database/redis';
 import { ENTITY_TYPE_ATTACK_PATTERN, ENTITY_TYPE_COURSE_OF_ACTION } from '../schema/stixDomainObject';
 import { ABSTRACT_STIX_DOMAIN_OBJECT } from '../schema/general';
 import { RELATION_MITIGATES, RELATION_SUBTECHNIQUE_OF } from '../schema/stixCoreRelationship';
-import { listEntities } from '../database/repository';
+import { listEntities } from '../database/middleware-loader';
 
 export const findById = (user, attackPatternId) => {
-  return loadById(user, attackPatternId, ENTITY_TYPE_ATTACK_PATTERN);
+  return storeLoadById(user, attackPatternId, ENTITY_TYPE_ATTACK_PATTERN);
 };
 
 export const findAll = (user, args) => {

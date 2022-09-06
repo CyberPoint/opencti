@@ -4,14 +4,21 @@ import { elIndex } from '../database/engine';
 import { INDEX_INTERNAL_OBJECTS } from '../database/utils';
 import { generateInternalId, generateStandardId } from '../schema/identifier';
 import { ENTITY_TYPE_USER_SUBSCRIPTION } from '../schema/internalObject';
-import { deleteElementById, fullLoadById, internalLoadById, loadById, updateAttribute } from '../database/middleware';
-import { listEntities } from '../database/repository';
+import {
+  deleteElementById,
+  internalLoadById,
+  storeLoadById,
+  updateAttribute,
+  storeLoadByIdWithRefs
+} from '../database/middleware';
+import { listEntities } from '../database/middleware-loader';
 import { delEditContext, notify, setEditContext } from '../database/redis';
 import { baseUrl, BUS_TOPICS } from '../config/conf';
 import { FROM_START_STR, hoursAgo, minutesAgo, prepareDate } from '../utils/format';
 import { SYSTEM_USER } from '../utils/access';
 import { findAll as findAllStixCoreRelationships } from './stixCoreRelationship';
 import { findAll as findAllStixMetaRelationships } from './stixMetaRelationship';
+import { findAll as findAllStixCoreObjects } from './stixCoreObject';
 import { findAll as findAllContainers } from './container';
 import {
   ENTITY_TYPE_ATTACK_PATTERN,
@@ -25,25 +32,26 @@ import {
   ENTITY_TYPE_TOOL,
   ENTITY_TYPE_VULNERABILITY,
 } from '../schema/stixDomainObject';
-import { convertFiltersToQueryOptions } from './taxii';
 import { resolveUserById } from './user';
 import {
+  ABSTRACT_STIX_CORE_OBJECT,
   ABSTRACT_STIX_CORE_RELATIONSHIP,
   ABSTRACT_STIX_CYBER_OBSERVABLE,
   BASE_TYPE_ENTITY,
   ENTITY_TYPE_IDENTITY,
-  ENTITY_TYPE_LOCATION,
+  ENTITY_TYPE_LOCATION
 } from '../schema/general';
 import {
-  containerToHtml,
+  containerToHtml, entityToHtml,
   footer,
   header,
   relationshipToHtml,
   sectionFooter,
   sectionHeader,
-  technicalElementToHtml,
+  technicalRelationToHtml
 } from '../utils/mailData';
 import { getParentTypes } from '../schema/schemaUtils';
+import { convertFiltersToQueryOptions } from '../utils/filtering';
 
 // Stream graphQL handlers
 export const createUserSubscription = async (user, input) => {
@@ -63,7 +71,7 @@ export const createUserSubscription = async (user, input) => {
   return data;
 };
 export const findById = async (user, subscriptionId) => {
-  return loadById(user, subscriptionId, ENTITY_TYPE_USER_SUBSCRIPTION);
+  return storeLoadById(user, subscriptionId, ENTITY_TYPE_USER_SUBSCRIPTION);
 };
 export const findAll = (user, args) => {
   return listEntities(user, [ENTITY_TYPE_USER_SUBSCRIPTION], args);
@@ -82,13 +90,13 @@ export const userSubscriptionDelete = async (user, subscriptionId) => {
 };
 export const userSubscriptionCleanContext = async (user, subscriptionId) => {
   await delEditContext(user, subscriptionId);
-  return loadById(user, subscriptionId, ENTITY_TYPE_USER_SUBSCRIPTION).then((subscriptionToReturn) => {
+  return storeLoadById(user, subscriptionId, ENTITY_TYPE_USER_SUBSCRIPTION).then((subscriptionToReturn) => {
     return notify(BUS_TOPICS[ENTITY_TYPE_USER_SUBSCRIPTION].EDIT_TOPIC, subscriptionToReturn, user);
   });
 };
 export const userSubscriptionEditContext = async (user, subscriptionId, input) => {
   await setEditContext(user, subscriptionId, input);
-  return loadById(user, subscriptionId, ENTITY_TYPE_USER_SUBSCRIPTION).then((collectionToReturn) => {
+  return storeLoadById(user, subscriptionId, ENTITY_TYPE_USER_SUBSCRIPTION).then((collectionToReturn) => {
     return notify(BUS_TOPICS[ENTITY_TYPE_USER_SUBSCRIPTION].EDIT_TOPIC, collectionToReturn, user);
   });
 };
@@ -113,7 +121,7 @@ export const generateDigestForSubscription = async (subscription) => {
       date = hoursAgo(number);
     }
   }
-  const data = { knowledgeData: [], containersData: [], technicalData: [] };
+  const data = { knowledgeData: [], containersData: [], technicalData: [], entitiesData: [] };
   if (subscription.options.includes('KNOWLEDGE')) {
     const knowledgeParamsFrom = {
       first: 1000,
@@ -136,7 +144,7 @@ export const generateDigestForSubscription = async (subscription) => {
         const resultFrom = await findAllStixCoreRelationships(user, {
           ...knowledgeParamsFrom,
           fromId: entityId,
-          toTypes: [
+          toTypes: queryOptions.types && queryOptions.types.length > 0 ? queryOptions.types : [
             ENTITY_TYPE_THREAT_ACTOR,
             ENTITY_TYPE_INTRUSION_SET,
             ENTITY_TYPE_CAMPAIGN,
@@ -154,7 +162,7 @@ export const generateDigestForSubscription = async (subscription) => {
         const resultTo = await findAllStixCoreRelationships(user, {
           ...knowledgeParamsTo,
           toId: entityId,
-          fromTypes: [
+          fromTypes: queryOptions.types && queryOptions.types.length > 0 ? queryOptions.types : [
             ENTITY_TYPE_THREAT_ACTOR,
             ENTITY_TYPE_INTRUSION_SET,
             ENTITY_TYPE_CAMPAIGN,
@@ -173,7 +181,7 @@ export const generateDigestForSubscription = async (subscription) => {
     } else {
       const result = await findAllStixCoreRelationships(user, {
         ...knowledgeParamsFrom,
-        fromTypes: [
+        fromTypes: queryOptions.types && queryOptions.types.length > 0 ? queryOptions.types : [
           ENTITY_TYPE_THREAT_ACTOR,
           ENTITY_TYPE_INTRUSION_SET,
           ENTITY_TYPE_CAMPAIGN,
@@ -186,7 +194,7 @@ export const generateDigestForSubscription = async (subscription) => {
           ENTITY_TYPE_IDENTITY,
           ENTITY_TYPE_LOCATION,
         ],
-        toTypes: [
+        toTypes: queryOptions.types && queryOptions.types.length > 0 ? queryOptions.types : [
           ENTITY_TYPE_THREAT_ACTOR,
           ENTITY_TYPE_INTRUSION_SET,
           ENTITY_TYPE_CAMPAIGN,
@@ -203,6 +211,17 @@ export const generateDigestForSubscription = async (subscription) => {
       knowledgeData = [...knowledgeData, ...result];
     }
     data.knowledgeData = knowledgeData;
+  }
+  if (subscription.options.includes('ENTITIES')) {
+    const params = {
+      first: 1000,
+      orderBy: 'created_at',
+      orderMode: 'desc',
+      filters: [...queryOptions.filters, { key: 'created_at', values: [prepareDate(date)], operator: 'gt' }],
+      types: queryOptions.types && queryOptions.types.length > 0 ? queryOptions.types : ['Stix-Core-Object'],
+      connectionFormat: false,
+    };
+    data.entitiesData = await findAllStixCoreObjects(user, params);
   }
   if (subscription.options.includes('CONTAINERS')) {
     const containersParams = {
@@ -257,7 +276,7 @@ export const generateDigestForSubscription = async (subscription) => {
     }
     data.technicalData = technicalData;
   }
-  if (data.containersData.length === 0 && data.knowledgeData.length === 0 && data.technicalData.length === 0) {
+  if (data.containersData.length === 0 && data.knowledgeData.length === 0 && data.technicalData.length === 0 && data.entitiesData.length === 0) {
     return null;
   }
   // Prepare HTML data
@@ -276,25 +295,37 @@ export const generateDigestForSubscription = async (subscription) => {
     }
     // eslint-disable-next-line no-restricted-syntax
     for (const containerEntry of R.take(10, data.containersData)) {
-      const fullContainer = await fullLoadById(
-        user,
-        containerEntry.fromId ? containerEntry.fromId : containerEntry.id,
-        containerEntry.fromType ? containerEntry.fromType : containerEntry.entity_type
-      );
+      const elementId = containerEntry.fromId ? containerEntry.fromId : containerEntry.id;
+      const type = containerEntry.fromType ? containerEntry.fromType : containerEntry.entity_type;
+      const fullContainer = await storeLoadByIdWithRefs(user, elementId, { type });
       htmlData += containerToHtml(baseUrl, fullContainer);
     }
     htmlData += sectionFooter(footerNumber, 'containers');
   }
+  if (data.entitiesData.length > 0) {
+    const number = data.entitiesData.length;
+    htmlData += sectionHeader('Entities', number);
+    let footerNumber = 0;
+    if (number > 10) {
+      footerNumber = number - 10;
+    }
+    // eslint-disable-next-line no-restricted-syntax
+    for (const entity of R.take(10, data.entitiesData)) {
+      const fullEntity = await storeLoadByIdWithRefs(user, entity.id, { type: ABSTRACT_STIX_CORE_OBJECT });
+      htmlData += entityToHtml(baseUrl, fullEntity);
+    }
+    htmlData += sectionFooter(footerNumber, 'entities');
+  }
   if (data.knowledgeData.length > 0) {
     const number = data.knowledgeData.length;
-    htmlData += sectionHeader('Knowledge', number);
+    htmlData += sectionHeader('Relationships', number);
     let footerNumber = 0;
     if (number > 10) {
       footerNumber = number - 10;
     }
     // eslint-disable-next-line no-restricted-syntax
     for (const relationship of R.take(10, data.knowledgeData)) {
-      const fullRelationship = await fullLoadById(user, relationship.id, ABSTRACT_STIX_CORE_RELATIONSHIP);
+      const fullRelationship = await storeLoadByIdWithRefs(user, relationship.id, { type: ABSTRACT_STIX_CORE_RELATIONSHIP });
       htmlData += relationshipToHtml(baseUrl, fullRelationship);
     }
     htmlData += sectionFooter(footerNumber, 'relationships');
@@ -311,12 +342,9 @@ export const generateDigestForSubscription = async (subscription) => {
     `;
     // eslint-disable-next-line no-restricted-syntax
     for (const technicalRelationship of R.take(10, data.technicalData)) {
-      const fullTechnicalRelationship = await fullLoadById(
-        user,
-        technicalRelationship.id,
-        ABSTRACT_STIX_CORE_RELATIONSHIP
-      );
-      htmlData += technicalElementToHtml(baseUrl, fullTechnicalRelationship);
+      const opts = { type: ABSTRACT_STIX_CORE_RELATIONSHIP };
+      const fullTechnicalRelationship = await storeLoadByIdWithRefs(user, technicalRelationship.id, opts);
+      htmlData += technicalRelationToHtml(baseUrl, fullTechnicalRelationship);
     }
     htmlData += `
          </table>
@@ -325,5 +353,5 @@ export const generateDigestForSubscription = async (subscription) => {
     htmlData += sectionFooter(footerNumber, 'technical elements');
   }
   htmlData += footer;
-  return { to: user.user_email, subject: `[OpenCTI digest] ${subscription.name}`, html: htmlData };
+  return { to: user.user_email, subject: subscription.name, html: htmlData };
 };

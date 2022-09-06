@@ -1,16 +1,20 @@
 /* eslint-disable camelcase */
 import * as R from 'ramda';
 import { Promise } from 'bluebird';
-import { elIndex, elPaginate, ES_MAX_CONCURRENCY } from '../database/engine';
-import { INDEX_INTERNAL_OBJECTS, READ_INDEX_INTERNAL_OBJECTS, READ_STIX_INDICES } from '../database/utils';
+import { elIndex, elPaginate } from '../database/engine';
+import {
+  INDEX_INTERNAL_OBJECTS,
+  READ_INDEX_INTERNAL_OBJECTS,
+  READ_STIX_INDICES
+} from '../database/utils';
 import { generateInternalId, generateStandardId } from '../schema/identifier';
 import { ENTITY_TYPE_TAXII_COLLECTION } from '../schema/internalObject';
-import { deleteElementById, loadById, loadStixById, updateAttribute } from '../database/middleware';
-import { listEntities } from '../database/repository';
+import { deleteElementById, storeLoadById, updateAttribute, stixLoadByIds } from '../database/middleware';
+import { listEntities } from '../database/middleware-loader';
 import { FunctionalError, ResourceNotFoundError } from '../config/errors';
 import { delEditContext, notify, setEditContext } from '../database/redis';
 import { BUS_TOPICS } from '../config/conf';
-import { adaptFiltersFrontendFormat, GlobalFilters, TYPE_FILTER } from '../utils/filtering';
+import { convertFiltersToQueryOptions } from '../utils/filtering';
 
 const STIX_MEDIA_TYPE = 'application/stix+json;version=2.1';
 
@@ -28,7 +32,7 @@ export const createTaxiiCollection = async (user, input) => {
   return data;
 };
 export const findById = async (user, collectionId) => {
-  return loadById(user, collectionId, ENTITY_TYPE_TAXII_COLLECTION);
+  return storeLoadById(user, collectionId, ENTITY_TYPE_TAXII_COLLECTION);
 };
 export const findAll = (user, args) => {
   return listEntities(user, [ENTITY_TYPE_TAXII_COLLECTION], args);
@@ -43,13 +47,13 @@ export const taxiiCollectionDelete = async (user, collectionId) => {
 };
 export const taxiiCollectionCleanContext = async (user, collectionId) => {
   await delEditContext(user, collectionId);
-  return loadById(user, collectionId, ENTITY_TYPE_TAXII_COLLECTION).then((collectionToReturn) => {
+  return storeLoadById(user, collectionId, ENTITY_TYPE_TAXII_COLLECTION).then((collectionToReturn) => {
     return notify(BUS_TOPICS[ENTITY_TYPE_TAXII_COLLECTION].EDIT_TOPIC, collectionToReturn, user);
   });
 };
 export const taxiiCollectionEditContext = async (user, collectionId, input) => {
   await setEditContext(user, collectionId, input);
-  return loadById(user, collectionId, ENTITY_TYPE_TAXII_COLLECTION).then((collectionToReturn) => {
+  return storeLoadById(user, collectionId, ENTITY_TYPE_TAXII_COLLECTION).then((collectionToReturn) => {
     return notify(BUS_TOPICS[ENTITY_TYPE_TAXII_COLLECTION].EDIT_TOPIC, collectionToReturn, user);
   });
 };
@@ -73,39 +77,13 @@ export const collectionCount = async (taxiiCollection, user) => {
   return data.pageInfo.globalCount;
 };
 
-export const convertFiltersToQueryOptions = (filters, opts = {}) => {
-  const { after, before, field = 'updated_at' } = opts;
-  const queryFilters = [];
-  const types = [];
-  if (filters) {
-    const adaptedFilters = adaptFiltersFrontendFormat(filters);
-    const filterEntries = Object.entries(adaptedFilters);
-    for (let index = 0; index < filterEntries.length; index += 1) {
-      // eslint-disable-next-line prefer-const
-      let [key, { operator, values }] = filterEntries[index];
-      if (key === TYPE_FILTER) {
-        types.push(...values.map((v) => v.id));
-      } else {
-        queryFilters.push({ key: GlobalFilters[key] || key, values: values.map((v) => v.id), operator });
-      }
-    }
-  }
-  if (after) {
-    queryFilters.push({ key: field, values: [after], operator: 'gte' });
-  }
-  if (before) {
-    queryFilters.push({ key: field, values: [before], operator: 'lte' });
-  }
-  return { types, orderMode: 'asc', orderBy: [field, 'internal_id'], filters: queryFilters };
-};
-
 const collectionQuery = async (user, collectionId, args) => {
   const { added_after, limit, next, match = {} } = args;
   const { id, spec_version, type, version } = match;
   if (spec_version || version) {
     throw FunctionalError('Unsupported parameters provided', { spec_version, version });
   }
-  const collection = await loadById(user, collectionId, ENTITY_TYPE_TAXII_COLLECTION);
+  const collection = await storeLoadById(user, collectionId, ENTITY_TYPE_TAXII_COLLECTION);
   if (!collection) {
     throw ResourceNotFoundError({ id: collectionId });
   }
@@ -124,13 +102,12 @@ const collectionQuery = async (user, collectionId, args) => {
 };
 export const restCollectionStix = async (user, id, args) => {
   const { edges, pageInfo } = await collectionQuery(user, id, args);
-  const objects = await Promise.map(edges, (e) => loadStixById(user, e.node.internal_id, { withFiles: true }), {
-    concurrency: ES_MAX_CONCURRENCY,
-  });
+  const edgeIds = edges.map((e) => e.node.internal_id);
+  const instances = await stixLoadByIds(user, edgeIds);
   return {
     more: pageInfo.hasNextPage,
     next: R.last(edges)?.cursor || '',
-    objects,
+    objects: instances,
   };
 };
 export const restCollectionManifest = async (user, id, args) => {
@@ -153,7 +130,7 @@ const restBuildCollection = async (collection) => {
   };
 };
 export const restLoadCollectionById = async (user, collectionId) => {
-  const collection = await loadById(user, collectionId, ENTITY_TYPE_TAXII_COLLECTION);
+  const collection = await storeLoadById(user, collectionId, ENTITY_TYPE_TAXII_COLLECTION);
   if (!collection) {
     throw ResourceNotFoundError({ id: collectionId });
   }

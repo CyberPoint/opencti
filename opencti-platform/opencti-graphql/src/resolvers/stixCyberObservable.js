@@ -23,18 +23,20 @@ import {
   stixCyberObservablesExportAsk,
   promoteObservableToIndicator,
   artifactImport,
+  batchVulnerabilities
 } from '../domain/stixCyberObservable';
 import { pubsub } from '../database/redis';
 import withCancel from '../graphql/subscriptionWrapper';
-import { stixCoreObjectIdImportPush, stixCoreRelationships } from '../domain/stixCoreObject';
-import { filesListing } from '../database/minio';
+import { stixCoreObjectImportPush, stixCoreRelationships } from '../domain/stixCoreObject';
+import { filesListing } from '../database/file-storage';
 import { ABSTRACT_STIX_CYBER_OBSERVABLE } from '../schema/general';
-import { complexAttributeToApiFormat } from '../schema/fieldDataAdapter';
+import { stixHashesToInput } from '../schema/fieldDataAdapter';
 import { stixCyberObservableOptions } from '../schema/stixCyberObservable';
-import { batchLoader, convertDataToRawStix } from '../database/middleware';
+import { batchLoader, stixLoadByIdStringify } from '../database/middleware';
 import { observableValue } from '../utils/format';
 
 const indicatorsLoader = batchLoader(batchIndicators);
+const vulnerabilitiesLoader = batchLoader(batchVulnerabilities);
 
 const stixCyberObservableResolvers = {
   Query: {
@@ -52,7 +54,7 @@ const stixCyberObservableResolvers = {
   },
   StixCyberObservablesFilter: stixCyberObservableOptions.StixCyberObservablesFilter,
   HashedObservable: {
-    hashes: (stixCyberObservable) => complexAttributeToApiFormat('hashes', stixCyberObservable),
+    hashes: (stixCyberObservable) => stixHashesToInput(stixCyberObservable),
   },
   StixCyberObservable: {
     __resolveType(obj) {
@@ -64,9 +66,12 @@ const stixCyberObservableResolvers = {
     observable_value: (stixCyberObservable) => observableValue(stixCyberObservable),
     indicators: (stixCyberObservable, _, { user }) => indicatorsLoader.load(stixCyberObservable.id, user),
     stixCoreRelationships: (rel, args, { user }) => stixCoreRelationships(user, rel.id, args),
-    toStix: (stixCyberObservable, _, { user }) => convertDataToRawStix(user, stixCyberObservable.id),
+    toStix: (stixCyberObservable, _, { user }) => stixLoadByIdStringify(user, stixCyberObservable.id),
     importFiles: (stixCyberObservable, { first }, { user }) => filesListing(user, first, `import/${stixCyberObservable.entity_type}/${stixCyberObservable.id}/`),
     exportFiles: (stixCyberObservable, { first }, { user }) => filesListing(user, first, `export/${stixCyberObservable.entity_type}/${stixCyberObservable.id}/`),
+  },
+  Software: {
+    vulnerabilities: (software, _, { user }) => vulnerabilitiesLoader.load(software.id, user),
   },
   Mutation: {
     stixCyberObservableEdit: (_, { id }, { user }) => ({
@@ -79,7 +84,7 @@ const stixCyberObservableResolvers = {
       relationDelete: ({ toId, relationship_type: relationshipType }) => stixCyberObservableDeleteRelation(user, id, toId, relationshipType),
       exportAsk: (args) => stixCyberObservableExportAsk(user, assoc('stixCyberObservableId', id, args)),
       exportPush: ({ file }) => stixCyberObservableExportPush(user, id, file),
-      importPush: ({ file }) => stixCoreObjectIdImportPush(user, id, file),
+      importPush: ({ file }) => stixCoreObjectImportPush(user, id, file),
       promote: () => promoteObservableToIndicator(user, id),
     }),
     stixCyberObservableAdd: (_, args, { user }) => addStixCyberObservable(user, args),

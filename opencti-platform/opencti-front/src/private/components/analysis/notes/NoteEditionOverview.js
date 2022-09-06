@@ -3,17 +3,8 @@ import * as PropTypes from 'prop-types';
 import { graphql, createFragmentContainer } from 'react-relay';
 import { Formik, Field, Form } from 'formik';
 import withStyles from '@mui/styles/withStyles';
-import {
-  assoc,
-  compose,
-  map,
-  pathOr,
-  pipe,
-  pick,
-  difference,
-  head,
-} from 'ramda';
 import * as Yup from 'yup';
+import * as R from 'ramda';
 import { commitMutation } from '../../../../relay/environment';
 import inject18n from '../../../../components/i18n';
 import MarkDownField from '../../../../components/MarkDownField';
@@ -21,8 +12,15 @@ import { SubscriptionFocus } from '../../../../components/Subscription';
 import CreatedByField from '../../common/form/CreatedByField';
 import ObjectMarkingField from '../../common/form/ObjectMarkingField';
 import ConfidenceField from '../../common/form/ConfidenceField';
-import DatePickerField from '../../../../components/DatePickerField';
 import TextField from '../../../../components/TextField';
+import {
+  convertCreatedBy,
+  convertMarkings,
+  convertStatus,
+} from '../../../../utils/Edition';
+import StatusField from '../../common/form/StatusField';
+import DateTimePickerField from '../../../../components/DateTimePickerField';
+import { buildDate } from '../../../../utils/Time';
 
 const styles = (theme) => ({
   drawerPaper: {
@@ -105,9 +103,10 @@ const noteValidation = (t) => Yup.object().shape({
   attribute_abstract: Yup.string().nullable(),
   content: Yup.string().required(t('This field is required')),
   created: Yup.date()
-    .typeError(t('The value must be a date (mm/dd/yyyy)'))
+    .typeError(t('The value must be a datetime (yyyy-MM-dd hh:mm (a|p)m)'))
     .required(t('This field is required')),
   confidence: Yup.number(),
+  x_opencti_workflow_id: Yup.object(),
 });
 
 class NoteEditionOverviewComponent extends Component {
@@ -124,12 +123,19 @@ class NoteEditionOverviewComponent extends Component {
   }
 
   handleSubmitField(name, value) {
+    let finalValue = value;
+    if (name === 'x_opencti_workflow_id') {
+      finalValue = value.value;
+    }
     noteValidation(this.props.t)
       .validateAt(name, { [name]: value })
       .then(() => {
         commitMutation({
           mutation: noteMutationFieldPatch,
-          variables: { id: this.props.note.id, input: { key: name, value } },
+          variables: {
+            id: this.props.note.id,
+            input: { key: name, value: finalValue ?? '' },
+          },
         });
       })
       .catch(() => false);
@@ -147,36 +153,33 @@ class NoteEditionOverviewComponent extends Component {
 
   handleChangeObjectMarking(name, values) {
     const { note } = this.props;
-    const currentMarkingDefinitions = pipe(
-      pathOr([], ['objectMarking', 'edges']),
-      map((n) => ({
+    const currentMarkingDefinitions = R.pipe(
+      R.pathOr([], ['objectMarking', 'edges']),
+      R.map((n) => ({
         label: n.node.definition,
         value: n.node.id,
       })),
     )(note);
-
-    const added = difference(values, currentMarkingDefinitions);
-    const removed = difference(currentMarkingDefinitions, values);
-
+    const added = R.difference(values, currentMarkingDefinitions);
+    const removed = R.difference(currentMarkingDefinitions, values);
     if (added.length > 0) {
       commitMutation({
         mutation: noteMutationRelationAdd,
         variables: {
           id: this.props.note.id,
           input: {
-            toId: head(added).value,
+            toId: R.head(added).value,
             relationship_type: 'object-marking',
           },
         },
       });
     }
-
     if (removed.length > 0) {
       commitMutation({
         mutation: noteMutationRelationDelete,
         variables: {
           id: this.props.note.id,
-          toId: head(removed).value,
+          toId: R.head(removed).value,
           relationship_type: 'object-marking',
         },
       });
@@ -185,29 +188,22 @@ class NoteEditionOverviewComponent extends Component {
 
   render() {
     const { t, note, context } = this.props;
-    const createdBy = pathOr(null, ['createdBy', 'name'], note) === null
-      ? ''
-      : {
-        label: pathOr(null, ['createdBy', 'name'], note),
-        value: pathOr(null, ['createdBy', 'id'], note),
-      };
-    const objectMarking = pipe(
-      pathOr([], ['objectMarking', 'edges']),
-      map((n) => ({
-        label: n.node.definition,
-        value: n.node.id,
-      })),
-    )(note);
-    const initialValues = pipe(
-      assoc('createdBy', createdBy),
-      assoc('objectMarking', objectMarking),
-      pick([
+    const createdBy = convertCreatedBy(note);
+    const objectMarking = convertMarkings(note);
+    const status = convertStatus(t, note);
+    const initialValues = R.pipe(
+      R.assoc('createdBy', createdBy),
+      R.assoc('objectMarking', objectMarking),
+      R.assoc('x_opencti_workflow_id', status),
+      R.assoc('created', buildDate(note.created)),
+      R.pick([
         'attribute_abstract',
         'created',
         'content',
         'confidence',
         'createdBy',
         'objectMarking',
+        'x_opencti_workflow_id',
       ]),
     )(note);
     return (
@@ -220,9 +216,8 @@ class NoteEditionOverviewComponent extends Component {
           <div>
             <Form style={{ margin: '20px 0 20px 0' }}>
               <Field
-                component={DatePickerField}
+                component={DateTimePickerField}
                 name="created"
-                invalidDateMessage={t('The value must be a date (mm/dd/yyyy)')}
                 onFocus={this.handleChangeFocus.bind(this)}
                 onSubmit={this.handleSubmitField.bind(this)}
                 TextFieldProps={{
@@ -274,6 +269,22 @@ class NoteEditionOverviewComponent extends Component {
                 editContext={context}
                 variant="edit"
               />
+              {note.workflowEnabled && (
+                <StatusField
+                  name="x_opencti_workflow_id"
+                  type="Note"
+                  onFocus={this.handleChangeFocus.bind(this)}
+                  onChange={this.handleSubmitField.bind(this)}
+                  setFieldValue={setFieldValue}
+                  style={{ marginTop: 20 }}
+                  helpertext={
+                    <SubscriptionFocus
+                      context={context}
+                      fieldName="x_opencti_workflow_id"
+                    />
+                  }
+                />
+              )}
               <CreatedByField
                 name="createdBy"
                 style={{ marginTop: 20, width: '100%' }}
@@ -336,12 +347,21 @@ const NoteEditionOverview = createFragmentContainer(
             }
           }
         }
+        status {
+          id
+          order
+          template {
+            name
+            color
+          }
+        }
+        workflowEnabled
       }
     `,
   },
 );
 
-export default compose(
+export default R.compose(
   inject18n,
   withStyles(styles, { withTheme: true }),
 )(NoteEditionOverview);

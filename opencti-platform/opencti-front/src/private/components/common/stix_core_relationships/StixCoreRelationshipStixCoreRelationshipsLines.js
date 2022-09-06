@@ -19,6 +19,7 @@ import ItemIcon from '../../../../components/ItemIcon';
 import StixCoreRelationshipPopover from './StixCoreRelationshipPopover';
 import { resolveLink } from '../../../../utils/Entity';
 import StixCoreRelationshipCreationFromRelation from './StixCoreRelationshipCreationFromRelation';
+import Security, { KNOWLEDGE_KNUPDATE } from '../../../../utils/Security';
 
 const styles = (theme) => ({
   paper: {
@@ -55,21 +56,31 @@ class StixCoreRelationshipStixCoreRelationshipsLinesContainer extends Component 
         <Typography variant="h4" gutterBottom={true} style={{ float: 'left' }}>
           {t('Linked entities')}
         </Typography>
-        <StixCoreRelationshipCreationFromRelation
-          entityId={entityId}
-          paddingRight={220}
-          variant="inLine"
-          paginationOptions={paginationOptions}
-        />
+        <Security
+          needs={[KNOWLEDGE_KNUPDATE]}
+          placeholder={<div style={{ height: 29 }} />}
+        >
+          <StixCoreRelationshipCreationFromRelation
+            entityId={entityId}
+            paddingRight={220}
+            variant="inLine"
+            paginationOptions={paginationOptions}
+          />
+        </Security>
         <div className="clearfix" />
         <Paper classes={{ root: classes.paper }} variant="outlined">
           <List classes={{ root: classes.list }}>
             {data.stixCoreRelationships.edges.map(
               (stixCoreRelationshipEdge) => {
                 const stixCoreRelationship = stixCoreRelationshipEdge.node;
-                const link = `${resolveLink(
-                  stixCoreRelationship.to.entity_type,
-                )}/${stixCoreRelationship.to.id}`;
+                const remoteNode = stixCoreRelationship.from
+                  && stixCoreRelationship.from.id === entityId
+                  ? stixCoreRelationship.to
+                  : stixCoreRelationship.from;
+                const restricted = stixCoreRelationship.from === null || remoteNode === null;
+                const link = `${resolveLink(remoteNode.entity_type)}/${
+                  remoteNode.id
+                }`;
                 return (
                   <ListItem
                     key={stixCoreRelationship.id}
@@ -80,17 +91,19 @@ class StixCoreRelationshipStixCoreRelationshipsLinesContainer extends Component 
                     to={link}
                   >
                     <ListItemIcon>
-                      <ItemIcon type={stixCoreRelationship.to.entity_type} />
+                      <ItemIcon
+                        type={
+                          !restricted ? remoteNode.entity_type : 'restricted'
+                        }
+                      />
                     </ListItemIcon>
                     <ListItemText
                       primary={
-                        stixCoreRelationship.to.observable_value
-                          ? stixCoreRelationship.to.observable_value
-                          : stixCoreRelationship.to.name
+                        remoteNode.observable_value
+                          ? remoteNode.observable_value
+                          : remoteNode.name
                       }
-                      secondary={t(
-                        `entity_${stixCoreRelationship.to.entity_type}`,
-                      )}
+                      secondary={t(`entity_${remoteNode.entity_type}`)}
                     />
                     <ListItemSecondaryAction>
                       {stixCoreRelationship.is_inferred ? (
@@ -137,7 +150,7 @@ StixCoreRelationshipStixCoreRelationshipsLinesContainer.propTypes = {
 
 export const stixCoreRelationshipStixCoreRelationshipsLinesQuery = graphql`
   query StixCoreRelationshipStixCoreRelationshipsLinesQuery(
-    $fromId: String
+    $elementId: [String]
     $relationship_type: [String]
     $count: Int!
     $cursor: ID
@@ -146,7 +159,7 @@ export const stixCoreRelationshipStixCoreRelationshipsLinesQuery = graphql`
   ) {
     ...StixCoreRelationshipStixCoreRelationshipsLines_data
       @arguments(
-        fromId: $fromId
+        elementId: $elementId
         relationship_type: $relationship_type
         count: $count
         cursor: $cursor
@@ -162,7 +175,7 @@ const StixCoreRelationshipStixCoreRelationshipsLines = createPaginationContainer
     data: graphql`
         fragment StixCoreRelationshipStixCoreRelationshipsLines_data on Query
         @argumentDefinitions(
-          fromId: { type: "String" }
+          elementId: { type: "[String]" }
           relationship_type: { type: "[String]" }
           count: { type: "Int", defaultValue: 25 }
           cursor: { type: "ID" }
@@ -173,7 +186,7 @@ const StixCoreRelationshipStixCoreRelationshipsLines = createPaginationContainer
           orderMode: { type: "OrderingMode", defaultValue: asc }
         ) {
           stixCoreRelationships(
-            fromId: $fromId
+            elementId: $elementId
             relationship_type: $relationship_type
             first: $count
             after: $cursor
@@ -188,6 +201,86 @@ const StixCoreRelationshipStixCoreRelationshipsLines = createPaginationContainer
                   rule {
                     id
                     name
+                  }
+                }
+                from {
+                  ... on StixDomainObject {
+                    id
+                    entity_type
+                    parent_types
+                    ... on AttackPattern {
+                      name
+                    }
+                    ... on Opinion {
+                      opinion
+                    }
+                    ... on Report {
+                      name
+                    }
+                    ... on Note {
+                      attribute_abstract
+                      content
+                    }
+                    ... on Campaign {
+                      name
+                    }
+                    ... on CourseOfAction {
+                      name
+                    }
+                    ... on Individual {
+                      name
+                    }
+                    ... on Organization {
+                      name
+                    }
+                    ... on Sector {
+                      name
+                    }
+                    ... on System {
+                      name
+                    }
+                    ... on Indicator {
+                      name
+                    }
+                    ... on Infrastructure {
+                      name
+                    }
+                    ... on IntrusionSet {
+                      name
+                    }
+                    ... on Position {
+                      name
+                    }
+                    ... on City {
+                      name
+                    }
+                    ... on Country {
+                      name
+                    }
+                    ... on Region {
+                      name
+                    }
+                    ... on Malware {
+                      name
+                    }
+                    ... on ThreatActor {
+                      name
+                    }
+                    ... on Tool {
+                      name
+                    }
+                    ... on Vulnerability {
+                      name
+                    }
+                    ... on Incident {
+                      name
+                    }
+                  }
+                  ... on StixCyberObservable {
+                    id
+                    entity_type
+                    parent_types
+                    observable_value
                   }
                 }
                 to {

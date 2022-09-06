@@ -16,6 +16,8 @@ import {
   InfoOutlined,
   ScatterPlotOutlined,
   DateRangeOutlined,
+  VisibilityOutlined,
+  ReadMoreOutlined,
 } from '@mui/icons-material';
 import {
   Video3d,
@@ -41,6 +43,7 @@ import {
   YAxis,
   ZAxis,
 } from 'recharts';
+import Badge from '@mui/material/Badge';
 import Dialog from '@mui/material/Dialog';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
@@ -56,6 +59,11 @@ import StixCoreRelationshipEdition from '../../common/stix_core_relationships/St
 import StixDomainObjectEdition from '../../common/stix_domain_objects/StixDomainObjectEdition';
 import { resolveLink } from '../../../../utils/Entity';
 import { parseDomain } from '../../../../utils/Graph';
+import StixSightingRelationshipCreation from '../../events/stix_sighting_relationships/StixSightingRelationshipCreation';
+import StixSightingRelationshipEdition from '../../events/stix_sighting_relationships/StixSightingRelationshipEdition';
+import SearchInput from '../../../../components/SearchInput';
+import StixCyberObservableRelationshipCreation from '../../common/stix_cyber_observable_relationships/StixCyberObservableRelationshipCreation';
+import StixCyberObservableRelationshipEdition from '../../common/stix_cyber_observable_relationships/StixCyberObservableRelationshipEdition';
 
 const styles = () => ({
   bottomNav: {
@@ -89,8 +97,14 @@ class ReportKnowledgeGraphBar extends Component {
       openSelectByType: false,
       anchorElSelectByType: null,
       openCreatedRelation: false,
+      openCreatedSighting: false,
+      openCreatedNested: false,
       relationReversed: false,
+      sightingReversed: false,
+      nestedReversed: false,
       openEditRelation: false,
+      openEditSighting: false,
+      openEditNested: false,
       openEditEntity: false,
       displayRemove: false,
     };
@@ -166,17 +180,67 @@ class ReportKnowledgeGraphBar extends Component {
     this.setState({ relationReversed: !this.state.relationReversed });
   }
 
+  handleOpenCreateSighting() {
+    this.setState({ openCreatedSighting: true });
+  }
+
+  handleCloseCreateSighting() {
+    this.setState({ openCreatedSighting: false });
+  }
+
+  handleReverseSighting() {
+    this.setState({ sightingReversed: !this.state.sightingReversed });
+  }
+
+  handleOpenCreateNested() {
+    this.setState({ openCreatedNested: true });
+  }
+
+  handleCloseCreateNested() {
+    this.setState({ openCreatedNested: false });
+  }
+
+  handleReverseNested() {
+    this.setState({ nestedReversed: !this.state.nestedReversed });
+  }
+
   handleOpenEditItem() {
     if (
       this.props.numberOfSelectedNodes === 1
-      && !this.props.selectedNodes[0].relationship_type
+      && !this.props.selectedNodes[0].parent_types.includes('basic-relationship')
     ) {
       this.setState({ openEditEntity: true });
     } else if (
-      this.props.numberOfSelectedLinks === 1
-      || this.props.selectedNodes[0].relationship_type
+      (this.props.numberOfSelectedLinks === 1
+        && this.props.selectedLinks[0].parent_types.includes(
+          'stix-core-relationship',
+        ))
+      || (this.props.numberOfSelectedNodes === 1
+        && this.props.selectedNodes[0].parent_types.includes(
+          'stix-core-relationship',
+        ))
     ) {
       this.setState({ openEditRelation: true });
+    } else if (
+      (this.props.numberOfSelectedLinks === 1
+        && this.props.selectedLinks[0].entity_type
+          === 'stix-sighting-relationship')
+      || (this.props.numberOfSelectedNodes === 1
+        && this.props.selectedNodes[0].entity_type
+          === 'stix-sighting-relationship')
+    ) {
+      this.setState({ openEditSighting: true });
+    } else if (
+      (this.props.numberOfSelectedLinks === 1
+        && this.props.selectedLinks[0].parent_types.includes(
+          'stix-cyber-observable-relationship',
+        ))
+      || (this.props.numberOfSelectedNodes === 1
+        && this.props.selectedNodes[0].parent_types.includes(
+          'stix-cyber-observable-relationship',
+        ))
+    ) {
+      this.setState({ openEditNested: true });
     }
   }
 
@@ -189,6 +253,20 @@ class ReportKnowledgeGraphBar extends Component {
 
   handleCloseRelationEdition() {
     this.setState({ openEditRelation: false });
+    this.props.handleCloseRelationEdition(
+      R.propOr(null, 'id', this.props.selectedLinks[0]),
+    );
+  }
+
+  handleCloseSightingEdition() {
+    this.setState({ openEditSighting: false });
+    this.props.handleCloseRelationEdition(
+      R.propOr(null, 'id', this.props.selectedLinks[0]),
+    );
+  }
+
+  handleCloseNestedEdition() {
+    this.setState({ openEditNested: false });
     this.props.handleCloseRelationEdition(
       R.propOr(null, 'id', this.props.selectedLinks[0]),
     );
@@ -250,9 +328,15 @@ class ReportKnowledgeGraphBar extends Component {
       openSelectByType,
       anchorElSelectByType,
       openCreatedRelation,
+      openCreatedSighting,
+      openCreatedNested,
       relationReversed,
+      sightingReversed,
+      nestedReversed,
       openEditRelation,
+      openEditSighting,
       openEditEntity,
+      openEditNested,
     } = this.state;
     const viewEnabled = (numberOfSelectedNodes === 1 && numberOfSelectedLinks === 0)
       || (numberOfSelectedNodes === 0 && numberOfSelectedLinks === 1);
@@ -261,7 +345,12 @@ class ReportKnowledgeGraphBar extends Component {
       || R.filter((n) => n.inferred, selectedLinks).length > 0;
     if (viewEnabled) {
       if (numberOfSelectedNodes === 1 && selectedNodes.length === 1) {
-        if (selectedNodes[0].relationship_type) {
+        if (
+          !selectedNodes[0].parent_types.includes(
+            'stix-cyber-observable-relationship',
+          )
+          && selectedNodes[0].relationship_type
+        ) {
           viewLink = `${resolveLink(selectedNodes[0].fromType)}/${
             selectedNodes[0].fromId
           }/knowledge/relations/${selectedNodes[0].id}`;
@@ -274,9 +363,17 @@ class ReportKnowledgeGraphBar extends Component {
         const remoteRelevant = selectedLinks[0].source.relationship_type
           ? selectedLinks[0].target
           : selectedLinks[0].source;
-        viewLink = `${resolveLink(remoteRelevant.entity_type)}/${
-          remoteRelevant.id
-        }/knowledge/relations/${selectedLinks[0].id}`;
+        if (selectedLinks[0].entity_type === 'stix-sighting-relationship') {
+          viewLink = `${resolveLink(remoteRelevant.entity_type)}/${
+            remoteRelevant.id
+          }/knowledge/sightings/${selectedLinks[0].id}`;
+        } else if (
+          !selectedLinks[0].parent_types.includes('stix-meta-relationship')
+        ) {
+          viewLink = `${resolveLink(remoteRelevant.entity_type)}/${
+            remoteRelevant.id
+          }/knowledge/relations/${selectedLinks[0].id}`;
+        }
       }
     }
     const editionEnabled = (!isInferred
@@ -298,27 +395,33 @@ class ReportKnowledgeGraphBar extends Component {
     const relationEnabled = (fromSelectedTypes.length === 1 && numberOfSelectedLinks === 0)
       || (toSelectedTypes.length === 1 && numberOfSelectedLinks === 0)
       || (numberOfSelectedNodes === 1 && numberOfSelectedLinks === 1);
+    const sightingEnabled = (fromSelectedTypes.length === 1 && numberOfSelectedLinks === 0)
+      || (toSelectedTypes.length === 1 && numberOfSelectedLinks === 0)
+      || (numberOfSelectedNodes === 1 && numberOfSelectedLinks === 1);
+    const nestedEnabled = (fromSelectedTypes.length === 1 && numberOfSelectedLinks === 0)
+      || (toSelectedTypes.length === 1 && numberOfSelectedLinks === 0)
+      || (numberOfSelectedNodes === 1 && numberOfSelectedLinks === 1);
     let relationFromObjects = null;
     let relationToObjects = null;
     if (fromSelectedTypes.length === 1 && numberOfSelectedLinks === 0) {
-      relationFromObjects = relationReversed
+      relationFromObjects = relationReversed || sightingReversed || nestedReversed
         ? [R.last(selectedNodes)]
         : R.init(selectedNodes);
-      relationToObjects = relationReversed
+      relationToObjects = relationReversed || sightingReversed || nestedReversed
         ? R.init(selectedNodes)
         : [R.last(selectedNodes)];
     } else if (toSelectedTypes.length === 1 && numberOfSelectedLinks === 0) {
-      relationFromObjects = relationReversed
+      relationFromObjects = relationReversed || sightingReversed || nestedReversed
         ? R.tail(selectedNodes)
         : [R.head(selectedNodes)];
-      relationToObjects = relationReversed
+      relationToObjects = relationReversed || sightingReversed || nestedReversed
         ? [R.head(selectedNodes)]
         : R.tail(selectedNodes);
     } else if (numberOfSelectedNodes === 1 && numberOfSelectedLinks === 1) {
-      relationFromObjects = relationReversed
+      relationFromObjects = relationReversed || sightingReversed || nestedReversed
         ? [selectedNodes[0]]
         : [selectedLinks[0]];
-      relationToObjects = relationReversed
+      relationToObjects = relationReversed || sightingReversed || nestedReversed
         ? [selectedLinks[0]]
         : [selectedNodes[0]];
     }
@@ -422,17 +525,6 @@ class ReportKnowledgeGraphBar extends Component {
                   </IconButton>
                 </span>
               </Tooltip>
-              <Tooltip title={t('Display time range selector')}>
-                <span>
-                  <IconButton
-                    color={displayTimeRange ? 'secondary' : 'primary'}
-                    onClick={handleToggleDisplayTimeRange.bind(this)}
-                    size="large"
-                  >
-                    <DateRangeOutlined />
-                  </IconButton>
-                </span>
-              </Tooltip>
               <Tooltip title={t('Fit graph to canvas')}>
                 <span>
                   <IconButton
@@ -456,162 +548,6 @@ class ReportKnowledgeGraphBar extends Component {
                   </IconButton>
                 </span>
               </Tooltip>
-              <Divider className={classes.divider} orientation="vertical" />
-              <Tooltip title={t('Filter entity types')}>
-                <span>
-                  <IconButton
-                    color="primary"
-                    onClick={this.handleOpenStixCoreObjectsTypes.bind(this)}
-                    size="large"
-                  >
-                    <FilterListOutlined />
-                  </IconButton>
-                </span>
-              </Tooltip>
-              <Popover
-                classes={{ paper: classes.container }}
-                open={openStixCoreObjectsTypes}
-                anchorEl={anchorElStixCoreObjectsTypes}
-                onClose={this.handleCloseStixCoreObjectsTypes.bind(this)}
-                anchorOrigin={{
-                  vertical: 'bottom',
-                  horizontal: 'center',
-                }}
-                transformOrigin={{
-                  vertical: 'top',
-                  horizontal: 'center',
-                }}
-              >
-                <List>
-                  {stixCoreObjectsTypes.map((stixCoreObjectType) => (
-                    <ListItem
-                      key={stixCoreObjectType}
-                      role={undefined}
-                      dense={true}
-                      button={true}
-                      onClick={handleToggleStixCoreObjectType.bind(
-                        this,
-                        stixCoreObjectType,
-                      )}
-                    >
-                      <ListItemIcon style={{ minWidth: 40 }}>
-                        <Checkbox
-                          edge="start"
-                          checked={currentStixCoreObjectsTypes.includes(
-                            stixCoreObjectType,
-                          )}
-                          disableRipple={true}
-                        />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={t(`entity_${stixCoreObjectType}`)}
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              </Popover>
-              <Tooltip title={t('Filter marking definitions')}>
-                <span>
-                  <IconButton
-                    color="primary"
-                    onClick={this.handleOpenMarkedBy.bind(this)}
-                    size="large"
-                  >
-                    <CenterFocusStrongOutlined />
-                  </IconButton>
-                </span>
-              </Tooltip>
-              <Popover
-                classes={{ paper: classes.container }}
-                open={openMarkedBy}
-                anchorEl={anchorElMarkedBy}
-                onClose={this.handleCloseMarkedBy.bind(this)}
-                anchorOrigin={{
-                  vertical: 'bottom',
-                  horizontal: 'center',
-                }}
-                transformOrigin={{
-                  vertical: 'top',
-                  horizontal: 'center',
-                }}
-              >
-                <List>
-                  {markedBy.map((markingDefinition) => (
-                    <ListItem
-                      key={markingDefinition.id}
-                      role={undefined}
-                      dense={true}
-                      button={true}
-                      onClick={handleToggleMarkedBy.bind(
-                        this,
-                        markingDefinition.id,
-                      )}
-                    >
-                      <ListItemIcon style={{ minWidth: 40 }}>
-                        <Checkbox
-                          edge="start"
-                          checked={currentMarkedBy.includes(
-                            markingDefinition.id,
-                          )}
-                          disableRipple={true}
-                        />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={truncate(markingDefinition.definition, 20)}
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              </Popover>
-              <Tooltip title={t('Filter authors (created by)')}>
-                <span>
-                  <IconButton
-                    color="primary"
-                    onClick={this.handleOpenCreatedBy.bind(this)}
-                    size="large"
-                  >
-                    <AccountBalanceOutlined />
-                  </IconButton>
-                </span>
-              </Tooltip>
-              <Popover
-                classes={{ paper: classes.container }}
-                open={openCreatedBy}
-                anchorEl={anchorElCreatedBy}
-                onClose={this.handleCloseCreatedBy.bind(this)}
-                anchorOrigin={{
-                  vertical: 'bottom',
-                  horizontal: 'center',
-                }}
-                transformOrigin={{
-                  vertical: 'top',
-                  horizontal: 'center',
-                }}
-              >
-                <List>
-                  {createdBy.map((createdByRef) => (
-                    <ListItem
-                      key={createdBy.id}
-                      role={undefined}
-                      dense={true}
-                      button={true}
-                      onClick={handleToggleCreatedBy.bind(
-                        this,
-                        createdByRef.id,
-                      )}
-                    >
-                      <ListItemIcon style={{ minWidth: 40 }}>
-                        <Checkbox
-                          edge="start"
-                          checked={currentCreatedBy.includes(createdByRef.id)}
-                          disableRipple={true}
-                        />
-                      </ListItemIcon>
-                      <ListItemText primary={createdByRef.name} />
-                    </ListItem>
-                  ))}
-                </List>
-              </Popover>
               <Divider className={classes.divider} orientation="vertical" />
               <Tooltip title={t('Select by entity type')}>
                 <span>
@@ -668,6 +604,202 @@ class ReportKnowledgeGraphBar extends Component {
                   </IconButton>
                 </span>
               </Tooltip>
+              <Divider className={classes.divider} orientation="vertical" />
+              <Tooltip title={t('Display time range selector')}>
+                <span>
+                  <IconButton
+                    color={displayTimeRange ? 'secondary' : 'primary'}
+                    onClick={handleToggleDisplayTimeRange.bind(this)}
+                    size="large"
+                  >
+                    <DateRangeOutlined />
+                  </IconButton>
+                </span>
+              </Tooltip>
+              <Tooltip title={t('Filter entity types')}>
+                <span>
+                  <IconButton
+                    color="primary"
+                    onClick={this.handleOpenStixCoreObjectsTypes.bind(this)}
+                    size="large"
+                  >
+                    <Badge
+                      badgeContent={Math.abs(
+                        currentStixCoreObjectsTypes.length
+                          - stixCoreObjectsTypes.length,
+                      )}
+                      color="secondary"
+                    >
+                      <FilterListOutlined />
+                    </Badge>
+                  </IconButton>
+                </span>
+              </Tooltip>
+              <Popover
+                classes={{ paper: classes.container }}
+                open={openStixCoreObjectsTypes}
+                anchorEl={anchorElStixCoreObjectsTypes}
+                onClose={this.handleCloseStixCoreObjectsTypes.bind(this)}
+                anchorOrigin={{
+                  vertical: 'bottom',
+                  horizontal: 'center',
+                }}
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'center',
+                }}
+              >
+                <List>
+                  {stixCoreObjectsTypes.map((stixCoreObjectType) => (
+                    <ListItem
+                      key={stixCoreObjectType}
+                      role={undefined}
+                      dense={true}
+                      button={true}
+                      onClick={handleToggleStixCoreObjectType.bind(
+                        this,
+                        stixCoreObjectType,
+                      )}
+                    >
+                      <ListItemIcon style={{ minWidth: 40 }}>
+                        <Checkbox
+                          edge="start"
+                          checked={currentStixCoreObjectsTypes.includes(
+                            stixCoreObjectType,
+                          )}
+                          disableRipple={true}
+                        />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={t(`entity_${stixCoreObjectType}`)}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              </Popover>
+              <Tooltip title={t('Filter marking definitions')}>
+                <span>
+                  <IconButton
+                    color="primary"
+                    onClick={this.handleOpenMarkedBy.bind(this)}
+                    size="large"
+                  >
+                    <Badge
+                      badgeContent={Math.abs(
+                        currentMarkedBy.length - markedBy.length,
+                      )}
+                      color="secondary"
+                    >
+                      <CenterFocusStrongOutlined />
+                    </Badge>
+                  </IconButton>
+                </span>
+              </Tooltip>
+              <Popover
+                classes={{ paper: classes.container }}
+                open={openMarkedBy}
+                anchorEl={anchorElMarkedBy}
+                onClose={this.handleCloseMarkedBy.bind(this)}
+                anchorOrigin={{
+                  vertical: 'bottom',
+                  horizontal: 'center',
+                }}
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'center',
+                }}
+              >
+                <List>
+                  {markedBy.map((markingDefinition) => (
+                    <ListItem
+                      key={markingDefinition.id}
+                      role={undefined}
+                      dense={true}
+                      button={true}
+                      onClick={handleToggleMarkedBy.bind(
+                        this,
+                        markingDefinition.id,
+                      )}
+                    >
+                      <ListItemIcon style={{ minWidth: 40 }}>
+                        <Checkbox
+                          edge="start"
+                          checked={currentMarkedBy.includes(
+                            markingDefinition.id,
+                          )}
+                          disableRipple={true}
+                        />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={truncate(markingDefinition.definition, 20)}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              </Popover>
+              <Tooltip title={t('Filter authors (created by)')}>
+                <span>
+                  <IconButton
+                    color="primary"
+                    onClick={this.handleOpenCreatedBy.bind(this)}
+                    size="large"
+                  >
+                    <Badge
+                      badgeContent={Math.abs(
+                        currentCreatedBy.length - createdBy.length,
+                      )}
+                      color="secondary"
+                    >
+                      <AccountBalanceOutlined />
+                    </Badge>
+                  </IconButton>
+                </span>
+              </Tooltip>
+              <Popover
+                classes={{ paper: classes.container }}
+                open={openCreatedBy}
+                anchorEl={anchorElCreatedBy}
+                onClose={this.handleCloseCreatedBy.bind(this)}
+                anchorOrigin={{
+                  vertical: 'bottom',
+                  horizontal: 'center',
+                }}
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'center',
+                }}
+              >
+                <List>
+                  {createdBy.map((createdByRef) => (
+                    <ListItem
+                      key={createdBy.id}
+                      role={undefined}
+                      dense={true}
+                      button={true}
+                      onClick={handleToggleCreatedBy.bind(
+                        this,
+                        createdByRef.id,
+                      )}
+                    >
+                      <ListItemIcon style={{ minWidth: 40 }}>
+                        <Checkbox
+                          edge="start"
+                          checked={currentCreatedBy.includes(createdByRef.id)}
+                          disableRipple={true}
+                        />
+                      </ListItemIcon>
+                      <ListItemText primary={createdByRef.name} />
+                    </ListItem>
+                  ))}
+                </List>
+              </Popover>
+              <Divider className={classes.divider} orientation="vertical" />
+              <div style={{ margin: '9px 0 0 10px' }}>
+                <SearchInput
+                  variant="thin"
+                  onSubmit={this.props.handleSearch.bind(this)}
+                />
+              </div>
             </div>
             {report && (
               <div
@@ -703,7 +835,7 @@ class ReportKnowledgeGraphBar extends Component {
                       component={Link}
                       target="_blank"
                       to={viewLink}
-                      disabled={!viewEnabled}
+                      disabled={!viewEnabled || !viewLink}
                       size="large"
                     >
                       <InfoOutlined />
@@ -737,6 +869,24 @@ class ReportKnowledgeGraphBar extends Component {
                   handleClose={this.handleCloseRelationEdition.bind(this)}
                   noStoreUpdate={true}
                 />
+                <StixSightingRelationshipEdition
+                  open={openEditSighting}
+                  stixSightingRelationshipId={
+                    R.propOr(null, 'id', selectedNodes[0])
+                    || R.propOr(null, 'id', selectedLinks[0])
+                  }
+                  handleClose={this.handleCloseSightingEdition.bind(this)}
+                  noStoreUpdate={true}
+                />
+                <StixCyberObservableRelationshipEdition
+                  open={openEditNested}
+                  stixCyberObservableRelationshipId={
+                    R.propOr(null, 'id', selectedNodes[0])
+                    || R.propOr(null, 'id', selectedLinks[0])
+                  }
+                  handleClose={this.handleCloseNestedEdition.bind(this)}
+                  noStoreUpdate={true}
+                />
                 {onAddRelation && (
                   <Tooltip title={t('Create a relationship')}>
                     <span>
@@ -764,6 +914,75 @@ class ReportKnowledgeGraphBar extends Component {
                     handleClose={this.handleCloseCreateRelationship.bind(this)}
                     handleResult={onAddRelation}
                     handleReverseRelation={this.handleReverseRelation.bind(
+                      this,
+                    )}
+                    defaultCreatedBy={R.propOr(null, 'createdBy', report)}
+                    defaultMarkingDefinitions={R.map(
+                      (n) => n.node,
+                      R.pathOr([], ['objectMarking', 'edges'], report),
+                    )}
+                  />
+                )}
+                {onAddRelation && (
+                  <Tooltip title={t('Create a nested relationship')}>
+                    <span>
+                      <IconButton
+                        color="primary"
+                        onClick={this.handleOpenCreateNested.bind(this)}
+                        disabled={!nestedEnabled}
+                        size="large"
+                      >
+                        <ReadMoreOutlined />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                )}
+                {onAddRelation && (
+                  <StixCyberObservableRelationshipCreation
+                    open={openCreatedNested}
+                    fromObjects={relationFromObjects}
+                    toObjects={relationToObjects}
+                    startTime={
+                      lastLinkFirstSeen || dateFormat(report.published)
+                    }
+                    stopTime={lastLinkLastSeen || dateFormat(report.published)}
+                    confidence={report.confidence}
+                    handleClose={this.handleCloseCreateNested.bind(this)}
+                    handleResult={onAddRelation}
+                    handleReverseRelation={this.handleReverseNested.bind(this)}
+                    defaultMarkingDefinitions={R.map(
+                      (n) => n.node,
+                      R.pathOr([], ['objectMarking', 'edges'], report),
+                    )}
+                  />
+                )}
+                {onAddRelation && (
+                  <Tooltip title={t('Create a sighting')}>
+                    <span>
+                      <IconButton
+                        color="primary"
+                        onClick={this.handleOpenCreateSighting.bind(this)}
+                        disabled={!sightingEnabled}
+                        size="large"
+                      >
+                        <VisibilityOutlined />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                )}
+                {onAddRelation && (
+                  <StixSightingRelationshipCreation
+                    open={openCreatedSighting}
+                    fromObjects={relationFromObjects}
+                    toObjects={relationToObjects}
+                    firstSeen={
+                      lastLinkFirstSeen || dateFormat(report.published)
+                    }
+                    lastSeen={lastLinkLastSeen || dateFormat(report.published)}
+                    confidence={report.confidence}
+                    handleClose={this.handleCloseCreateSighting.bind(this)}
+                    handleResult={onAddRelation}
+                    handleReverseSighting={this.handleReverseSighting.bind(
                       this,
                     )}
                     defaultCreatedBy={R.propOr(null, 'createdBy', report)}

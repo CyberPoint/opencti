@@ -1,15 +1,18 @@
 /* eslint-disable camelcase */
 import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/dynamic';
 import * as R from 'ramda';
-import { buildScanEvent, lockResource } from '../database/redis';
+import { Promise as BluePromise } from 'bluebird';
+import { lockResource, storeCreateEntityEvent } from '../database/redis';
 import {
   ACTION_TYPE_ADD,
-  ACTION_TYPE_DELETE,
+  ACTION_TYPE_DELETE, ACTION_TYPE_ENRICHMENT,
   ACTION_TYPE_MERGE,
+  ACTION_TYPE_PROMOTE,
   ACTION_TYPE_REMOVE,
   ACTION_TYPE_REPLACE,
   ACTION_TYPE_RULE_APPLY,
   ACTION_TYPE_RULE_CLEAR,
+  ACTION_TYPE_RULE_ELEMENT_RESCAN,
   executeTaskQuery,
   findAll,
   MAX_TASK_ELEMENTS,
@@ -23,11 +26,12 @@ import { resolveUserById } from '../domain/user';
 import {
   createRelation,
   deleteElementById,
-  deleteRelationsByFromAndTo,
+  deleteRelationsByFromAndTo, internalFindByIds,
   internalLoadById,
-  listAllRelations,
   mergeEntities,
   patchAttribute,
+  stixLoadById,
+  storeLoadByIdWithRefs,
 } from '../database/middleware';
 import { now } from '../utils/format';
 import {
@@ -37,13 +41,23 @@ import {
   UPDATE_OPERATION_ADD,
   UPDATE_OPERATION_REMOVE,
 } from '../database/utils';
-import { elPaginate, elUpdate } from '../database/engine';
+import { elPaginate, elUpdate, ES_MAX_CONCURRENCY } from '../database/engine';
 import { TYPE_LOCK_ERROR } from '../config/errors';
-import { ABSTRACT_BASIC_RELATIONSHIP, RULE_PREFIX } from '../schema/general';
+import { ABSTRACT_BASIC_RELATIONSHIP, ABSTRACT_STIX_RELATIONSHIP, RULE_PREFIX } from '../schema/general';
 import { SYSTEM_USER } from '../utils/access';
-import { rulesCleanHandler, rulesApplyDerivedEvents, getRule } from './ruleManager';
+import { buildInternalEvent, rulesApplyHandler, rulesCleanHandler } from './ruleManager';
 import { RULE_MANAGER_USER } from '../rules/rules';
 import { buildFilters } from '../database/repository';
+import { listAllRelations } from '../database/middleware-loader';
+import { getActivatedRules, getRule } from '../domain/rules';
+import { isStixRelationship } from '../schema/stixRelationship';
+import { isStixObject } from '../schema/stixCoreObject';
+import { EVENT_TYPE_CREATE } from '../database/rabbitmq';
+import { ENTITY_TYPE_INDICATOR } from '../schema/stixDomainObject';
+import { isStixCyberObservable } from '../schema/stixCyberObservable';
+import { promoteObservableToIndicator } from '../domain/stixCyberObservable';
+import { promoteIndicatorToObservable } from '../domain/indicator';
+import { askElementEnrichmentForConnector } from '../domain/stixCoreObject';
 
 // Task manager responsible to execute long manual tasks
 // Each API will start is task manager.
@@ -81,16 +95,12 @@ const computeRuleTaskElements = async (task) => {
       after: task_position,
       ...buildFilters(scan),
     };
-    const data = await elPaginate(RULE_MANAGER_USER, READ_DATA_INDICES_WITHOUT_INFERRED, options);
-    const elements = data.edges;
+    const { edges: elements } = await elPaginate(RULE_MANAGER_USER, READ_DATA_INDICES_WITHOUT_INFERRED, options);
     // Apply the actions for each element
     for (let elementIndex = 0; elementIndex < elements.length; elementIndex += 1) {
       const element = elements[elementIndex];
-      processingElements.push({
-        element: element.node,
-        actions: [{ type: ACTION_TYPE_RULE_APPLY, context: { rule: ruleDefinition } }],
-        next: element.cursor,
-      });
+      const actions = [{ type: ACTION_TYPE_RULE_APPLY, context: { rule: ruleDefinition } }];
+      processingElements.push({ element: element.node, actions, next: element.cursor });
     }
   } else {
     const filters = [{ key: `${RULE_PREFIX}${rule}`, values: ['EXISTS'] }];
@@ -101,22 +111,18 @@ const computeRuleTaskElements = async (task) => {
       after: task_position,
       filters,
     };
-    const data = await elPaginate(RULE_MANAGER_USER, READ_DATA_INDICES, options);
-    const elements = data.edges;
+    const { edges: elements } = await elPaginate(RULE_MANAGER_USER, READ_DATA_INDICES, options);
     // Apply the actions for each element
     for (let elementIndex = 0; elementIndex < elements.length; elementIndex += 1) {
       const element = elements[elementIndex];
-      processingElements.push({
-        element: element.node,
-        actions: [{ type: ACTION_TYPE_RULE_CLEAR, context: { rule: ruleDefinition } }],
-        next: element.cursor,
-      });
+      const actions = [{ type: ACTION_TYPE_RULE_CLEAR, context: { rule: ruleDefinition } }];
+      processingElements.push({ element: element.node, actions, next: element.cursor });
     }
   }
   return processingElements;
 };
 const computeQueryTaskElements = async (user, task) => {
-  const { actions, task_position, task_filters, task_search = null } = task;
+  const { actions, task_position, task_filters, task_search = null, task_excluded_ids = [] } = task;
   const processingElements = [];
   // Fetch the information
   const data = await executeTaskQuery(user, task_filters, task_search, task_position);
@@ -125,7 +131,9 @@ const computeQueryTaskElements = async (user, task) => {
   // Apply the actions for each element
   for (let elementIndex = 0; elementIndex < elements.length; elementIndex += 1) {
     const element = elements[elementIndex];
-    processingElements.push({ element: element.node, actions, next: element.cursor });
+    if (!task_excluded_ids.includes(element.node.id)) {
+      processingElements.push({ element: element.node, actions, next: element.cursor });
+    }
   }
   return processingElements;
 };
@@ -225,20 +233,64 @@ const executeMerge = async (user, context, element) => {
   const { values } = context;
   await mergeEntities(user, element.internal_id, values);
 };
-
-const executeRuleApply = async (user, taskId, context, element) => {
+const executeEnrichment = async (user, context, element) => {
+  const askConnectors = await internalFindByIds(user, context.values);
+  await BluePromise.map(askConnectors, async (connector) => {
+    await askElementEnrichmentForConnector(user, element.internal_id, connector.internal_id);
+  }, { concurrency: ES_MAX_CONCURRENCY });
+};
+const executePromote = async (user, element) => {
+  // If indicator, promote to observable
+  if (element.entity_type === ENTITY_TYPE_INDICATOR) {
+    await promoteIndicatorToObservable(user, element.internal_id);
+  }
+  // If observable, promote to indicator
+  if (isStixCyberObservable(element.entity_type)) {
+    await promoteObservableToIndicator(user, element.internal_id);
+  }
+};
+const executeRuleApply = async (user, context, element) => {
   const { rule } = context;
   // Execute rules over one element, act as element creation
-  const event = buildScanEvent(user, element);
-  await rulesApplyDerivedEvents(`task--${taskId}`, [event], [rule]);
+  const instance = await storeLoadByIdWithRefs(user, element.internal_id);
+  const event = await storeCreateEntityEvent(user, instance, '-', { publishStreamEvent: false });
+  await rulesApplyHandler([event], [rule]);
 };
-
-const executeRuleClean = async (context, taskId, element) => {
+const executeRuleClean = async (context, element) => {
   const { rule } = context;
-  await rulesCleanHandler(`task--${taskId}`, [element], [rule]);
+  await rulesCleanHandler([element], [rule]);
+};
+const executeRuleElementRescan = async (user, context, element) => {
+  const { rules } = context ?? {};
+  const activatedRules = await getActivatedRules();
+  // Filter activated rules by context specification
+  const rulesToApply = rules ? activatedRules.filter((r) => rules.includes(r.id)) : activatedRules;
+  if (rulesToApply.length > 0) {
+    const ruleRescanTypes = rulesToApply.map((r) => r.scan.types).flat();
+    if (isStixRelationship(element.entity_type)) {
+      const needRescan = ruleRescanTypes.includes(element.entity_type);
+      if (needRescan) {
+        const data = await stixLoadById(user, element.internal_id);
+        const event = buildInternalEvent(EVENT_TYPE_CREATE, data);
+        await rulesApplyHandler([event]);
+      }
+    } else if (isStixObject(element.entity_type)) {
+      const args = { connectionFormat: false, fromId: element.internal_id };
+      const relations = await listAllRelations(user, ABSTRACT_STIX_RELATIONSHIP, args);
+      for (let index = 0; index < relations.length; index += 1) {
+        const relation = relations[index];
+        const needRescan = ruleRescanTypes.includes(relation.entity_type);
+        if (needRescan) {
+          const data = await stixLoadById(user, relation.internal_id);
+          const event = buildInternalEvent(EVENT_TYPE_CREATE, data);
+          await rulesApplyHandler([event], rulesToApply);
+        }
+      }
+    }
+  }
 };
 
-const executeProcessing = async (user, taskId, processingElements) => {
+const executeProcessing = async (user, processingElements) => {
   const errors = [];
   for (let index = 0; index < processingElements.length; index += 1) {
     const { element, actions } = processingElements[index];
@@ -261,11 +313,20 @@ const executeProcessing = async (user, taskId, processingElements) => {
         if (type === ACTION_TYPE_MERGE) {
           await executeMerge(user, context, element);
         }
+        if (type === ACTION_TYPE_PROMOTE) {
+          await executePromote(user, element);
+        }
+        if (type === ACTION_TYPE_ENRICHMENT) {
+          await executeEnrichment(user, context, element);
+        }
         if (type === ACTION_TYPE_RULE_APPLY) {
-          await executeRuleApply(user, taskId, context, element);
+          await executeRuleApply(user, context, element);
         }
         if (type === ACTION_TYPE_RULE_CLEAR) {
-          await executeRuleClean(context, taskId, element);
+          await executeRuleClean(context, element);
+        }
+        if (type === ACTION_TYPE_RULE_ELEMENT_RESCAN) {
+          await executeRuleElementRescan(user, context, element);
         }
       }
     } catch (err) {
@@ -312,7 +373,7 @@ const taskHandler = async () => {
     }
     // Process the elements (empty = end of execution)
     if (processingElements.length > 0) {
-      const errors = await executeProcessing(user, task.id, processingElements);
+      const errors = await executeProcessing(user, processingElements);
       await appendTaskErrors(task.id, errors);
     }
     // Update the task
@@ -325,7 +386,6 @@ const taskHandler = async () => {
     };
     await updateTask(task.id, patch);
   } catch (e) {
-    // We dont care about failing to get the lock.
     if (e.name === TYPE_LOCK_ERROR) {
       logApp.debug('[OPENCTI-MODULE] Task manager already in progress by another API');
     } else {

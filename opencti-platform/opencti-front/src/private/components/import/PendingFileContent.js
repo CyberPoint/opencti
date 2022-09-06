@@ -38,11 +38,16 @@ import {
   resolveLink,
 } from '../../../utils/Entity';
 import PendingFileToolBar from './PendingFileToolBar';
-import { commitMutation, MESSAGING$ } from '../../../relay/environment';
+import {
+  commitMutation,
+  fetchQuery,
+  MESSAGING$,
+} from '../../../relay/environment';
 import { fileManagerAskJobImportMutation } from '../common/files/FileManager';
 import SelectField from '../../../components/SelectField';
 import { convertStixType } from '../../../utils/String';
 import { itemColor } from '../../../utils/Colors';
+import ItemBoolean from '../../../components/ItemBoolean';
 
 const styles = (theme) => ({
   container: {
@@ -127,7 +132,13 @@ const inlineStylesHeaders = {
   },
   default_value: {
     float: 'left',
-    width: '50%',
+    width: '40%',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  in_platform: {
+    float: 'left',
+    width: '8%',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -161,7 +172,15 @@ const inlineStyles = {
   },
   default_value: {
     float: 'left',
-    width: '50%',
+    width: '40%',
+    height: 20,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  in_platform: {
+    float: 'left',
+    width: '8%',
     height: 20,
     whiteSpace: 'nowrap',
     overflow: 'hidden',
@@ -210,6 +229,151 @@ const importValidation = (t) => Yup.object().shape({
   connector_id: Yup.string().required(t('This field is required')),
 });
 
+const pendingFileContentResolveEntitiesQuery = graphql`
+  query PendingFileContentResolveEntitiesQuery(
+    $first: Int
+    $filters: [StixCoreObjectsFiltering]
+  ) {
+    stixCoreObjects(first: $first, filters: $filters) {
+      edges {
+        node {
+          id
+          standard_id
+          entity_type
+          parent_types
+          created_at
+          createdBy {
+            ... on Identity {
+              id
+              name
+              entity_type
+            }
+          }
+          objectMarking {
+            edges {
+              node {
+                id
+                definition
+              }
+            }
+          }
+          ... on StixDomainObject {
+            created
+          }
+          ... on AttackPattern {
+            name
+            description
+            x_mitre_id
+          }
+          ... on Campaign {
+            name
+            description
+            first_seen
+            last_seen
+          }
+          ... on Note {
+            attribute_abstract
+          }
+          ... on ObservedData {
+            name
+            first_observed
+            last_observed
+          }
+          ... on Opinion {
+            opinion
+          }
+          ... on Report {
+            name
+            description
+            published
+          }
+          ... on CourseOfAction {
+            name
+            description
+          }
+          ... on Individual {
+            name
+            description
+          }
+          ... on Organization {
+            name
+            description
+          }
+          ... on Sector {
+            name
+            description
+          }
+          ... on System {
+            name
+            description
+          }
+          ... on Indicator {
+            name
+            description
+            valid_from
+          }
+          ... on Infrastructure {
+            name
+            description
+          }
+          ... on IntrusionSet {
+            name
+            description
+            first_seen
+            last_seen
+          }
+          ... on Position {
+            name
+            description
+          }
+          ... on City {
+            name
+            description
+          }
+          ... on Country {
+            name
+            description
+          }
+          ... on Region {
+            name
+            description
+          }
+          ... on Malware {
+            name
+            description
+            first_seen
+            last_seen
+          }
+          ... on ThreatActor {
+            name
+            description
+            first_seen
+            last_seen
+          }
+          ... on Tool {
+            name
+            description
+          }
+          ... on Vulnerability {
+            name
+            description
+          }
+          ... on Incident {
+            name
+            description
+            first_seen
+            last_seen
+          }
+          ... on StixCyberObservable {
+            observable_value
+            x_opencti_description
+          }
+        }
+      }
+    }
+  }
+`;
+
 class PendingFileContentComponent extends Component {
   constructor(props) {
     super(props);
@@ -220,6 +384,7 @@ class PendingFileContentComponent extends Component {
       containersChecked: {},
       containersUnchecked: {},
       uncheckedObjects: [],
+      resolvedObjects: {},
       objects: [],
       indexedObjects: {},
       objectsWithDependencies: [],
@@ -324,8 +489,8 @@ class PendingFileContentComponent extends Component {
   loadFileContent() {
     const { file } = this.props;
     const url = `/storage/view/${file.id}`;
-    Axios.get(url).then((res) => {
-      const state = this.computeState(res.data.objects);
+    Axios.get(url).then(async (res) => {
+      const state = await this.computeState(res.data.objects);
       this.setState(state);
       return true;
     });
@@ -336,7 +501,7 @@ class PendingFileContentComponent extends Component {
   }
 
   // eslint-disable-next-line class-methods-use-this
-  computeState(objects) {
+  async computeState(objects) {
     const indexedObjects = R.indexBy(R.prop('id'), objects);
     const allObjectsIds = R.map((n) => n.id, objects);
     const dependencies = {};
@@ -413,6 +578,53 @@ class PendingFileContentComponent extends Component {
       R.prop('id'),
       objectsWithDependencies,
     );
+    const refsToResolve = [];
+    for (const object of objectsWithDependencies) {
+      if (object.object_refs) {
+        refsToResolve.push(...object.object_refs);
+      }
+    }
+    const resolvedObjects = {};
+    if (refsToResolve.length > 0) {
+      await fetchQuery(pendingFileContentResolveEntitiesQuery, {
+        first: 1000,
+        filters: [{ key: 'standard_id', values: refsToResolve }],
+      })
+        .toPromise()
+        .then(async (data) => {
+          if (data.stixCoreObjects && data.stixCoreObjects.edges) {
+            for (const edge of data.stixCoreObjects.edges) {
+              resolvedObjects[edge.node.standard_id] = R.pipe(
+                R.assoc('type', edge.node.entity_type),
+                R.assoc('id', edge.node.standard_id),
+                R.assoc(
+                  'default_value',
+                  defaultValue(
+                    R.pipe(
+                      R.assoc(
+                        'source_ref_name',
+                        edge.node.source_ref
+                          ? defaultValue(
+                            indexedObjects[edge.node.source_ref] || {},
+                          )
+                          : null,
+                      ),
+                      R.assoc(
+                        'target_ref_name',
+                        edge.node.target_ref
+                          ? defaultValue(
+                            indexedObjects[edge.node.target_ref] || {},
+                          )
+                          : null,
+                      ),
+                    )(edge.node),
+                  ),
+                ),
+              )(edge.node);
+            }
+          }
+        });
+    }
     return {
       allObjectsIds,
       checkedObjects: allObjectsIds,
@@ -422,6 +634,7 @@ class PendingFileContentComponent extends Component {
       indexedObjectsWithDependencies,
       containersChecked,
       allContainers: containersChecked,
+      resolvedObjects,
     };
   }
 
@@ -545,14 +758,10 @@ class PendingFileContentComponent extends Component {
     const originalObject = this.state.indexedObjects[objectId];
     const originalObjectWithDependencies = this.state.indexedObjectsWithDependencies[objectId];
     if (originalObject.type !== 'x-opencti-simple-observable') {
-      const newObject = R.assoc(
-        'type',
-        event.target.value.toLowerCase(),
-        originalObject,
-      );
+      const newObject = R.assoc('type', event.target.value, originalObject);
       const newObjectWithDependencies = R.assoc(
         'type',
-        event.target.value.toLowerCase(),
+        event.target.value,
         originalObjectWithDependencies,
       );
       const indexedObjects = R.assoc(
@@ -710,11 +919,13 @@ class PendingFileContentComponent extends Component {
       currentJson,
       containersChecked,
       containersUnchecked,
+      resolvedObjects,
     } = this.state;
     const sdoTypes = [
       ...stixDomainObjectTypes.edges.map((n) => n.node.id),
       'Marking-Definition',
       'Identity',
+      'Location',
     ];
     const scoTypes = observableTypes.edges.map((n) => n.node.id);
     let entityId = null;
@@ -911,6 +1122,7 @@ class PendingFileContentComponent extends Component {
                   <div>
                     {this.SortHeader('type', 'Type', true)}
                     {this.SortHeader('default_value', 'Name', true)}
+                    {this.SortHeader('in_platform', 'Already in plat.', true)}
                     {this.SortHeader('nb_dependencies', 'Dependencies', true)}
                     {this.SortHeader(
                       'nb_inbound_dependencies',
@@ -939,6 +1151,7 @@ class PendingFileContentComponent extends Component {
               const isDisabled = entityId === object.id
                 || (!checkedObjects.includes(object.id)
                   && !uncheckedObjects.includes(object.id));
+              const isInPlatform = resolvedObjects[object.id] !== undefined;
               return (
                 <div key={object.id}>
                   <ListItem classes={{ root: classes.item }} divider={true}>
@@ -958,7 +1171,7 @@ class PendingFileContentComponent extends Component {
                               'report',
                               'note',
                               'opinion',
-                            ].includes(object.type) || type === 'StixFile' ? (
+                            ].includes(object.type) ? (
                                 type
                               ) : (
                               <Select
@@ -994,6 +1207,16 @@ class PendingFileContentComponent extends Component {
                             style={inlineStyles.default_value}
                           >
                             {object.default_value}
+                          </div>
+                          <div
+                            className={classes.bodyItem}
+                            style={inlineStyles.in_platform}
+                          >
+                            <ItemBoolean
+                              variant="inList"
+                              status={isInPlatform}
+                              label={isInPlatform ? t('Yes') : t('No')}
+                            />
                           </div>
                           <div
                             className={classes.bodyItem}
@@ -1037,7 +1260,8 @@ class PendingFileContentComponent extends Component {
                   {object.object_refs && (
                     <List component="div" disablePadding>
                       {object.object_refs.map((objectRef) => {
-                        const subObject = indexedObjectsWithDependencies[objectRef];
+                        const subObject = indexedObjectsWithDependencies[objectRef]
+                          || resolvedObjects[objectRef];
                         if (!subObject) {
                           const subObjectTypeRaw = objectRef.split('--')[0];
                           const subObjectType = subObjectTypeRaw === 'x-opencti-simple-observable'
@@ -1050,6 +1274,7 @@ class PendingFileContentComponent extends Component {
                               && !(containersUnchecked[object.id] || []).includes(
                                 objectRef,
                               ));
+                          const isRefInPlatform = resolvedObjects[objectRef] !== undefined;
                           return (
                             <ListItem
                               key={objectRef}
@@ -1073,6 +1298,18 @@ class PendingFileContentComponent extends Component {
                                       style={inlineStyles.default_value}
                                     >
                                       {objectRef}
+                                    </div>
+                                    <div
+                                      className={classes.bodyItem}
+                                      style={inlineStyles.in_platform}
+                                    >
+                                      <ItemBoolean
+                                        variant="inList"
+                                        status={isRefInPlatform}
+                                        label={
+                                          isRefInPlatform ? t('Yes') : t('No')
+                                        }
+                                      />
                                     </div>
                                     <div
                                       className={classes.bodyItem}
@@ -1124,6 +1361,7 @@ class PendingFileContentComponent extends Component {
                             && !(containersUnchecked[object.id] || []).includes(
                               subObject.id,
                             ));
+                        const isRefInPlatform = resolvedObjects[objectRef] !== undefined;
                         return (
                           <ListItem
                             key={subObject.id}
@@ -1156,6 +1394,18 @@ class PendingFileContentComponent extends Component {
                                     style={inlineStyles.default_value}
                                   >
                                     {subObject.default_value}
+                                  </div>
+                                  <div
+                                    className={classes.bodyItem}
+                                    style={inlineStyles.in_platform}
+                                  >
+                                    <ItemBoolean
+                                      variant="inList"
+                                      status={isRefInPlatform}
+                                      label={
+                                        isRefInPlatform ? t('Yes') : t('No')
+                                      }
+                                    />
                                   </div>
                                   <div
                                     className={classes.bodyItem}
@@ -1210,7 +1460,7 @@ class PendingFileContentComponent extends Component {
         />
         <Formik
           enableReinitialize={true}
-          initialValues={{ connector_id: connectors[0].id }}
+          initialValues={{ connector_id: connectors.length > 0 ? connectors[0].id : '' }}
           validationSchema={importValidation(t)}
           onSubmit={this.onSubmitValidate.bind(this)}
           onReset={this.handleCloseValidate.bind(this)}

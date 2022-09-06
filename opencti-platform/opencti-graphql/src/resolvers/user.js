@@ -37,6 +37,9 @@ import {
   deleteBookmark,
   userRenewToken,
   authenticateUser,
+  otpUserGeneration,
+  otpUserLogin,
+  otpUserActivation, otpUserDeactivation,
 } from '../domain/user';
 import { BUS_TOPICS, logApp, logAudit } from '../config/conf';
 import passport, { PROVIDERS } from '../config/providers';
@@ -56,6 +59,7 @@ const rolesCapabilitiesLoader = batchLoader(batchRoleCapabilities);
 const userResolvers = {
   Query: {
     user: (_, { id }, { user }) => findById(user, id),
+    otpGeneration: (_, __, { user }) => otpUserGeneration(user),
     users: (_, args, { user }) => findAll(user, args),
     role: (_, { id }, { user }) => findRoleById(user, id),
     roles: (_, args, { user }) => findRoles(user, args),
@@ -84,11 +88,14 @@ const userResolvers = {
     capabilities: (role, _, { user }) => rolesCapabilitiesLoader.load(role.id, user),
   },
   Mutation: {
+    otpActivation: (_, { input }, { user }) => otpUserActivation(user, input),
+    otpDeactivation: (_, __, { user }) => otpUserDeactivation(user, user.id),
+    otpLogin: (_, { input }, { req, user }) => otpUserLogin(req, user, input),
     token: async (_, { input }, { req }) => {
       // We need to iterate on each provider to find one that validated the credentials
       const formProviders = R.filter((p) => p.type === 'FORM', PROVIDERS);
       if (formProviders.length === 0) {
-        logApp.error('[AUTH] Cant authenticate without any form providers');
+        logApp.warn('[AUTH] Cant authenticate without any form providers');
       }
       let loggedUser;
       for (let index = 0; index < formProviders.length; index += 1) {
@@ -117,6 +124,7 @@ const userResolvers = {
       throw AuthenticationFailure();
     },
     sessionKill: (_, { id }) => killSession(id),
+    otpUserDeactivation: (_, { id }, { user }) => otpUserDeactivation(user, id),
     userSessionsKill: (_, { id }) => killUserSessions(id),
     logout: (_, args, context) => logout(context.user, context.req, context.res),
     roleEdit: (_, { id }, { user }) => ({
@@ -137,7 +145,7 @@ const userResolvers = {
       relationAdd: ({ input }) => userAddRelation(user, id, input),
       relationDelete: ({ toId, relationship_type: relationshipType }) => userIdDeleteRelation(user, id, toId, relationshipType),
     }),
-    meEdit: (_, { input }, { user }) => meEditField(user, user.id, input),
+    meEdit: (_, { input, password }, { user }) => meEditField(user, user.id, input, password),
     meTokenRenew: (_, __, { user }) => userRenewToken(user, user.id),
     userAdd: (_, { input }, { user }) => addUser(user, input),
     bookmarkAdd: (_, { id, type }, { user }) => addBookmark(user, id, type),

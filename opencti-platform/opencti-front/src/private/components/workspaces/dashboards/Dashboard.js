@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import * as R from 'ramda';
 import { graphql, createFragmentContainer } from 'react-relay';
 import { Responsive, WidthProvider } from 'react-grid-layout';
-import DatePicker from '@mui/lab/DatePicker';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import Drawer from '@mui/material/Drawer';
 import Grid from '@mui/material/Grid';
 import InputLabel from '@mui/material/InputLabel';
@@ -29,6 +29,7 @@ import Security, { EXPLORE_EXUPDATE } from '../../../../utils/Security';
 import ThreatVictimologyAll from './ThreatVictimologyAll';
 import ThreatVictimologySectors from './ThreatVictimologySectors';
 import ThreatVictimologyCountries from './ThreatVictimologyCountries';
+import ThreatVictimologyRegions from './ThreatVictimologyRegions';
 import ThreatActivityCampaigns from './ThreatActivityCampaigns';
 import ThreatActivityIndicators from './ThreatActivityIndicators';
 import ThreatActivityReports from './ThreatActivityReports';
@@ -42,6 +43,7 @@ import WidgetPopover from './WidgetPopover';
 import GlobalVictimologyAll from './GlobalVictimologyAll';
 import GlobalVictimologySectors from './GlobalVictimologySectors';
 import GlobalVictimologyCountries from './GlobalVictimologyCountries';
+import GlobalVictimologyRegions from './GlobalVictimologyRegions';
 import GlobalActivityIntrusionSets from './GlobalActivityIntrusionSets';
 import GlobalActivityMalwares from './GlobalActivityMalwares';
 import GlobalActivityReports from './GlobalActivityReports';
@@ -49,6 +51,7 @@ import GlobalActivityIndicators from './GlobalActivityIndicators';
 import GlobalActivityVulnerabilities from './GlobalActivityVulnerabilities';
 import ThreatVulnerabilities from './ThreatVulnerabilities';
 import { fromB64, toB64 } from '../../../../utils/String';
+import GlobalActivityStixCoreRelationships from './GlobalActivityStixCoreRelationships';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -196,6 +199,17 @@ class DashboardComponent extends Component {
     this.saveManifest(newManifest);
   }
 
+  onConfigChange(config) {
+    const manifest = this.decodeManifest();
+    const newManifest = R.assoc(
+      'widgets',
+      R.map((n) => R.assoc('config', config, n), manifest.widgets),
+      manifest,
+    );
+    this.setState({ mapReload: true }, () => this.setState({ mapReload: false }));
+    this.saveManifest(newManifest);
+  }
+
   static getDayStartDate() {
     return dayStartDate(null, false);
   }
@@ -230,6 +244,16 @@ class DashboardComponent extends Component {
             endDate={endDate}
             timeField={timeField}
             widget={widget}
+          />
+        );
+      case 'regions':
+        return (
+          <GlobalVictimologyRegions
+            startDate={startDate}
+            endDate={endDate}
+            timeField={timeField}
+            widget={widget}
+            mapReload={this.state.mapReload}
           />
         );
       case 'countries':
@@ -276,6 +300,7 @@ class DashboardComponent extends Component {
             endDate={endDate}
             timeField={timeField}
             widget={widget}
+            onConfigChange={this.onConfigChange.bind(this)}
           />
         );
       case 'indicators':
@@ -305,6 +330,16 @@ class DashboardComponent extends Component {
             timeField={timeField}
             widget={widget}
             field="x_opencti_detection"
+          />
+        );
+      case 'relationships_list':
+        return (
+          <GlobalActivityStixCoreRelationships
+            startDate={startDate}
+            endDate={endDate}
+            timeField={timeField}
+            widget={widget}
+            onConfigChange={this.onConfigChange.bind(this)}
           />
         );
       default:
@@ -342,6 +377,16 @@ class DashboardComponent extends Component {
             endDate={endDate}
             timeField={timeField}
             widget={widget}
+          />
+        );
+      case 'regions':
+        return (
+          <ThreatVictimologyRegions
+            startDate={startDate}
+            endDate={endDate}
+            timeField={timeField}
+            widget={widget}
+            mapReload={this.state.mapReload}
           />
         );
       case 'countries':
@@ -515,13 +560,13 @@ class DashboardComponent extends Component {
                 <Grid container={true} spacing={1}>
                   <Grid item={true} xs="auto">
                     <FormControl style={{ width: 194, marginRight: 20 }}>
-                      <InputLabel id="timeField">
+                      <InputLabel id="timeField" variant="standard">
                         {t('Date reference')}
                       </InputLabel>
                       <Select
                         variant="standard"
                         labelId="timeField"
-                        value={relativeDate === null ? '' : relativeDate}
+                        value={timeField === null ? '' : timeField}
                         onChange={this.handleTimeFieldChange.bind(this)}
                         disabled={true}
                       >
@@ -536,7 +581,7 @@ class DashboardComponent extends Component {
                   </Grid>
                   <Grid item={true} xs="auto">
                     <FormControl style={{ width: 194, marginRight: 20 }}>
-                      <InputLabel id="relative">
+                      <InputLabel id="relative" variant="standard">
                         {t('Relative time')}
                       </InputLabel>
                       <Select
@@ -702,11 +747,11 @@ class DashboardComponent extends Component {
                 xxs: 1200,
               }}
               cols={{
-                lg: 18,
-                md: 18,
-                sm: 18,
-                xs: 18,
-                xxs: 18,
+                lg: 30,
+                md: 30,
+                sm: 30,
+                xs: 30,
+                xxs: 30,
               }}
               isDraggable={false}
               isResizable={false}
@@ -741,11 +786,11 @@ class DashboardComponent extends Component {
               xxs: 1200,
             }}
             cols={{
-              lg: 18,
-              md: 18,
-              sm: 18,
-              xs: 18,
-              xxs: 18,
+              lg: 30,
+              md: 30,
+              sm: 30,
+              xs: 30,
+              xxs: 30,
             }}
             isDraggable={!noToolbar}
             isResizable={!noToolbar}

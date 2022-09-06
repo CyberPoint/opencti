@@ -1,13 +1,13 @@
-import { deleteElementById, loadById, updateAttribute } from '../database/middleware';
-import { listEntities } from '../database/repository';
+import { deleteElementById, storeLoadById, updateAttribute } from '../database/middleware';
+import { listEntities } from '../database/middleware-loader';
 import { ENTITY_TYPE_RETENTION_RULE } from '../schema/internalObject';
 import { generateInternalId, generateStandardId } from '../schema/identifier';
 import { elIndex, elPaginate } from '../database/engine';
 import { INDEX_INTERNAL_OBJECTS, READ_DATA_INDICES_WITHOUT_INFERRED } from '../database/utils';
 import { UnsupportedError } from '../config/errors';
-import { convertFiltersToQueryOptions } from './taxii';
 import { utcDate } from '../utils/format';
 import { RETENTION_MANAGER_USER } from '../utils/access';
+import { convertFiltersToQueryOptions } from '../utils/filtering';
 
 // 'id', 'standard_id', 'name', 'filters', 'last_execution_date', 'last_deleted_count', 'remaining_count'
 
@@ -56,7 +56,7 @@ export const deleteRetentionRule = async (user, retentionRuleId) => {
 };
 
 export const findById = async (user, retentionRuleId) => {
-  return loadById(user, retentionRuleId, ENTITY_TYPE_RETENTION_RULE);
+  return storeLoadById(user, retentionRuleId, ENTITY_TYPE_RETENTION_RULE);
 };
 
 export const findAll = (user, args) => {

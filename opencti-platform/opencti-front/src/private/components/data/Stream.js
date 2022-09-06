@@ -3,6 +3,7 @@ import * as PropTypes from 'prop-types';
 import { compose, propOr } from 'ramda';
 import { withRouter } from 'react-router-dom';
 import withTheme from '@mui/styles/withTheme';
+import withStyles from '@mui/styles/withStyles';
 import { QueryRenderer } from '../../../relay/environment';
 import {
   buildViewParamsFromUrlAndStorage,
@@ -12,6 +13,14 @@ import inject18n from '../../../components/i18n';
 import ListLines from '../../../components/list_lines/ListLines';
 import StreamLines, { StreamLinesQuery } from './stream/StreamLines';
 import StreamCollectionCreation from './stream/StreamCollectionCreation';
+import SharingMenu from './SharingMenu';
+
+const styles = () => ({
+  container: {
+    margin: 0,
+    padding: '0 200px 50px 0',
+  },
+});
 
 class Stream extends Component {
   constructor(props) {
@@ -117,6 +126,7 @@ class Stream extends Component {
   }
 
   render() {
+    const { classes } = this.props;
     const { view, sortBy, orderAsc, searchTerm } = this.state;
     const paginationOptions = {
       search: searchTerm,
@@ -124,7 +134,8 @@ class Stream extends Component {
       orderMode: orderAsc ? 'asc' : 'desc',
     };
     return (
-      <div>
+      <div className={classes.container}>
+        <SharingMenu />
         {view === 'lines' ? this.renderLines(paginationOptions) : ''}
         <StreamCollectionCreation paginationOptions={paginationOptions} />
       </div>
@@ -138,4 +149,9 @@ Stream.propTypes = {
   location: PropTypes.object,
 };
 
-export default compose(inject18n, withTheme, withRouter)(Stream);
+export default compose(
+  inject18n,
+  withTheme,
+  withRouter,
+  withStyles(styles),
+)(Stream);

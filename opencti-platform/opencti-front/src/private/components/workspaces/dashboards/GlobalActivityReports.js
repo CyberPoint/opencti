@@ -8,6 +8,7 @@ import ReportsAreaChart from '../../analysis/reports/ReportsAreaChart';
 import ReportsVerticalBars from '../../analysis/reports/ReportsVerticalBars';
 import ReportsDonut from '../../analysis/reports/ReportsDonut';
 import StixDomainObjectsTimeline from '../../common/stix_domain_objects/StixDomainObjectsTimeline';
+import StixDomainObjectsList from '../../common/stix_domain_objects/StixDomainObjectsList';
 
 const styles = () => ({
   container: {
@@ -17,7 +18,7 @@ const styles = () => ({
 
 class GlobalActivityReports extends Component {
   render() {
-    const { t, widget, startDate, endDate, timeField } = this.props;
+    const { t, widget, startDate, endDate, timeField, onConfigChange } = this.props;
     let dateAttribute = 'created_at';
     if (timeField === 'functional') {
       dateAttribute = 'created';
@@ -74,6 +75,19 @@ class GlobalActivityReports extends Component {
             variant="inLine"
           />
         );
+      case 'list':
+        return (
+          <StixDomainObjectsList
+            title={`${t('Activity')} - ${t('Reports')}`}
+            types={['Report']}
+            dateAttribute={dateAttribute}
+            variant="inLine"
+            config={widget.config}
+            onConfigChange={onConfigChange.bind(this)}
+            startDate={startDate}
+            endDate={endDate}
+          />
+        );
       default:
         return (
           <div style={{ display: 'table', height: '100%', width: '100%' }}>
@@ -99,6 +113,7 @@ GlobalActivityReports.propTypes = {
   widget: PropTypes.object,
   classes: PropTypes.object,
   t: PropTypes.func,
+  onConfigChange: PropTypes.func,
 };
 
 export default R.compose(inject18n, withStyles(styles))(GlobalActivityReports);

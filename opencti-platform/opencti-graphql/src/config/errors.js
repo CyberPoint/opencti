@@ -23,6 +23,13 @@ export const AuthRequired = (data) => error(AUTH_REQUIRED, 'You must be logged i
   ...data,
 });
 
+export const OTP_REQUIRED = 'OtpRequired';
+export const OtpRequired = (data) => error(OTP_REQUIRED, 'You must validate your accout with 2FA.', {
+  http_status: 401,
+  category: CATEGORY_TECHNICAL,
+  ...data,
+});
+
 export const FORBIDDEN_ACCESS = 'ForbiddenAccess';
 export const ForbiddenAccess = (data) => error(FORBIDDEN_ACCESS, 'You are not allowed to do this.', {
   http_status: 403,
@@ -73,9 +80,9 @@ export const FunctionalError = (reason, data) => error('FunctionalError', 'Busin
   ...data,
 });
 
-export const TYPE_LOCK_ERROR = 'LockError';
-export const LockTimeoutError = (data) => error(TYPE_LOCK_ERROR, 'Lock timeout', {
-  reason: 'Execution timeout, too many concurrent call on the same entities',
+export const TYPE_LOCK_ERROR = 'ExecutionError';
+export const LockTimeoutError = (data, reason) => error('LockError', 'Lock timeout', {
+  reason: reason ?? 'Execution timeout, too many concurrent call on the same entities',
   http_status: 500,
   category: CATEGORY_BUSINESS,
   ...data,

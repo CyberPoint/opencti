@@ -2,7 +2,6 @@ import {
   connectorDelete,
   connectorForWork,
   connectorsForExport,
-  connectorsForImport,
   findAllSync,
   loadConnectorById,
   patchSync,
@@ -20,24 +19,25 @@ import {
 import {
   createWork,
   deleteWork,
-  reportActionImport,
+  reportExpectation,
   updateProcessedTime,
   updateReceivedTime,
   worksForConnector,
   findAll,
   findById,
   deleteWorkForConnector,
-  pingWork,
+  pingWork, updateExpectationsNumber,
 } from '../domain/work';
 import { findById as findUserById } from '../domain/user';
-import { redisGetWork, redisUpdateActionExpectation } from '../database/redis';
+import { redisGetWork } from '../database/redis';
 import { now } from '../utils/format';
-import { connectors } from '../database/repository';
+import { connectors, connectorsForImport, connectorsForWorker } from '../database/repository';
 
 const connectorResolvers = {
   Query: {
     connector: (_, { id }, { user }) => loadConnectorById(user, id),
     connectors: (_, __, { user }) => connectors(user),
+    connectorsForWorker: (_, __, { user }) => connectorsForWorker(user),
     connectorsForExport: (_, __, { user }) => connectorsForExport(user),
     connectorsForImport: (_, __, { user }) => connectorsForImport(user),
     works: (_, args, { user }) => findAll(user, args),
@@ -52,7 +52,19 @@ const connectorResolvers = {
   Work: {
     connector: (work, _, { user }) => connectorForWork(user, work.id),
     user: (work, _, { user }) => findUserById(user, work.user_id),
-    tracking: (work) => redisGetWork(work.id),
+    tracking: async (work) => {
+      // If complete, redis key is deleted, database contains all information
+      if (work.status === 'complete') {
+        return { import_processed_number: work.completed_number, import_expected_number: work.import_expected_number };
+      }
+      // If running, information in redis.
+      const redisData = await redisGetWork(work.id);
+      // If data in redis not exist, just send default values
+      if (redisData === undefined) {
+        return { import_processed_number: null, import_expected_number: null };
+      }
+      return redisData;
+    },
   },
   Synchronizer: {
     user: (sync, _, { user }) => findUserById(user, sync.user_id),
@@ -70,8 +82,8 @@ const connectorResolvers = {
     workEdit: (_, { id }, { user }) => ({
       delete: () => deleteWork(user, id),
       ping: () => pingWork(user, id),
-      reportExpectation: ({ error }) => reportActionImport(user, id, error),
-      addExpectations: ({ expectations }) => redisUpdateActionExpectation(user, id, expectations),
+      reportExpectation: ({ error }) => reportExpectation(user, id, error),
+      addExpectations: ({ expectations }) => updateExpectationsNumber(user, id, expectations),
       toReceived: ({ message }) => updateReceivedTime(user, id, message),
       toProcessed: ({ message, inError }) => updateProcessedTime(user, id, message, inError),
     }),

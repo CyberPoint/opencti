@@ -31,10 +31,10 @@ import {
   numberAttributes,
   multipleAttributes,
 } from './StixCyberObservableCreation';
-import { dateFormat } from '../../../../utils/Time';
-import DatePickerField from '../../../../components/DatePickerField';
+import { buildDate } from '../../../../utils/Time';
 import SwitchField from '../../../../components/SwitchField';
 import MarkDownField from '../../../../components/MarkDownField';
+import DateTimePickerField from '../../../../components/DateTimePickerField';
 
 const styles = (theme) => ({
   drawerPaper: {
@@ -134,7 +134,7 @@ class StixCyberObservableEditionOverviewComponent extends Component {
 
   handleSubmitField(name, value) {
     let finalName = name;
-    let finalValue = value;
+    let finalValue = value || '';
     if (name.includes('hashes')) {
       finalName = name.replace('hashes_', 'hashes.');
     }
@@ -254,7 +254,6 @@ class StixCyberObservableEditionOverviewComponent extends Component {
                 'objectMarking',
               ]),
             )(stixCyberObservable);
-
             const attributes = pipe(
               map((n) => n.node),
               filter(
@@ -267,7 +266,7 @@ class StixCyberObservableEditionOverviewComponent extends Component {
                 initialValues[attribute.value] = stixCyberObservable[
                   attribute.value
                 ]
-                  ? dateFormat(stixCyberObservable[attribute.value])
+                  ? buildDate(stixCyberObservable[attribute.value])
                   : null;
               } else if (includes(attribute.value, multipleAttributes)) {
                 initialValues[attribute.value] = stixCyberObservable[
@@ -403,12 +402,10 @@ class StixCyberObservableEditionOverviewComponent extends Component {
                       if (includes(attribute.value, dateAttributes)) {
                         return (
                           <Field
-                            component={DatePickerField}
+                            component={DateTimePickerField}
                             key={attribute.value}
                             name={attribute.value}
-                            invalidDateMessage={t(
-                              'The value must be a date (mm/dd/yyyy)',
-                            )}
+                            withSeconds={true}
                             onFocus={this.handleChangeFocus.bind(this)}
                             onSubmit={this.handleSubmitField.bind(this)}
                             TextFieldProps={{
@@ -603,6 +600,22 @@ const StixCyberObservableEditionOverview = createFragmentContainer(
             algorithm
             hash
           }
+          basic_constraints
+          name_constraints
+          policy_constraints
+          key_usage
+          extended_key_usage
+          subject_key_identifier
+          authority_key_identifier
+          subject_alternative_name
+          issuer_alternative_name
+          subject_directory_attributes
+          crl_distribution_points
+          inhibit_any_policy
+          private_key_usage_period_not_before
+          private_key_usage_period_not_after
+          certificate_policies
+          policy_mappings
         }
         ... on IPv4Addr {
           value
@@ -676,38 +689,34 @@ const StixCyberObservableEditionOverview = createFragmentContainer(
           data
           data_type
         }
-        ... on X509V3ExtensionsType {
-          basic_constraints
-          name_constraints
-          policy_constraints
-          key_usage
-          extended_key_usage
-          subject_key_identifier
-          authority_key_identifier
-          subject_alternative_name
-          issuer_alternative_name
-          subject_directory_attributes
-          crl_distribution_points
-          inhibit_any_policy
-          private_key_usage_period_not_before
-          private_key_usage_period_not_after
-          certificate_policies
-          policy_mappings
-        }
-        ... on XOpenCTIHostname {
+        ... on Hostname {
           value
         }
-        ... on XOpenCTICryptographicKey {
+        ... on CryptographicKey {
           value
         }
-        ... on XOpenCTICryptocurrencyWallet {
+        ... on CryptocurrencyWallet {
           value
         }
-        ... on XOpenCTIText {
+        ... on Text {
           value
         }
-        ... on XOpenCTIUserAgent {
+        ... on UserAgent {
           value
+        }
+        ... on BankAccount {
+          iban
+          bic
+          account_number
+        }
+        ... on PhoneNumber {
+          value
+        }
+        ... on PaymentCard {
+          card_number
+          expiration_date
+          cvv
+          holder_name
         }
         x_opencti_score
         x_opencti_description

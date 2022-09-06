@@ -3,4 +3,5 @@
 /coverage
 /public
 /src/generated
+/src/stixpattern
 /src/types.ts

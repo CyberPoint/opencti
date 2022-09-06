@@ -32,6 +32,7 @@ const styles = (theme) => ({
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+    paddingRight: 5,
   },
   itemIconDisabled: {
     color: theme.palette.grey[700],
@@ -169,6 +170,7 @@ const SimpleStixObjectOrStixRelationshipStixCoreRelationshipLineFragment = creat
           stop_time
           description
           is_inferred
+          created_at
           x_opencti_inferences {
             rule {
               id
@@ -294,6 +296,21 @@ const SimpleStixObjectOrStixRelationshipStixCoreRelationshipLineFragment = creat
             ... on Incident {
               name
               description
+            }
+            ... on Event {
+              name
+              description
+            }
+            ... on Channel {
+              name
+              description
+            }
+            ... on Narrative {
+              name
+              description
+            }
+            ... on Language {
+              name
             }
             ... on StixCyberObservable {
               id
@@ -475,6 +492,21 @@ const SimpleStixObjectOrStixRelationshipStixCoreRelationshipLineFragment = creat
             ... on Incident {
               name
               description
+            }
+            ... on Event {
+              name
+              description
+            }
+            ... on Channel {
+              name
+              description
+            }
+            ... on Narrative {
+              name
+              description
+            }
+            ... on Language {
+              name
             }
             ... on StixCyberObservable {
               id

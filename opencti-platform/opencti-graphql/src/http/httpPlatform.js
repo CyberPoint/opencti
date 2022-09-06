@@ -15,16 +15,18 @@ import contentDisposition from 'content-disposition';
 import { basePath, booleanConf, DEV_MODE, formatPath, logApp, logAudit } from '../config/conf';
 import passport, { empty, isStrategyActivated, STRATEGY_CERT } from '../config/providers';
 import { authenticateUser, authenticateUserFromRequest, loginFromProvider, userWithOrigin } from '../domain/user';
-import { downloadFile, getFileContent, loadFile } from '../database/minio';
+import { downloadFile, getFileContent, loadFile } from '../database/file-storage';
 import createSeeMiddleware from '../graphql/sseMiddleware';
 import initTaxiiApi from './httpTaxii';
 import { LOGIN_ACTION } from '../config/audit';
+import initHttpRollingFeeds from './httpRollingFeed';
 
 const setCookieError = (res, message) => {
   res.cookie('opencti_flash', message || 'Unknown error', {
     maxAge: 5000,
     httpOnly: false,
     secure: booleanConf('app:https_cert:cookie_secure', false),
+    sameSite: 'strict',
   });
 };
 
@@ -101,8 +103,11 @@ const createApp = async (app) => {
     );
   }
 
+  // -- Serv playground resources
+  app.use(`${basePath}/static/@apollographql/graphql-playground-react@1.7.42/build/static`, express.static('static/playground'));
+
+  // -- Serv static resources
   app.use(`${basePath}/static`, express.static(path.join(__dirname, '../public/static')));
-  app.use(`${basePath}/media`, express.static(path.join(__dirname, '../public/static/media')));
 
   const requestSizeLimit = nconf.get('app:max_payload_body_size') || '10mb';
   app.use(bodyParser.json({ limit: requestSizeLimit }));
@@ -112,6 +117,9 @@ const createApp = async (app) => {
 
   // -- Init Taxii rest api
   initTaxiiApi(app);
+
+  // -- Init rolling feeds rest api
+  initHttpRollingFeeds(app);
 
   // -- File download
   app.get(`${basePath}/storage/get/:file(*)`, async (req, res, next) => {
@@ -141,11 +149,14 @@ const createApp = async (app) => {
       }
       const { file } = req.params;
       const data = await loadFile(auth, file);
-      res.setHeader('Content-disposition', contentDisposition(data.name, { type: 'inline' }));
+      res.set('Content-disposition', contentDisposition(data.name, { type: 'inline' }));
+      res.set({ 'Content-Security-Policy': 'sandbox' });
+      res.set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+      res.set({ Pragma: 'no-cache' });
       if (data.metaData.mimetype === 'text/html') {
         res.set({ 'Content-type': 'text/html; charset=utf-8' });
       } else {
-        res.setHeader('Content-type', data.metaData.mimetype);
+        res.set('Content-type', data.metaData.mimetype);
       }
       const stream = await downloadFile(file);
       stream.pipe(res);
@@ -169,6 +180,8 @@ const createApp = async (app) => {
         const markDownData = await getFileContent(file);
         const converter = new showdown.Converter();
         const html = converter.makeHtml(markDownData);
+        res.set({ 'Content-Security-Policy': 'sandbox' });
+        res.set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
         res.send(html);
       } else {
         res.send('Unsupported file type');
@@ -241,12 +254,12 @@ const createApp = async (app) => {
       if (err || !user) {
         logAudit.error(userWithOrigin(req, {}), LOGIN_ACTION, { provider, error: err?.message });
         setCookieError(res, err?.message);
-        return res.redirect(referer);
+        return res.redirect(referer ?? '/');
       }
       // noinspection UnnecessaryLocalVariableJS
       await authenticateUser(req, user, provider);
       req.session.referer = null;
-      return res.redirect(referer);
+      return res.redirect(referer ?? '/');
     })(req, res, next);
   });
 
@@ -254,9 +267,9 @@ const createApp = async (app) => {
   app.get('*', (req, res) => {
     const data = readFileSync(`${__dirname}/../public/index.html`, 'utf8');
     const withOptionValued = data.replace(/%BASE_PATH%/g, basePath);
-    res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate');
-    res.header('Expires', '-1');
-    res.header('Pragma', 'no-cache');
+    res.set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+    res.set('Expires', '-1');
+    res.set('Pragma', 'no-cache');
     return res.send(withOptionValued);
   });
 

@@ -71,10 +71,10 @@ const campaignEditionDetailsFocus = graphql`
 const campaignValidation = (t) => Yup.object().shape({
   first_seen: Yup.date()
     .nullable()
-    .typeError(t('The value must be a date (YYYY-MM-DD)')),
+    .typeError(t('The value must be a datetime (yyyy-MM-dd hh:mm (a|p)m)')),
   last_seen: Yup.date()
     .nullable()
-    .typeError(t('The value must be a date (YYYY-MM-DD)')),
+    .typeError(t('The value must be a datetime (yyyy-MM-dd hh:mm (a|p)m)')),
   objective: Yup.string().nullable(),
   references: Yup.array().required(t('This field is required')),
 });
@@ -171,9 +171,6 @@ class CampaignEditionDetailsComponent extends Component {
             <Field
               component={DateTimePickerField}
               name="first_seen"
-              invalidDateMessage={t(
-                'The value must be a datetime (mm/dd/yyyy hh:mm (a|p)m))',
-              )}
               onFocus={this.handleChangeFocus.bind(this)}
               onSubmit={this.handleSubmitField.bind(this)}
               TextFieldProps={{
@@ -188,9 +185,6 @@ class CampaignEditionDetailsComponent extends Component {
             <Field
               component={DateTimePickerField}
               name="last_seen"
-              invalidDateMessage={t(
-                'The value must be a datetime (mm/dd/yyyy hh:mm (a|p)m)',
-              )}
               onFocus={this.handleChangeFocus.bind(this)}
               onSubmit={this.handleSubmitField.bind(this)}
               TextFieldProps={{

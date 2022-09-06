@@ -7,8 +7,7 @@ import withStyles from '@mui/styles/withStyles';
 import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
-import { KeyboardArrowRight } from '@mui/icons-material';
-import { Application } from 'mdi-material-ui';
+import { KeyboardArrowRight, WebAssetOutlined } from '@mui/icons-material';
 import Skeleton from '@mui/material/Skeleton';
 import inject18n from '../../../../components/i18n';
 import StixCoreObjectLabels from '../../common/stix_core_objects/StixCoreObjectLabels';
@@ -28,6 +27,7 @@ const styles = (theme) => ({
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+    paddingRight: 5,
   },
   goIcon: {
     position: 'absolute',
@@ -55,7 +55,7 @@ class ToolLineComponent extends Component {
         to={`/dashboard/arsenal/tools/${node.id}`}
       >
         <ListItemIcon classes={{ root: classes.itemIcon }}>
-          <Application />
+          <WebAssetOutlined />
         </ListItemIcon>
         <ListItemText
           primary={

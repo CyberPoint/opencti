@@ -7,9 +7,14 @@ import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import { MapContainer, TileLayer, GeoJSON, Marker } from 'react-leaflet';
 import L from 'leaflet';
-import countries from '../../../../resources/geo/countries.json';
+import countries from '../../../../static/geo/countries.json';
 import inject18n from '../../../../components/i18n';
 import { UserContext } from '../../../../utils/Security';
+import { fileUri } from '../../../../relay/environment';
+import CityDark from '../../../../static/images/leaflet/city_dark.png';
+import MarkerDark from '../../../../static/images/leaflet/marker_dark.png';
+import CityLight from '../../../../static/images/leaflet/city_light.png';
+import MarkerLight from '../../../../static/images/leaflet/marker_light.png';
 
 const styles = () => ({
   paper: {
@@ -21,9 +26,17 @@ const styles = () => ({
   },
 });
 
-const pointerIcon = (dark = true) => new L.Icon({
-  iconUrl: `/static/city_${dark ? 'dark' : 'light'}.png`,
-  iconRetinaUrl: `/static/city_${dark ? 'dark' : 'light'}.png`,
+const cityIcon = (dark = true) => new L.Icon({
+  iconUrl: dark ? fileUri(CityDark) : fileUri(CityLight),
+  iconRetinaUrl: dark ? fileUri(CityDark) : fileUri(CityLight),
+  iconAnchor: [5, 55],
+  popupAnchor: [10, -44],
+  iconSize: [25, 25],
+});
+
+const positionIcon = (dark = true) => new L.Icon({
+  iconUrl: dark ? fileUri(MarkerDark) : fileUri(MarkerLight),
+  iconRetinaUrl: dark ? fileUri(MarkerDark) : fileUri(MarkerLight),
   iconAnchor: [5, 55],
   popupAnchor: [10, -44],
   iconSize: [25, 25],
@@ -46,8 +59,13 @@ const LocationMiniMap = (props) => {
     }
     return { fillOpacity: 0, color: 'none' };
   };
-  const { t, center, zoom, classes, theme, city } = props;
-  const position = city && city.latitude ? [city.latitude, city.longitude] : null;
+  const { t, center, zoom, classes, theme, city, position } = props;
+  let mapPosition = null;
+  if (city && city.latitude && city.longitude) {
+    mapPosition = [city.latitude, city.longitude];
+  } else if (position && position.latitude && position.longitude) {
+    mapPosition = [position.latitude, position.longitude];
+  }
   return (
     <div style={{ height: '100%' }}>
       <Typography variant="h4" gutterBottom={true} style={{ marginBottom: 10 }}>
@@ -68,13 +86,15 @@ const LocationMiniMap = (props) => {
             }
           />
           <GeoJSON data={countries} style={getStyle} />
-          {position ? (
+          {mapPosition && (
             <Marker
-              position={position}
-              icon={pointerIcon(theme.palette.mode === 'dark')}
+              position={mapPosition}
+              icon={
+                city
+                  ? cityIcon(theme.palette.mode === 'dark')
+                  : positionIcon(theme.palette.mode === 'dark')
+              }
             />
-          ) : (
-            ''
           )}
         </MapContainer>
       </Paper>
@@ -84,7 +104,7 @@ const LocationMiniMap = (props) => {
 
 LocationMiniMap.propTypes = {
   countries: PropTypes.array,
-  city: PropTypes.string,
+  city: PropTypes.object,
   zoom: PropTypes.number,
   classes: PropTypes.object,
   t: PropTypes.func,

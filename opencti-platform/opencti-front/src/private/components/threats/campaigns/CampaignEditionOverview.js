@@ -16,6 +16,11 @@ import ConfidenceField from '../../common/form/ConfidenceField';
 import CommitMessage from '../../common/form/CommitMessage';
 import { adaptFieldValue } from '../../../../utils/String';
 import StatusField from '../../common/form/StatusField';
+import {
+  convertCreatedBy,
+  convertMarkings,
+  convertStatus,
+} from '../../../../utils/Edition';
 
 const styles = (theme) => ({
   drawerPaper: {
@@ -111,7 +116,7 @@ const campaignValidation = (t) => Yup.object().shape({
     .max(5000, t('The value is too long'))
     .required(t('This field is required')),
   references: Yup.array().required(t('This field is required')),
-  status_id: Yup.object(),
+  x_opencti_workflow_id: Yup.object(),
 });
 
 class CampaignEditionOverviewComponent extends Component {
@@ -133,7 +138,7 @@ class CampaignEditionOverviewComponent extends Component {
     const inputValues = R.pipe(
       R.dissoc('message'),
       R.dissoc('references'),
-      R.assoc('status_id', values.status_id?.value),
+      R.assoc('x_opencti_workflow_id', values.x_opencti_workflow_id?.value),
       R.assoc('createdBy', values.createdBy?.value),
       R.assoc('objectMarking', R.pluck('value', values.objectMarking)),
       R.toPairs,
@@ -162,7 +167,7 @@ class CampaignEditionOverviewComponent extends Component {
   handleSubmitField(name, value) {
     if (!this.props.enableReferences) {
       let finalValue = value;
-      if (name === 'status_id') {
+      if (name === 'x_opencti_workflow_id') {
         finalValue = value.value;
       }
       campaignValidation(this.props.t)
@@ -172,7 +177,7 @@ class CampaignEditionOverviewComponent extends Component {
             mutation: campaignMutationFieldPatch,
             variables: {
               id: this.props.campaign.id,
-              input: { key: name, value: finalValue || '' },
+              input: { key: name, value: finalValue ?? '' },
             },
           });
         })
@@ -234,44 +239,20 @@ class CampaignEditionOverviewComponent extends Component {
 
   render() {
     const { t, campaign, context, enableReferences } = this.props;
-    const createdBy = R.pathOr(null, ['createdBy', 'name'], campaign) === null
-      ? ''
-      : {
-        label: R.pathOr(null, ['createdBy', 'name'], campaign),
-        value: R.pathOr(null, ['createdBy', 'id'], campaign),
-      };
-    const objectMarking = R.pipe(
-      R.pathOr([], ['objectMarking', 'edges']),
-      R.map((n) => ({
-        label: n.node.definition,
-        value: n.node.id,
-      })),
-    )(campaign);
-    const status = R.pathOr(null, ['status', 'template', 'name'], campaign) === null
-      ? ''
-      : {
-        label: t(
-          `status_${R.pathOr(
-            null,
-            ['status', 'template', 'name'],
-            campaign,
-          )}`,
-        ),
-        color: R.pathOr(null, ['status', 'template', 'color'], campaign),
-        value: R.pathOr(null, ['status', 'id'], campaign),
-        order: R.pathOr(null, ['status', 'order'], campaign),
-      };
+    const createdBy = convertCreatedBy(campaign);
+    const objectMarking = convertMarkings(campaign);
+    const status = convertStatus(t, campaign);
     const initialValues = R.pipe(
       R.assoc('createdBy', createdBy),
       R.assoc('objectMarking', objectMarking),
-      R.assoc('status_id', status),
+      R.assoc('x_opencti_workflow_id', status),
       R.pick([
         'name',
         'confidence',
         'description',
         'createdBy',
         'objectMarking',
-        'status_id',
+        'x_opencti_workflow_id',
       ]),
     )(campaign);
     return (
@@ -327,14 +308,17 @@ class CampaignEditionOverviewComponent extends Component {
             />
             {campaign.workflowEnabled && (
               <StatusField
-                name="status_id"
-                type="Threat-Actor"
+                name="x_opencti_workflow_id"
+                type="Campaign"
                 onFocus={this.handleChangeFocus.bind(this)}
                 onChange={this.handleSubmitField.bind(this)}
                 setFieldValue={setFieldValue}
                 style={{ marginTop: 20 }}
                 helpertext={
-                  <SubscriptionFocus context={context} fieldName="status_id" />
+                  <SubscriptionFocus
+                    context={context}
+                    fieldName="x_opencti_workflow_id"
+                  />
                 }
               />
             )}

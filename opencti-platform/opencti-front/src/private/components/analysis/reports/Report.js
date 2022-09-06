@@ -32,6 +32,7 @@ class ReportComponent extends Component {
         <ContainerHeader
           container={report}
           PopoverComponent={<ReportPopover />}
+          enableSuggestions={true}
         />
         <Grid
           container={true}
@@ -108,6 +109,15 @@ const Report = createFragmentContainer(ReportComponent, {
           }
         }
       }
+      status {
+        id
+        order
+        template {
+          name
+          color
+        }
+      }
+      workflowEnabled
       ...ReportDetails_report
       ...ContainerHeader_container
     }

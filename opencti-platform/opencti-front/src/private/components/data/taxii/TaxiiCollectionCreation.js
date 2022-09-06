@@ -33,7 +33,7 @@ const styles = (theme) => ({
   createButton: {
     position: 'fixed',
     bottom: 30,
-    right: 30,
+    right: 230,
   },
   buttons: {
     marginTop: 20,
@@ -232,7 +232,6 @@ const TaxiiCollectionCreation = (props) => {
                       'confidence_gt',
                       'pattern_type',
                     ]}
-                    currentFilters={[]}
                     handleAddFilter={handleAddFilter}
                     noDirectFilters={true}
                   />

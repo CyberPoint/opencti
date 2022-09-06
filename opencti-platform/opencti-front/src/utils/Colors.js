@@ -85,6 +85,11 @@ export const itemColor = (type, dark = false, reversed = false) => {
         return '#64dd17';
       }
       return '#76ff03';
+    case 'Event':
+      if (dark) {
+        return '#00695c';
+      }
+      return '#26a69a';
     case 'Indicator':
       if (dark) {
         return '#ff6f00';
@@ -135,6 +140,21 @@ export const itemColor = (type, dark = false, reversed = false) => {
         return '#1b5e20';
       }
       return '#4caf50';
+    case 'Channel':
+      if (dark) {
+        return '#ad1457';
+      }
+      return '#ec407a';
+    case 'Narrative':
+      if (dark) {
+        return '#558b2f';
+      }
+      return '#8bc34a';
+    case 'Language':
+      if (dark) {
+        return '#afb42b';
+      }
+      return '#d4e157';
     case 'Vulnerability':
       if (dark) {
         return '#5d4037';
@@ -166,11 +186,13 @@ export const itemColor = (type, dark = false, reversed = false) => {
     case 'User-Account':
     case 'Windows-Registry-Key':
     case 'Windows-Registry-Value-Type':
-    case 'X509-V3-Extensions-Type':
-    case 'X-OpenCTI-Cryptographic-Key':
-    case 'X-OpenCTI-Cryptocurrency-Wallet':
-    case 'X-OpenCTI-Text':
-    case 'X-OpenCTI-User-Agent':
+    case 'Cryptographic-Key':
+    case 'Cryptocurrency-Wallet':
+    case 'Text':
+    case 'User-Agent':
+    case 'Bank-Account':
+    case 'Phone-Number':
+    case 'Payment-Card':
       if (dark) {
         return '#37474f';
       }

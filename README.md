@@ -41,7 +41,7 @@ All you need to install the OpenCTI platform can be found in the [official docum
 
 * [Deploy the VM template](https://luatix.notion.site/Virtual-machine-template-1789b4442b414dbf87f748db51c85aa5)
 * [Use Docker](https://luatix.notion.site/Using-Docker-03d5c0592b9d4547800cc9f4ff7be2b8) (recommended)
-* [Use Terraform](https://luatix.notion.site/Using-Terraform-AWS-GCP-Azure-05e38d1046f34b998a0bd2873537f8f0) (AWS, GCP, Azure)
+* [Use Terraform or Helm-Chart](https://luatix.notion.site/Using-Terraform-or-Helm-Chart-Community-Version-05e38d1046f34b998a0bd2873537f8f0) (Community Version)
 * [Install manually](https://luatix.notion.site/Manual-deployment-b911beba44234f179841582ab3894bb1)
 
 ## Luatix's members
@@ -106,7 +106,7 @@ If you need support or you wish to engage a discussion about the OpenCTI platfor
 
 ### Authors
 
-OpenCTI is a product powered by the collaboration of the [French national cybersecurity agency (ANSSI)](https://ssi.gouv.fr), the [CERT-EU](https://cert.europa.eu) and the [Luatix](https://www.luatix.org) non-profit organization.
+OpenCTI is a product powered by the collaboration of the private company [Filigran](https://www.filigran.io), the [French national cybersecurity agency (ANSSI)](https://ssi.gouv.fr), the [CERT-EU](https://cert.europa.eu) and the [Luatix](https://www.luatix.org) non-profit organization.
 
 ### GDPR and the OpenCTI OpenStreetMap server
 

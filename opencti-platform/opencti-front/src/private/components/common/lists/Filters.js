@@ -3,12 +3,13 @@ import * as R from 'ramda';
 import withStyles from '@mui/styles/withStyles';
 import withTheme from '@mui/styles/withTheme';
 import Grid from '@mui/material/Grid';
-import DatePicker from '@mui/lab/DatePicker';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import Autocomplete from '@mui/material/Autocomplete';
 import TextField from '@mui/material/TextField';
 import Popover from '@mui/material/Popover';
 import IconButton from '@mui/material/IconButton';
-import { FilterListOutlined } from '@mui/icons-material';
+import InputAdornment from '@mui/material/InputAdornment';
+import { FilterListOutlined, PaletteOutlined } from '@mui/icons-material';
 import * as PropTypes from 'prop-types';
 import Tooltip from '@mui/material/Tooltip';
 import { ToyBrickSearchOutline } from 'mdi-material-ui';
@@ -19,6 +20,11 @@ import Chip from '@mui/material/Chip';
 import { withRouter } from 'react-router-dom';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
+import { graphql } from 'react-relay';
+import Checkbox from '@mui/material/Checkbox';
+import ListItemText from '@mui/material/ListItemText';
+import MenuList from '@mui/material/MenuList';
+import MenuItem from '@mui/material/MenuItem';
 import { fetchQuery } from '../../../../relay/environment';
 import inject18n from '../../../../components/i18n';
 import { identitySearchIdentitiesSearchQuery } from '../identities/IdentitySearch';
@@ -29,6 +35,36 @@ import ItemIcon from '../../../../components/ItemIcon';
 import { truncate } from '../../../../utils/String';
 import { stixDomainObjectsLinesSearchQuery } from '../stix_domain_objects/StixDomainObjectsLines';
 import { statusFieldStatusesSearchQuery } from '../form/StatusField';
+import { defaultValue } from '../../../../utils/Graph';
+
+export const filtersAllTypesQuery = graphql`
+  query FiltersAllTypesQuery {
+    scoTypes: subTypes(type: "Stix-Cyber-Observable") {
+      edges {
+        node {
+          id
+          label
+        }
+      }
+    }
+    sdoTypes: subTypes(type: "Stix-Domain-Object") {
+      edges {
+        node {
+          id
+          label
+        }
+      }
+    }
+    sroTypes: subTypes(type: "stix-core-relationship") {
+      edges {
+        node {
+          id
+          label
+        }
+      }
+    }
+  }
+`;
 
 const styles = (theme) => ({
   filters: {
@@ -41,6 +77,10 @@ const styles = (theme) => ({
   container: {
     width: 490,
     padding: 20,
+  },
+  container2: {
+    width: 300,
+    padding: 0,
   },
   icon: {
     paddingTop: 4,
@@ -72,6 +112,8 @@ const directFilters = [
   'sightedBy',
   'container_type',
   'toSightingId',
+  'fromId',
+  'toId',
 ];
 const uniqFilters = [
   'revoked',
@@ -83,9 +125,195 @@ const uniqFilters = [
   'toSightingId',
   'basedOn',
 ];
+
+export const entityTypes = [
+  'Attack-Pattern',
+  'Campaign',
+  'Note',
+  'Observed-Data',
+  'Opinion',
+  'Report',
+  'Course-Of-Action',
+  'Individual',
+  'Organization',
+  'Sector',
+  'Indicator',
+  'Infrastructure',
+  'Intrusion-Set',
+  'City',
+  'Country',
+  'Region',
+  'Position',
+  'Malware',
+  'Threat-Actor',
+  'Tool',
+  'Vulnerability',
+  'Incident',
+  'Stix-Cyber-Observable',
+  'StixFile',
+  'IPv4-Addr',
+  'Domain-Name',
+  'Email-Addr',
+  'Email-Message',
+];
+export const relationTypes = [
+  'Stix-Core-Relationship',
+  'indicates',
+  'targets',
+  'uses',
+  'located-at',
+];
+export const allEntityTypes = [...entityTypes, ...relationTypes];
+
 export const isUniqFilter = (key) => uniqFilters.includes(key)
   || key.endsWith('start_date')
   || key.endsWith('end_date');
+
+export const filtersStixCoreObjectsSearchQuery = graphql`
+  query FiltersStixCoreObjectsSearchQuery(
+    $search: String
+    $types: [String]
+    $count: Int
+    $filters: [StixCoreObjectsFiltering]
+  ) {
+    stixCoreObjects(
+      search: $search
+      types: $types
+      first: $count
+      filters: $filters
+    ) {
+      edges {
+        node {
+          id
+          entity_type
+          ... on AttackPattern {
+            name
+            description
+            x_mitre_id
+          }
+          ... on Note {
+            attribute_abstract
+            content
+          }
+          ... on ObservedData {
+            first_observed
+            last_observed
+          }
+          ... on Opinion {
+            opinion
+          }
+          ... on Report {
+            name
+          }
+          ... on Campaign {
+            name
+            description
+          }
+          ... on CourseOfAction {
+            name
+            description
+          }
+          ... on Individual {
+            name
+            description
+          }
+          ... on Organization {
+            name
+            description
+          }
+          ... on Sector {
+            name
+            description
+          }
+          ... on System {
+            name
+            description
+          }
+          ... on Indicator {
+            name
+            description
+          }
+          ... on Infrastructure {
+            name
+            description
+          }
+          ... on IntrusionSet {
+            name
+            description
+          }
+          ... on Position {
+            name
+            description
+          }
+          ... on City {
+            name
+            description
+          }
+          ... on Country {
+            name
+            description
+          }
+          ... on Region {
+            name
+            description
+          }
+          ... on Malware {
+            name
+            description
+          }
+          ... on ThreatActor {
+            name
+            description
+          }
+          ... on Tool {
+            name
+            description
+          }
+          ... on Vulnerability {
+            name
+            description
+          }
+          ... on Incident {
+            name
+            description
+          }
+          ... on Event {
+            name
+            description
+          }
+          ... on Channel {
+            name
+            description
+          }
+          ... on Narrative {
+            name
+            description
+          }
+          ... on Language {
+            name
+          }
+          ... on StixCyberObservable {
+            observable_value
+          }
+          createdBy {
+            ... on Identity {
+              id
+              name
+              entity_type
+            }
+          }
+          objectMarking {
+            edges {
+              node {
+                definition
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
 
 class Filters extends Component {
   constructor(props) {
@@ -97,6 +325,9 @@ class Filters extends Component {
       filters: {},
       keyword: '',
       inputValues: {},
+      anchorElSearchScope: {},
+      searchScope: {},
+      openSearchScope: {},
     };
   }
 
@@ -109,8 +340,12 @@ class Filters extends Component {
   }
 
   searchEntities(filterKey, event) {
-    const { t, theme } = this.props;
-    if (event && event.target.value !== 0) {
+    const { searchScope } = this.state;
+    const { t, theme, availableEntityTypes, availableRelationshipTypes } = this.props;
+    if (!event) {
+      return;
+    }
+    if (event.target.value !== 0) {
       this.setState({
         inputValues: R.assoc(
           filterKey,
@@ -123,7 +358,7 @@ class Filters extends Component {
       case 'toSightingId':
         fetchQuery(identitySearchIdentitiesSearchQuery, {
           types: ['Identity'],
-          search: event && event.target.value !== 0 ? event.target.value : '',
+          search: event.target.value !== 0 ? event.target.value : '',
           first: 10,
         })
           .toPromise()
@@ -150,7 +385,7 @@ class Filters extends Component {
       case 'createdBy':
         fetchQuery(identitySearchIdentitiesSearchQuery, {
           types: ['Organization', 'Individual', 'System'],
-          search: event && event.target.value !== 0 ? event.target.value : '',
+          search: event.target.value !== 0 ? event.target.value : '',
           first: 10,
         })
           .toPromise()
@@ -184,7 +419,7 @@ class Filters extends Component {
             'Country',
             'City',
           ],
-          search: event && event.target.value !== 0 ? event.target.value : '',
+          search: event.target.value !== 0 ? event.target.value : '',
           count: 10,
         })
           .toPromise()
@@ -208,9 +443,57 @@ class Filters extends Component {
             });
           });
         break;
+      case 'fromId':
+        fetchQuery(filtersStixCoreObjectsSearchQuery, {
+          types: (searchScope && searchScope.fromId) || ['Stix-Core-Object'],
+          search: event.target.value !== 0 ? event.target.value : '',
+          count: 50,
+        })
+          .toPromise()
+          .then((data) => {
+            const fromIdEntities = R.pipe(
+              R.pathOr([], ['stixCoreObjects', 'edges']),
+              R.map((n) => ({
+                label: defaultValue(n.node),
+                value: n.node.id,
+                type: n.node.entity_type,
+              })),
+            )(data);
+            this.setState({
+              entities: {
+                ...this.state.entities,
+                fromId: R.union(fromIdEntities, this.state.entities.fromId),
+              },
+            });
+          });
+        break;
+      case 'toId':
+        fetchQuery(filtersStixCoreObjectsSearchQuery, {
+          types: (searchScope && searchScope.toId) || ['Stix-Core-Object'],
+          search: event.target.value !== 0 ? event.target.value : '',
+          count: 100,
+        })
+          .toPromise()
+          .then((data) => {
+            const toIdEntities = R.pipe(
+              R.pathOr([], ['stixCoreObjects', 'edges']),
+              R.map((n) => ({
+                label: defaultValue(n.node),
+                value: n.node.id,
+                type: n.node.entity_type,
+              })),
+            )(data);
+            this.setState({
+              entities: {
+                ...this.state.entities,
+                toId: R.union(toIdEntities, this.state.entities.toId),
+              },
+            });
+          });
+        break;
       case 'markedBy':
         fetchQuery(markingDefinitionsLinesSearchQuery, {
-          search: event && event.target.value !== 0 ? event.target.value : '',
+          search: event.target.value !== 0 ? event.target.value : '',
           first: 10,
         })
           .toPromise()
@@ -237,7 +520,7 @@ class Filters extends Component {
         break;
       case 'labelledBy':
         fetchQuery(labelsSearchQuery, {
-          search: event && event.target.value !== 0 ? event.target.value : '',
+          search: event.target.value !== 0 ? event.target.value : '',
           first: 10,
         })
           .toPromise()
@@ -415,6 +698,7 @@ class Filters extends Component {
           'yara',
           'tanium-signal',
           'spl',
+          'eql',
         ]);
         this.setState({
           entities: {
@@ -429,7 +713,7 @@ class Filters extends Component {
       case 'x_opencti_base_severity':
         fetchQuery(attributesSearchQuery, {
           attributeName: 'x_opencti_base_severity',
-          search: event && event.target.value !== 0 ? event.target.value : '',
+          search: event.target.value !== 0 ? event.target.value : '',
           first: 10,
         })
           .toPromise()
@@ -456,7 +740,7 @@ class Filters extends Component {
       case 'x_opencti_attack_vector':
         fetchQuery(attributesSearchQuery, {
           attributeName: 'x_opencti_attack_vector',
-          search: event && event.target.value !== 0 ? event.target.value : '',
+          search: event.target.value !== 0 ? event.target.value : '',
           first: 10,
         })
           .toPromise()
@@ -480,9 +764,9 @@ class Filters extends Component {
             });
           });
         break;
-      case 'status_id':
+      case 'x_opencti_workflow_id':
         fetchQuery(statusFieldStatusesSearchQuery, {
-          search: event && event.target.value !== 0 ? event.target.value : '',
+          search: event.target.value !== 0 ? event.target.value : '',
           first: 50,
         })
           .toPromise()
@@ -500,9 +784,12 @@ class Filters extends Component {
             this.setState({
               entities: {
                 ...this.state.entities,
-                status_id: R.union(
-                  statusEntities,
-                  this.state.entities.status_id,
+                x_opencti_workflow_id: R.uniqBy(
+                  R.prop('value'),
+                  R.union(
+                    statusEntities,
+                    this.state.entities.x_opencti_workflow_id,
+                  ),
                 ),
               },
             });
@@ -511,7 +798,7 @@ class Filters extends Component {
       case 'x_opencti_organization_type':
         fetchQuery(attributesSearchQuery, {
           attributeName: 'x_opencti_organization_type',
-          search: event && event.target.value !== 0 ? event.target.value : '',
+          search: event.target.value !== 0 ? event.target.value : '',
           first: 10,
         })
           .toPromise()
@@ -538,7 +825,7 @@ class Filters extends Component {
       case 'report_types':
         fetchQuery(attributesSearchQuery, {
           attributeName: 'report_types',
-          search: event && event.target.value !== 0 ? event.target.value : '',
+          search: event.target.value !== 0 ? event.target.value : '',
           first: 10,
         })
           .toPromise()
@@ -564,65 +851,349 @@ class Filters extends Component {
         break;
       case 'entity_type':
         // eslint-disable-next-line no-case-declarations
-        // eslint-disable-next-line no-case-declarations
-        let entitiesTypes = R.pipe(
-          R.map((n) => ({
-            label: t(
-              n.toString()[0] === n.toString()[0].toUpperCase()
-                ? `entity_${n.toString()}`
-                : `relationship_${n.toString()}`,
-            ),
-            value: n,
-            type: n,
-          })),
-          R.sortWith([R.ascend(R.prop('label'))]),
-        )([
-          'Attack-Pattern',
-          'Campaign',
-          'Note',
-          'Observed-Data',
-          'Opinion',
-          'Report',
-          'Course-Of-Action',
-          'Individual',
-          'Organization',
-          'Sector',
-          'Indicator',
-          'Infrastructure',
-          'Intrusion-Set',
-          'City',
-          'Country',
-          'Region',
-          'Position',
-          'Malware',
-          'Threat-Actor',
-          'Tool',
-          'Vulnerability',
-          'Incident',
-          'Stix-Cyber-Observable',
-          'Stix-Core-Relationship',
-          'StixFile',
-          'IPv4-Addr',
-          'indicates',
-          'targets',
-          'uses',
-          'located-at',
-        ]);
-        if (this.props.allEntityTypes) {
-          entitiesTypes = R.prepend(
-            { label: t('entity_All'), value: 'all', type: 'entity' },
-            entitiesTypes,
-          );
-        }
-        this.setState({
-          entities: {
-            ...this.state.entities,
-            entity_type: R.union(
+        let entitiesTypes = [];
+        if (
+          availableEntityTypes
+          && !availableEntityTypes.includes('Stix-Cyber-Observable')
+          && !availableEntityTypes.includes('Stix-Domain-Object')
+        ) {
+          entitiesTypes = R.pipe(
+            R.map((n) => ({
+              label: t(
+                n.toString()[0] === n.toString()[0].toUpperCase()
+                  ? `entity_${n.toString()}`
+                  : `relationship_${n.toString()}`,
+              ),
+              value: n,
+              type: n,
+            })),
+            R.sortWith([R.ascend(R.prop('label'))]),
+          )(availableEntityTypes);
+          if (this.props.allEntityTypes) {
+            entitiesTypes = R.prepend(
+              { label: t('entity_All'), value: 'all', type: 'entity' },
               entitiesTypes,
-              this.state.entities.entity_type,
-            ),
-          },
-        });
+            );
+          }
+          this.setState({
+            entities: {
+              ...this.state.entities,
+              entity_type: R.union(
+                entitiesTypes,
+                this.state.entities.entity_type,
+              ),
+            },
+          });
+        } else {
+          fetchQuery(filtersAllTypesQuery)
+            .toPromise()
+            .then((data) => {
+              let result = [];
+              if (
+                !availableEntityTypes
+                || availableEntityTypes.includes('Stix-Cyber-Observable')
+              ) {
+                result = [
+                  ...R.pipe(
+                    R.pathOr([], ['scoTypes', 'edges']),
+                    R.map((n) => ({
+                      label: t(`entity_${n.node.label}`),
+                      value: n.node.label,
+                      type: n.node.label,
+                    })),
+                  )(data),
+                  ...result,
+                ];
+              }
+              if (
+                !availableEntityTypes
+                || availableEntityTypes.includes('Stix-Domain-Object')
+              ) {
+                result = [
+                  ...R.pipe(
+                    R.pathOr([], ['sdoTypes', 'edges']),
+                    R.map((n) => ({
+                      label: t(`entity_${n.node.label}`),
+                      value: n.node.label,
+                      type: n.node.label,
+                    })),
+                  )(data),
+                  ...result,
+                ];
+              }
+              if (
+                !availableEntityTypes
+                || availableEntityTypes.includes('stix-core-relationship')
+              ) {
+                result = [
+                  ...R.pipe(
+                    R.pathOr([], ['sroTypes', 'edges']),
+                    R.map((n) => ({
+                      label: t(`relationship_${n.node.label}`),
+                      value: n.node.label,
+                      type: n.node.label,
+                    })),
+                  )(data),
+                  ...result,
+                ];
+              }
+              entitiesTypes = R.sortWith([R.ascend(R.prop('label'))], result);
+              if (this.props.allEntityTypes) {
+                entitiesTypes = R.prepend(
+                  { label: t('entity_All'), value: 'all', type: 'entity' },
+                  entitiesTypes,
+                );
+              }
+              this.setState({
+                entities: {
+                  ...this.state.entities,
+                  entity_type: R.union(
+                    entitiesTypes,
+                    this.state.entities.entity_type,
+                  ),
+                },
+              });
+            });
+        }
+        break;
+      case 'fromTypes':
+        // eslint-disable-next-line no-case-declarations
+        let fromTypesTypes = [];
+        if (
+          availableEntityTypes
+          && !availableEntityTypes.includes('Stix-Cyber-Observable')
+          && !availableEntityTypes.includes('Stix-Domain-Object')
+        ) {
+          fromTypesTypes = R.pipe(
+            R.map((n) => ({
+              label: t(
+                n.toString()[0] === n.toString()[0].toUpperCase()
+                  ? `entity_${n.toString()}`
+                  : `relationship_${n.toString()}`,
+              ),
+              value: n,
+              type: n,
+            })),
+            R.sortWith([R.ascend(R.prop('label'))]),
+          )(availableEntityTypes);
+          if (this.props.allEntityTypes) {
+            fromTypesTypes = R.prepend(
+              { label: t('entity_All'), value: 'all', type: 'entity' },
+              fromTypesTypes,
+            );
+          }
+          this.setState({
+            entities: {
+              ...this.state.entities,
+              fromTypes: R.union(fromTypesTypes, this.state.entities.fromTypes),
+            },
+          });
+        } else {
+          fetchQuery(filtersAllTypesQuery)
+            .toPromise()
+            .then((data) => {
+              let result = [];
+              if (
+                !availableEntityTypes
+                || availableEntityTypes.includes('Stix-Cyber-Observable')
+              ) {
+                result = [
+                  ...R.pipe(
+                    R.pathOr([], ['scoTypes', 'edges']),
+                    R.map((n) => ({
+                      label: t(`entity_${n.node.label}`),
+                      value: n.node.label,
+                      type: n.node.label,
+                    })),
+                  )(data),
+                  ...result,
+                ];
+              }
+              if (
+                !availableEntityTypes
+                || availableEntityTypes.includes('Stix-Domain-Object')
+              ) {
+                result = [
+                  ...R.pipe(
+                    R.pathOr([], ['sdoTypes', 'edges']),
+                    R.map((n) => ({
+                      label: t(`entity_${n.node.label}`),
+                      value: n.node.label,
+                      type: n.node.label,
+                    })),
+                  )(data),
+                  ...result,
+                ];
+              }
+              fromTypesTypes = R.sortWith([R.ascend(R.prop('label'))], result);
+              if (this.props.allEntityTypes) {
+                fromTypesTypes = R.prepend(
+                  { label: t('entity_All'), value: 'all', type: 'entity' },
+                  fromTypesTypes,
+                );
+              }
+              this.setState({
+                entities: {
+                  ...this.state.entities,
+                  fromTypes: R.union(
+                    fromTypesTypes,
+                    this.state.entities.fromTypes,
+                  ),
+                },
+              });
+            });
+        }
+        break;
+      case 'toTypes':
+        // eslint-disable-next-line no-case-declarations
+        let toTypesTypes = [];
+        if (
+          availableEntityTypes
+          && !availableEntityTypes.includes('Stix-Cyber-Observable')
+          && !availableEntityTypes.includes('Stix-Domain-Object')
+        ) {
+          toTypesTypes = R.pipe(
+            R.map((n) => ({
+              label: t(
+                n.toString()[0] === n.toString()[0].toUpperCase()
+                  ? `entity_${n.toString()}`
+                  : `relationship_${n.toString()}`,
+              ),
+              value: n,
+              type: n,
+            })),
+            R.sortWith([R.ascend(R.prop('label'))]),
+          )(availableEntityTypes);
+          if (this.props.allEntityTypes) {
+            toTypesTypes = R.prepend(
+              { label: t('entity_All'), value: 'all', type: 'entity' },
+              toTypesTypes,
+            );
+          }
+          this.setState({
+            entities: {
+              ...this.state.entities,
+              toTypes: R.union(toTypesTypes, this.state.entities.toTypes),
+            },
+          });
+        } else {
+          fetchQuery(filtersAllTypesQuery)
+            .toPromise()
+            .then((data) => {
+              let result = [];
+              if (
+                !availableEntityTypes
+                || availableEntityTypes.includes('Stix-Cyber-Observable')
+              ) {
+                result = [
+                  ...R.pipe(
+                    R.pathOr([], ['scoTypes', 'edges']),
+                    R.map((n) => ({
+                      label: t(`entity_${n.node.label}`),
+                      value: n.node.label,
+                      type: n.node.label,
+                    })),
+                  )(data),
+                  ...result,
+                ];
+              }
+              if (
+                !availableEntityTypes
+                || availableEntityTypes.includes('Stix-Domain-Object')
+              ) {
+                result = [
+                  ...R.pipe(
+                    R.pathOr([], ['sdoTypes', 'edges']),
+                    R.map((n) => ({
+                      label: t(`entity_${n.node.label}`),
+                      value: n.node.label,
+                      type: n.node.label,
+                    })),
+                  )(data),
+                  ...result,
+                ];
+              }
+              toTypesTypes = R.sortWith([R.ascend(R.prop('label'))], result);
+              if (this.props.allEntityTypes) {
+                toTypesTypes = R.prepend(
+                  { label: t('entity_All'), value: 'all', type: 'entity' },
+                  toTypesTypes,
+                );
+              }
+              this.setState({
+                entities: {
+                  ...this.state.entities,
+                  toTypes: R.union(toTypesTypes, this.state.entities.toTypes),
+                },
+              });
+            });
+        }
+        break;
+      case 'relationship_type':
+        // eslint-disable-next-line no-case-declarations
+        let relationshipsTypes = [];
+        if (availableRelationshipTypes) {
+          relationshipsTypes = R.pipe(
+            R.map((n) => ({
+              label: t(`relationship_${n.toString()}`),
+              value: n,
+              type: n,
+            })),
+            R.sortWith([R.ascend(R.prop('label'))]),
+          )(availableRelationshipTypes);
+          if (this.props.allRelationshipTypes) {
+            relationshipsTypes = R.prepend(
+              {
+                label: t('relationship_All'),
+                value: 'all',
+                type: 'relationship',
+              },
+              relationshipsTypes,
+            );
+          }
+          this.setState({
+            entities: {
+              ...this.state.entities,
+              relationship_type: R.union(
+                relationshipsTypes,
+                this.state.entities.relationship_type,
+              ),
+            },
+          });
+        } else {
+          fetchQuery(filtersAllTypesQuery)
+            .toPromise()
+            .then((data) => {
+              relationshipsTypes = R.pipe(
+                R.pathOr([], ['sroTypes', 'edges']),
+                R.map((n) => ({
+                  label: t(`relationship_${n.node.label}`),
+                  value: n.node.label,
+                  type: n.node.label,
+                })),
+                R.sortWith([R.ascend(R.prop('label'))]),
+              )(data);
+              if (this.props.allRelationshipTypes) {
+                relationshipsTypes = R.prepend(
+                  {
+                    label: t('relationship_All'),
+                    value: 'all',
+                    type: 'relationship',
+                  },
+                  relationshipsTypes,
+                );
+              }
+              this.setState({
+                entities: {
+                  ...this.state.entities,
+                  relationship_type: R.union(
+                    relationshipsTypes,
+                    this.state.entities.relationship_type,
+                  ),
+                },
+              });
+            });
+        }
         break;
       case 'container_type':
         // eslint-disable-next-line no-case-declarations
@@ -664,6 +1235,12 @@ class Filters extends Component {
   }
 
   handleChangeDate(filterKey, date) {
+    this.setState({
+      inputValues: R.assoc(filterKey, date, this.state.inputValues),
+    });
+  }
+
+  handleAcceptDate(filterKey, date) {
     const { nsd } = this.props;
     if (date && date.toISOString()) {
       if (this.props.variant === 'dialog') {
@@ -674,20 +1251,25 @@ class Filters extends Component {
     }
   }
 
+  handleValidateDate(filterKey, event) {
+    if (event.key === 'Enter') {
+      if (this.state.inputValues[filterKey].toString() !== 'Invalid Date') {
+        return this.handleAcceptDate(
+          filterKey,
+          this.state.inputValues[filterKey],
+        );
+      }
+    }
+    return null;
+  }
+
   handleChangeKeyword(event) {
     this.setState({ keyword: event.target.value });
   }
 
   renderFilters() {
-    const {
-      t,
-      classes,
-      availableFilterKeys,
-      currentFilters,
-      variant,
-      noDirectFilters,
-    } = this.props;
-    const { entities, keyword, inputValues } = this.state;
+    const { t, classes, availableFilterKeys, variant, noDirectFilters } = this.props;
+    const { entities, keyword, inputValues, searchScope } = this.state;
     return (
       <Grid container={true} spacing={2}>
         {variant === 'dialog' && (
@@ -706,9 +1288,6 @@ class Filters extends Component {
           (n) => noDirectFilters || !R.includes(n, directFilters),
           availableFilterKeys,
         ).map((filterKey) => {
-          const currentValue = currentFilters[filterKey]
-            ? currentFilters[filterKey][0]
-            : null;
           if (
             filterKey.endsWith('start_date')
             || filterKey.endsWith('end_date')
@@ -717,23 +1296,38 @@ class Filters extends Component {
               <Grid key={filterKey} item={true} xs={6}>
                 <DatePicker
                   label={t(`filter_${filterKey}`)}
-                  value={currentValue ? currentValue.id : null}
+                  value={inputValues[filterKey] || null}
                   variant="inline"
                   disableToolbar={false}
                   autoOk={true}
                   allowKeyboardControl={true}
                   onChange={this.handleChangeDate.bind(this, filterKey)}
+                  onAccept={this.handleAcceptDate.bind(this, filterKey)}
                   renderInput={(params) => (
                     <TextField
                       variant="outlined"
                       size="small"
                       fullWidth={variant === 'dialog'}
+                      onKeyDown={this.handleValidateDate.bind(this, filterKey)}
                       {...params}
                     />
                   )}
                 />
               </Grid>
             );
+          }
+          let options = [];
+          if (['fromId', 'toId'].includes(filterKey)) {
+            if (searchScope[filterKey] && searchScope[filterKey].length > 0) {
+              options = (entities[filterKey] || [])
+                .filter((n) => (searchScope[filterKey] || []).includes(n.type))
+                .sort((a, b) => (b.type ? -b.type.localeCompare(a.type) : 0));
+            } else {
+              // eslint-disable-next-line max-len
+              options = (entities[filterKey] || []).sort((a, b) => (b.type ? -b.type.localeCompare(a.type) : 0));
+            }
+          } else if (entities[filterKey]) {
+            options = entities[filterKey];
           }
           return (
             <Grid key={filterKey} item={true} xs={6}>
@@ -744,20 +1338,31 @@ class Filters extends Component {
                 autoHighlight={true}
                 getOptionLabel={(option) => (option.label ? option.label : '')}
                 noOptionsText={t('No available options')}
-                options={entities[filterKey] ? entities[filterKey] : []}
+                options={options}
                 onInputChange={this.searchEntities.bind(this, filterKey)}
                 inputValue={inputValues[filterKey] || ''}
                 onChange={this.handleChange.bind(this, filterKey)}
+                groupBy={
+                  ['fromId', 'toId'].includes(filterKey)
+                    ? (option) => option.type
+                    : null
+                }
                 isOptionEqualToValue={(option, value) => option.value === value.value
                 }
                 renderInput={(params) => (
                   <TextField
-                    {...params}
+                    {...R.dissoc('InputProps', params)}
                     label={t(`filter_${filterKey}`)}
                     variant="outlined"
                     size="small"
                     fullWidth={true}
                     onFocus={this.searchEntities.bind(this, filterKey)}
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: ['fromId', 'toId'].includes(filterKey)
+                        ? this.renderSearchScopeSelection(filterKey)
+                        : params.InputProps.endAdornment,
+                    }}
                   />
                 )}
                 renderOption={(props, option) => (
@@ -780,8 +1385,8 @@ class Filters extends Component {
   }
 
   renderListFilters() {
-    const { t, classes, availableFilterKeys, noDirectFilters } = this.props;
-    const { open, anchorEl, entities, inputValues } = this.state;
+    const { t, classes, availableFilterKeys, noDirectFilters, size, fontSize } = this.props;
+    const { open, anchorEl, entities, inputValues, searchScope } = this.state;
     return (
       <div className={classes.filters}>
         {this.props.variant === 'text' ? (
@@ -800,9 +1405,9 @@ class Filters extends Component {
             color="primary"
             onClick={this.handleOpenFilters.bind(this)}
             style={{ float: 'left', marginTop: -2 }}
-            size="large"
+            size={size || 'large'}
           >
-            <FilterListOutlined />
+            <FilterListOutlined fontSize={fontSize || 'medium'} />
           </IconButton>
         )}
         <Popover
@@ -826,41 +1431,69 @@ class Filters extends Component {
           && R.filter(
             (n) => R.includes(n, directFilters),
             availableFilterKeys,
-          ).map((filterKey) => (
-            <Autocomplete
-              key={filterKey}
-              className={classes.autocomplete}
-              selectOnFocus={true}
-              autoSelect={false}
-              autoHighlight={true}
-              getOptionLabel={(option) => (option.label ? option.label : '')}
-              noOptionsText={t('No available options')}
-              options={entities[filterKey] ? entities[filterKey] : []}
-              onInputChange={this.searchEntities.bind(this, filterKey)}
-              onChange={this.handleChange.bind(this, filterKey)}
-              isOptionEqualToValue={(option, value) => option.value === value}
-              inputValue={inputValues[filterKey] || ''}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  name={filterKey}
-                  label={t(`filter_${filterKey}`)}
-                  variant="outlined"
-                  size="small"
-                  fullWidth={true}
-                  onFocus={this.searchEntities.bind(this, filterKey)}
-                />
-              )}
-              renderOption={(props, option) => (
-                <li {...props}>
-                  <div className={classes.icon} style={{ color: option.color }}>
-                    <ItemIcon type={option.type} />
-                  </div>
-                  <div className={classes.text}>{option.label}</div>
-                </li>
-              )}
-            />
-          ))}
+          ).map((filterKey) => {
+            let options = [];
+            if (['fromId', 'toId'].includes(filterKey)) {
+              if (searchScope[filterKey] && searchScope[filterKey].length > 0) {
+                options = (entities[filterKey] || [])
+                  .filter((n) => (searchScope[filterKey] || []).includes(n.type))
+                  .sort((a, b) => (b.type ? -b.type.localeCompare(a.type) : 0));
+              } else {
+                // eslint-disable-next-line max-len
+                options = (entities[filterKey] || []).sort((a, b) => (b.type ? -b.type.localeCompare(a.type) : 0));
+              }
+            } else if (entities[filterKey]) {
+              options = entities[filterKey];
+            }
+            return (
+              <Autocomplete
+                key={filterKey}
+                className={classes.autocomplete}
+                selectOnFocus={true}
+                autoSelect={false}
+                autoHighlight={true}
+                options={options}
+                getOptionLabel={(option) => (option.label ? option.label : '')}
+                noOptionsText={t('No available options')}
+                onInputChange={this.searchEntities.bind(this, filterKey)}
+                onChange={this.handleChange.bind(this, filterKey)}
+                isOptionEqualToValue={(option, value) => option.value === value}
+                inputValue={inputValues[filterKey] || ''}
+                groupBy={
+                  ['fromId', 'toId'].includes(filterKey)
+                    ? (option) => option.type
+                    : null
+                }
+                renderInput={(params) => (
+                  <TextField
+                    {...R.dissoc('InputProps', params)}
+                    label={t(`filter_${filterKey}`)}
+                    variant="outlined"
+                    size="small"
+                    fullWidth={true}
+                    onFocus={this.searchEntities.bind(this, filterKey)}
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: ['fromId', 'toId'].includes(filterKey)
+                        ? this.renderSearchScopeSelection(filterKey)
+                        : params.InputProps.endAdornment,
+                    }}
+                  />
+                )}
+                renderOption={(props, option) => (
+                  <li {...props}>
+                    <div
+                      className={classes.icon}
+                      style={{ color: option.color }}
+                    >
+                      <ItemIcon type={option.type} />
+                    </div>
+                    <div className={classes.text}>{option.label}</div>
+                  </li>
+                )}
+              />
+            );
+          })}
         <div className="clearfix" />
       </div>
     );
@@ -905,8 +1538,117 @@ class Filters extends Component {
     );
   }
 
+  handleOpenSearchScope(key, event) {
+    const { openSearchScope, anchorElSearchScope } = this.state;
+    this.setState({
+      openSearchScope: R.assoc(key, true, openSearchScope),
+      anchorElSearchScope: R.assoc(
+        key,
+        event.currentTarget,
+        anchorElSearchScope,
+      ),
+    });
+  }
+
+  handleCloseSearchScope(key) {
+    const { openSearchScope, anchorElSearchScope } = this.state;
+    this.setState({
+      openSearchScope: R.assoc(key, false, openSearchScope),
+      anchorElSearchScope: R.assoc(key, null, anchorElSearchScope),
+    });
+  }
+
+  handleToggleSearchScope(key, value) {
+    const { searchScope } = this.state;
+    this.setState({
+      searchScope: R.assoc(
+        key,
+        (searchScope[key] || []).includes(value)
+          ? searchScope[key].filter((n) => n !== value)
+          : [...(searchScope[key] || []), value],
+        searchScope,
+      ),
+    });
+  }
+
+  renderSearchScopeSelection(key) {
+    const { t, classes } = this.props;
+    const { openSearchScope, searchScope, anchorElSearchScope } = this.state;
+    const entitiesTypes = R.pipe(
+      R.map((n) => ({
+        label: t(
+          n.toString()[0] === n.toString()[0].toUpperCase()
+            ? `entity_${n.toString()}`
+            : `relationship_${n.toString()}`,
+        ),
+        value: n,
+        type: n,
+      })),
+      R.sortWith([R.ascend(R.prop('label'))]),
+    )(entityTypes);
+    return (
+      <React.Fragment>
+        <InputAdornment position="start">
+          <IconButton
+            onClick={this.handleOpenSearchScope.bind(this, key)}
+            size="small"
+            edge="end"
+            style={{ marginRight: -8 }}
+          >
+            <PaletteOutlined
+              fontSize="small"
+              color={
+                searchScope[key] && searchScope[key].length > 0
+                  ? 'secondary'
+                  : 'primary'
+              }
+            />
+          </IconButton>
+          <Popover
+            classes={{ paper: classes.container2 }}
+            open={openSearchScope[key]}
+            anchorEl={anchorElSearchScope[key]}
+            onClose={this.handleCloseSearchScope.bind(this, key)}
+            anchorOrigin={{
+              vertical: 'center',
+              horizontal: 'right',
+            }}
+            transformOrigin={{
+              vertical: 'center',
+              horizontal: 'left',
+            }}
+            elevation={8}
+          >
+            <MenuList dense={true}>
+              {entitiesTypes.map((entityType) => (
+                <MenuItem
+                  key={entityType.value}
+                  value={entityType.value}
+                  dense={true}
+                  onClick={this.handleToggleSearchScope.bind(
+                    this,
+                    key,
+                    entityType.value,
+                  )}
+                >
+                  <Checkbox
+                    size="small"
+                    checked={(searchScope[key] || []).includes(
+                      entityType.value,
+                    )}
+                  />
+                  <ListItemText primary={entityType.label} />
+                </MenuItem>
+              ))}
+            </MenuList>
+          </Popover>
+        </InputAdornment>
+      </React.Fragment>
+    );
+  }
+
   renderDialogFilters() {
-    const { t, classes, disabled } = this.props;
+    const { t, classes, disabled, size, fontSize } = this.props;
     const { open, filters } = this.state;
     return (
       <React.Fragment>
@@ -914,9 +1656,9 @@ class Filters extends Component {
           <IconButton
             onClick={this.handleOpenFilters.bind(this)}
             disabled={disabled}
-            size="medium"
+            size={size || 'medium'}
           >
-            <ToyBrickSearchOutline fontSize="medium" />
+            <ToyBrickSearchOutline fontSize={fontSize || 'medium'} />
           </IconButton>
         </Tooltip>
         <Dialog
@@ -1005,11 +1747,12 @@ Filters.propTypes = {
   nsd: PropTypes.func,
   availableFilterKeys: PropTypes.array,
   handleAddFilter: PropTypes.func,
-  currentFilters: PropTypes.object,
   variant: PropTypes.string,
   disabled: PropTypes.bool,
   noDirectFilters: PropTypes.bool,
   allEntityTypes: PropTypes.bool,
+  availableEntityTypes: PropTypes.array,
+  availableRelationshipTypes: PropTypes.array,
 };
 
 export default R.compose(

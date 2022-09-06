@@ -1,19 +1,27 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
 import * as PropTypes from 'prop-types';
-import { graphql, createFragmentContainer } from 'react-relay';
+import { createFragmentContainer, graphql } from 'react-relay';
 import * as R from 'ramda';
-import {
-  createTheme,
-  ThemeProvider,
-  StyledEngineProvider,
-} from '@mui/material/styles';
+import { createTheme, StyledEngineProvider, ThemeProvider } from '@mui/material/styles';
 import { UserContext } from '../utils/Security';
 import themeDark from './ThemeDark';
 import themeLight from './ThemeLight';
+import { APP_BASE_PATH, fileUri } from '../relay/environment';
+import favImage from '../static/images/favicon.png';
 
 const AppThemeProvider = (props) => {
   const { children } = props;
   const { me } = useContext(UserContext);
+  const platformTitle = R.pathOr(
+    'OpenCTI - Cyber Threat Intelligence Platform',
+    ['settings', 'platform_title'],
+    props,
+  );
+  useEffect(() => {
+    document.title = platformTitle;
+    document.getElementById('favicon').href = R.pathOr(fileUri(favImage), ['settings', 'platform_favicon'], props);
+    document.getElementById('manifest').href = `${APP_BASE_PATH}/static/ext/manifest.json`;
+  }, []);
   const platformThemeSettings = R.pathOr(
     null,
     ['settings', 'platform_theme'],
@@ -136,6 +144,8 @@ export const ConnectedThemeProvider = createFragmentContainer(
   {
     settings: graphql`
       fragment AppThemeProvider_settings on Settings {
+        platform_title
+        platform_favicon
         platform_theme
         platform_theme_dark_background
         platform_theme_dark_paper

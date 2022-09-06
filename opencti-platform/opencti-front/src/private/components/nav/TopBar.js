@@ -66,6 +66,9 @@ import TopMenuCourseOfAction from './TopMenuCourseOfAction';
 import TopMenuWorkspacesDashboards from './TopMenuWorkspacesDashboards';
 import TopMenuWorkspacesInvestigations from './TopMenuWorkspacesInvestigations';
 import Filters from '../common/lists/Filters';
+import TopMenuChannel from './TopMenuChannel';
+import TopMenuNarrative from './TopMenuNarrative';
+import TopMenuEvent from './TopMenuEvent';
 
 const styles = (theme) => ({
   appBar: {
@@ -241,6 +244,12 @@ const TopBar = ({
           {location.pathname.includes('/dashboard/arsenal/tools/') && (
             <TopMenuTool />
           )}
+          {location.pathname.includes('/dashboard/arsenal/channels/') && (
+            <TopMenuChannel />
+          )}
+          {location.pathname.includes('/dashboard/arsenal/narratives/') && (
+            <TopMenuNarrative />
+          )}
           {location.pathname.includes(
             '/dashboard/arsenal/attack_patterns/',
           ) && <TopMenuAttackPattern />}
@@ -259,6 +268,9 @@ const TopBar = ({
           )}
           {location.pathname.includes('/dashboard/entities/systems/') && (
             <TopMenuSystem />
+          )}
+          {location.pathname.includes('/dashboard/entities/events/') && (
+            <TopMenuEvent />
           )}
           {location.pathname.includes('/dashboard/entities/organizations/') && (
             <TopMenuOrganization />
@@ -312,7 +324,6 @@ const TopBar = ({
                   'created_at_start_date',
                   'created_at_end_date',
                 ]}
-                currentFilters={{}}
                 disabled={location.pathname.includes('/dashboard/search')}
               />
             </div>

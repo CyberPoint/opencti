@@ -4,6 +4,10 @@ import { Switch, Redirect } from 'react-router-dom';
 import BoundaryRoute from '../BoundaryRoute';
 import Malwares from './Malwares';
 import RootMalware from './malwares/Root';
+import Channels from './Channels';
+import RootChannel from './channels/Root';
+import Narratives from './Narratives';
+import RootNarrative from './narratives/Root';
 import AttackPatterns from './AttackPatterns';
 import RootAttackPattern from './attack_patterns/Root';
 import RootCourseOfAction from './courses_of_action/Root';
@@ -12,6 +16,7 @@ import RootTool from './tools/Root';
 import Vulnerabilities from './Vulnerabilities';
 import RootVulnerabilities from './vulnerabilities/Root';
 import CoursesOfAction from './CoursesOfAction';
+import { UserContext } from '../../../utils/Security';
 
 class RootArsenal extends Component {
   render() {

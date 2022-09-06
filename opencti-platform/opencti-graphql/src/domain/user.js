@@ -1,9 +1,10 @@
 import * as R from 'ramda';
 import { map } from 'ramda';
+import { authenticator } from 'otplib';
 import bcrypt from 'bcryptjs';
 import { v4 as uuid } from 'uuid';
 import { delEditContext, delUserContext, notify, setEditContext } from '../database/redis';
-import { AuthenticationFailure, FunctionalError } from '../config/errors';
+import { AuthenticationFailure, ForbiddenAccess, FunctionalError } from '../config/errors';
 import { BUS_TOPICS, logApp, logAudit, OPENCTI_SESSION } from '../config/conf';
 import {
   batchListThroughGetTo,
@@ -12,17 +13,12 @@ import {
   deleteElementById,
   deleteRelationsByFromAndTo,
   listThroughGetTo,
-  loadById,
   patchAttribute,
+  storeLoadById,
   updateAttribute,
 } from '../database/middleware';
-import { listEntities } from '../database/repository';
-import {
-  ENTITY_TYPE_CAPABILITY,
-  ENTITY_TYPE_GROUP,
-  ENTITY_TYPE_ROLE,
-  ENTITY_TYPE_USER,
-} from '../schema/internalObject';
+import { listEntities } from '../database/middleware-loader';
+import { ENTITY_TYPE_CAPABILITY, ENTITY_TYPE_GROUP, ENTITY_TYPE_ROLE, ENTITY_TYPE_USER, } from '../schema/internalObject';
 import {
   isInternalRelationship,
   RELATION_ACCESSES_TO,
@@ -96,7 +92,7 @@ const extractTokenFromBasicAuth = async (authorization) => {
 };
 
 export const findById = async (user, userId) => {
-  const data = await loadById(user, userId, ENTITY_TYPE_USER);
+  const data = await storeLoadById(user, userId, ENTITY_TYPE_USER);
   return data ? R.dissoc('password', data) : data;
 };
 
@@ -167,7 +163,7 @@ export const batchRoleCapabilities = async (user, roleId) => {
 };
 
 export const findRoleById = (user, roleId) => {
-  return loadById(user, roleId, ENTITY_TYPE_ROLE);
+  return storeLoadById(user, roleId, ENTITY_TYPE_ROLE);
 };
 
 export const findRoles = (user, args) => {
@@ -245,12 +241,12 @@ export const roleDelete = async (user, roleId) => {
 
 export const roleCleanContext = async (user, roleId) => {
   await delEditContext(user, roleId);
-  return loadById(user, roleId, ENTITY_TYPE_ROLE).then((role) => notify(BUS_TOPICS[ENTITY_TYPE_ROLE].EDIT_TOPIC, role, user));
+  return storeLoadById(user, roleId, ENTITY_TYPE_ROLE).then((role) => notify(BUS_TOPICS[ENTITY_TYPE_ROLE].EDIT_TOPIC, role, user));
 };
 
 export const roleEditContext = async (user, roleId, input) => {
   await setEditContext(user, roleId, input);
-  return loadById(user, roleId, ENTITY_TYPE_ROLE).then((role) => notify(BUS_TOPICS[ENTITY_TYPE_ROLE].EDIT_TOPIC, role, user));
+  return storeLoadById(user, roleId, ENTITY_TYPE_ROLE).then((role) => notify(BUS_TOPICS[ENTITY_TYPE_ROLE].EDIT_TOPIC, role, user));
 };
 
 const assignRoleToUser = async (user, userId, roleName) => {
@@ -321,7 +317,7 @@ export const roleEditField = async (user, roleId, input) => {
 };
 
 export const roleAddRelation = async (user, roleId, input) => {
-  const role = await loadById(user, roleId, ENTITY_TYPE_ROLE);
+  const role = await storeLoadById(user, roleId, ENTITY_TYPE_ROLE);
   if (!role) {
     throw FunctionalError(`Cannot add the relation, ${ENTITY_TYPE_ROLE} cannot be found.`);
   }
@@ -336,7 +332,7 @@ export const roleAddRelation = async (user, roleId, input) => {
 };
 
 export const roleDeleteRelation = async (user, roleId, toId, relationshipType) => {
-  const role = await loadById(user, roleId, ENTITY_TYPE_ROLE);
+  const role = await storeLoadById(user, roleId, ENTITY_TYPE_ROLE);
   if (!role) {
     throw FunctionalError('Cannot delete the relation, Role cannot be found.');
   }
@@ -349,16 +345,18 @@ export const roleDeleteRelation = async (user, roleId, toId, relationshipType) =
 
 // User related
 export const userEditField = async (user, userId, inputs) => {
-  const input = R.head(inputs);
-  const { key } = input;
-  const value = key === 'password' ? [bcrypt.hashSync(R.head(input.value).toString())] : input.value;
-  const patch = { [key]: value };
-  const { element } = await patchAttribute(user, userId, ENTITY_TYPE_USER, patch);
+  for (let index = 0; index < inputs.length; index += 1) {
+    const input = inputs[index];
+    if (input.key === 'password') {
+      input.value = [bcrypt.hashSync(R.head(input.value).toString())];
+    }
+  }
+  const { element } = await updateAttribute(user, userId, ENTITY_TYPE_USER, inputs);
   return notify(BUS_TOPICS[ENTITY_TYPE_USER].EDIT_TOPIC, element, user);
 };
 
 export const deleteBookmark = async (user, id) => {
-  const currentUser = await loadById(user, user.id, ENTITY_TYPE_USER);
+  const currentUser = await storeLoadById(user, user.id, ENTITY_TYPE_USER);
   const currentBookmarks = currentUser.bookmarks ? currentUser.bookmarks : [];
   const newBookmarks = R.filter((n) => n.id !== id, currentBookmarks);
   await patchAttribute(user, user.id, ENTITY_TYPE_USER, { bookmarks: newBookmarks });
@@ -366,14 +364,14 @@ export const deleteBookmark = async (user, id) => {
 };
 
 export const bookmarks = async (user, types) => {
-  const currentUser = await loadById(user, user.id, ENTITY_TYPE_USER);
+  const currentUser = await storeLoadById(user, user.id, ENTITY_TYPE_USER);
   const bookmarkList = types && types.length > 0
     ? R.filter((n) => R.includes(n.type, types), currentUser.bookmarks || [])
     : currentUser.bookmarks || [];
   const filteredBookmarks = [];
   // eslint-disable-next-line no-restricted-syntax
   for (const bookmark of bookmarkList) {
-    const loadedBookmark = await loadById(user, bookmark.id, bookmark.type);
+    const loadedBookmark = await storeLoadById(user, bookmark.id, bookmark.type);
     if (isNotEmptyField(loadedBookmark)) {
       filteredBookmarks.push(loadedBookmark);
     } else {
@@ -389,17 +387,30 @@ export const bookmarks = async (user, types) => {
 };
 
 export const addBookmark = async (user, id, type) => {
-  const currentUser = await loadById(user, user.id, ENTITY_TYPE_USER);
+  const currentUser = await storeLoadById(user, user.id, ENTITY_TYPE_USER);
   const currentBookmarks = currentUser.bookmarks ? currentUser.bookmarks : [];
   const newBookmarks = R.append(
     { id, type },
     R.filter((n) => n.id !== id, currentBookmarks)
   );
   await patchAttribute(user, user.id, ENTITY_TYPE_USER, { bookmarks: newBookmarks });
-  return loadById(user, id, type);
+  return storeLoadById(user, id, type);
 };
 
-export const meEditField = (user, userId, inputs) => {
+export const meEditField = (user, userId, inputs, password = null) => {
+  const input = R.head(inputs);
+  const { key } = input;
+  if (key === 'password') {
+    const dbPassword = user.session_password;
+    const match = bcrypt.compareSync(password, dbPassword);
+    if (!match) throw FunctionalError('The current password you have provided is not valid');
+  }
+  if (user.external && (key === 'user_email' || key === 'user_name')) {
+    throw ForbiddenAccess();
+  }
+  if (key === 'api_token') {
+    throw ForbiddenAccess();
+  }
   return userEditField(user, userId, inputs);
 };
 
@@ -410,7 +421,7 @@ export const userDelete = async (user, userId) => {
 };
 
 export const userAddRelation = async (user, userId, input) => {
-  const userData = await loadById(user, userId, ENTITY_TYPE_USER);
+  const userData = await storeLoadById(user, userId, ENTITY_TYPE_USER);
   if (!userData) {
     throw FunctionalError(`Cannot add the relation, ${ENTITY_TYPE_USER} cannot be found.`);
   }
@@ -435,7 +446,7 @@ export const userDeleteRelation = async (user, targetUser, toId, relationshipTyp
 };
 
 export const userIdDeleteRelation = async (user, userId, toId, relationshipType) => {
-  const userData = await loadById(user, userId, ENTITY_TYPE_USER);
+  const userData = await storeLoadById(user, userId, ENTITY_TYPE_USER);
   if (!userData) {
     throw FunctionalError('Cannot delete the relation, User cannot be found.');
   }
@@ -503,6 +514,41 @@ export const login = async (email, password) => {
   return user;
 };
 
+export const otpUserGeneration = (user) => {
+  const secret = authenticator.generateSecret();
+  const uri = authenticator.keyuri(user.user_email, 'OpenCTI', secret);
+  return { secret, uri };
+};
+
+export const otpUserActivation = async (user, { secret, code }) => {
+  const isValidated = authenticator.check(code, secret);
+  if (isValidated) {
+    const uri = authenticator.keyuri(user.user_email, 'OpenCTI', secret);
+    const patch = { otp_activated: true, otp_secret: secret, otp_qr: uri };
+    const { element } = await patchAttribute(user, user.id, ENTITY_TYPE_USER, patch);
+    return element;
+  }
+  throw AuthenticationFailure();
+};
+
+export const otpUserDeactivation = async (user, id) => {
+  const patch = { otp_activated: false, otp_secret: '', otp_qr: '' };
+  const { element } = await patchAttribute(user, id, ENTITY_TYPE_USER, patch);
+  return element;
+};
+
+export const otpUserLogin = (req, user, { code }) => {
+  if (!user.otp_activated) {
+    throw AuthenticationFailure();
+  }
+  const isValidated = authenticator.check(code, user.otp_secret);
+  if (!isValidated) {
+    throw AuthenticationFailure();
+  }
+  req.session.user.otp_validated = isValidated;
+  return isValidated;
+};
+
 export const logout = async (user, req, res) => {
   await delUserContext(user);
   return new Promise((resolve, reject) => {
@@ -518,7 +564,7 @@ export const logout = async (user, req, res) => {
   });
 };
 
-const buildSessionUser = (user) => {
+const buildSessionUser = (user, provider) => {
   return {
     id: user.id,
     session_creation: now(),
@@ -526,7 +572,13 @@ const buildSessionUser = (user) => {
     api_token: user.api_token,
     internal_id: user.internal_id,
     user_email: user.user_email,
+    otp_activated: user.otp_activated,
+    // 2FA is implicitly validated when login from token
+    otp_validated: !user.otp_activated || provider === AUTH_BEARER,
+    otp_secret: user.otp_secret,
     name: user.name,
+    external: user.external,
+    login_provider: provider,
     capabilities: user.capabilities.map((c) => ({ id: c.id, internal_id: c.internal_id, name: c.name })),
     allowed_marking: user.allowed_marking.map((m) => ({
       id: m.id,
@@ -554,7 +606,7 @@ export const resolveUserById = async (id) => {
   if (id === OPENCTI_SYSTEM_UUID) {
     return SYSTEM_USER;
   }
-  const client = await loadById(SYSTEM_USER, id, ENTITY_TYPE_USER);
+  const client = await storeLoadById(SYSTEM_USER, id, ENTITY_TYPE_USER);
   return buildCompleteUser(client);
 };
 
@@ -566,16 +618,17 @@ const resolveUserByToken = async (tokenValue) => {
 export const userRenewToken = async (user, userId) => {
   const patch = { api_token: uuid() };
   await patchAttribute(user, userId, ENTITY_TYPE_USER, patch);
-  return loadById(user, userId, ENTITY_TYPE_USER);
+  return storeLoadById(user, userId, ENTITY_TYPE_USER);
 };
 
 export const authenticateUser = async (req, user, provider, token = '') => {
   // Build the user session with only required fields
   const completeUser = await buildCompleteUser(user);
   logAudit.info(userWithOrigin(req, user), LOGIN_ACTION, { provider });
-  req.session.user = buildSessionUser(completeUser);
+  const sessionUser = buildSessionUser(completeUser, provider);
+  req.session.user = sessionUser;
   req.session.session_provider = { provider, token };
-  return completeUser;
+  return sessionUser;
 };
 
 const AUTH_BEARER = 'Bearer';
@@ -586,11 +639,11 @@ export const authenticateUserFromRequest = async (req, res) => {
   if (auth) {
     // User already identified, we need to enforce the session validity
     const { provider, token } = req.session.session_provider;
-    // For bearer, validate that the bearer is the same than the session
+    // For bearer, validate that the bearer is the same as the session
     if (provider === AUTH_BEARER) {
       const currentToken = extractTokenFromBearer(req.headers.authorization);
       if (currentToken !== token) {
-        // Session doesnt match, kill the current session and try to re auth
+        // Session doesn't match, kill the current session and try to re auth
         await logout(auth, req, res);
         return authenticateUserFromRequest(req, res);
       }
@@ -603,12 +656,12 @@ export const authenticateUserFromRequest = async (req, res) => {
       const passwordCompare = isNotEmptyField(password) && isNotEmptyField(sessionPassword);
       const samePassword = passwordCompare && bcrypt.compareSync(password, sessionPassword);
       if (!sameUsername || !samePassword) {
-        // Session doesnt match, kill the current session and try to re auth
+        // Session doesn't match, kill the current session and try to re auth
         await logout(auth, req, res);
         return authenticateUserFromRequest(req, res);
       }
     }
-    // Other providers doesnt need specific validation, session management is enough
+    // Other providers doesn't need specific validation, session management is enough
     // If everything ok, return the authenticated user.
     return auth;
   }
@@ -625,7 +678,7 @@ export const authenticateUserFromRequest = async (req, res) => {
     try {
       const user = await resolveUserByToken(tokenUUID);
       if (user) {
-        await authenticateUser(req, user, loginProvider, tokenUUID);
+        return authenticateUser(req, user, loginProvider, tokenUUID);
       }
       return user;
     } catch (err) {
@@ -666,11 +719,11 @@ export const initAdmin = async (email, password, tokenValue) => {
 // region context
 export const userCleanContext = async (user, userId) => {
   await delEditContext(user, userId);
-  return loadById(user, userId, ENTITY_TYPE_USER).then((userToReturn) => notify(BUS_TOPICS[ENTITY_TYPE_USER].EDIT_TOPIC, userToReturn, user));
+  return storeLoadById(user, userId, ENTITY_TYPE_USER).then((userToReturn) => notify(BUS_TOPICS[ENTITY_TYPE_USER].EDIT_TOPIC, userToReturn, user));
 };
 
 export const userEditContext = async (user, userId, input) => {
   await setEditContext(user, userId, input);
-  return loadById(user, userId, ENTITY_TYPE_USER).then((userToReturn) => notify(BUS_TOPICS[ENTITY_TYPE_USER].EDIT_TOPIC, userToReturn, user));
+  return storeLoadById(user, userId, ENTITY_TYPE_USER).then((userToReturn) => notify(BUS_TOPICS[ENTITY_TYPE_USER].EDIT_TOPIC, userToReturn, user));
 };
 // endregion

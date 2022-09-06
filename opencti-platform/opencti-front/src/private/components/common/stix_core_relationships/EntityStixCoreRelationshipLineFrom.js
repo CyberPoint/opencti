@@ -33,6 +33,7 @@ const styles = (theme) => ({
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+    paddingRight: 5,
   },
   goIcon: {
     position: 'absolute',
@@ -110,6 +111,12 @@ class EntityStixCoreRelationshipLineFromComponent extends Component {
               </div>
               <div
                 className={classes.bodyItem}
+                style={{ width: dataColumns.created.width }}
+              >
+                {fsd(node.created)}
+              </div>
+              <div
+                className={classes.bodyItem}
                 style={{ width: dataColumns.confidence.width }}
               >
                 <ItemConfidence confidence={node.confidence} variant="inList" />
@@ -164,6 +171,7 @@ const EntityStixCoreRelationshipLineFromFragment = createFragmentContainer(
         stop_time
         description
         is_inferred
+        created
         x_opencti_inferences {
           rule {
             id
@@ -289,6 +297,21 @@ const EntityStixCoreRelationshipLineFromFragment = createFragmentContainer(
           ... on Incident {
             name
             description
+          }
+          ... on Event {
+            name
+            description
+          }
+          ... on Channel {
+            name
+            description
+          }
+          ... on Narrative {
+            name
+            description
+          }
+          ... on Language {
+            name
           }
           ... on StixCyberObservable {
             id
@@ -470,6 +493,23 @@ const EntityStixCoreRelationshipLineFromFragment = createFragmentContainer(
                     first_seen
                     last_seen
                   }
+                  ... on Event {
+                    name
+                    description
+                    start_time
+                    stop_time
+                  }
+                  ... on Channel {
+                    name
+                    description
+                  }
+                  ... on Narrative {
+                    name
+                    description
+                  }
+                  ... on Language {
+                    name
+                  }
                   ... on StixCyberObservable {
                     observable_value
                     x_opencti_description
@@ -561,6 +601,17 @@ class EntityStixCoreRelationshipLineFromDummyComponent extends Component {
               <div
                 className={classes.bodyItem}
                 style={{ width: dataColumns.stop_time.width }}
+              >
+                <Skeleton
+                  animation="wave"
+                  variant="rectangular"
+                  width={140}
+                  height="100%"
+                />
+              </div>
+              <div
+                className={classes.bodyItem}
+                style={{ width: dataColumns.created.width }}
               >
                 <Skeleton
                   animation="wave"

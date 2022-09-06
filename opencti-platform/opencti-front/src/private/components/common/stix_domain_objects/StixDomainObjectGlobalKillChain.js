@@ -245,7 +245,7 @@ class StixDomainObjectGlobalKillChainComponent extends Component {
                             />
                             <ListItemSecondaryAction>
                               <StixCoreRelationshipPopover
-                                stixRelationshipId={stixDomainObject.id}
+                                stixCoreRelationshipId={stixDomainObject.id}
                                 paginationOptions={paginationOptions}
                                 onDelete={this.props.relay.refetch.bind(this)}
                               />

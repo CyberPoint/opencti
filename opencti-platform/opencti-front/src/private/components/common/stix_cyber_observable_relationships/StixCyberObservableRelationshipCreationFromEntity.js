@@ -20,6 +20,10 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { ConnectionHandler } from 'relay-runtime';
 import Alert from '@mui/material/Alert';
 import Skeleton from '@mui/material/Skeleton';
+import SpeedDial from '@mui/material/SpeedDial';
+import SpeedDialIcon from '@mui/material/SpeedDialIcon';
+import SpeedDialAction from '@mui/material/SpeedDialAction';
+import { GlobeModel, HexagonOutline } from 'mdi-material-ui';
 import { commitMutation, QueryRenderer } from '../../../../relay/environment';
 import inject18n from '../../../../components/i18n';
 import { itemColor } from '../../../../utils/Colors';
@@ -30,13 +34,15 @@ import {
 } from '../../../../utils/Relation';
 import ItemIcon from '../../../../components/ItemIcon';
 import SelectField from '../../../../components/SelectField';
-import DatePickerField from '../../../../components/DatePickerField';
 import StixCyberObservableRelationCreationFromEntityLines, {
   stixCyberObservableRelationshipCreationFromEntityLinesQuery,
 } from './StixCyberObservableRelationshipCreationFromEntityLines';
 import StixCyberObservableCreation from '../../observations/stix_cyber_observables/StixCyberObservableCreation';
 import SearchInput from '../../../../components/SearchInput';
 import { truncate } from '../../../../utils/String';
+import { defaultValue } from '../../../../utils/Graph';
+import StixDomainObjectCreation from '../stix_domain_objects/StixDomainObjectCreation';
+import DateTimePickerField from '../../../../components/DateTimePickerField';
 
 const styles = (theme) => ({
   drawerPaper: {
@@ -165,6 +171,22 @@ const styles = (theme) => ({
   },
   button: {
     marginLeft: theme.spacing(2),
+  },
+  speedDial: {
+    position: 'fixed',
+    bottom: 30,
+    right: 30,
+    zIndex: 2000,
+  },
+  info: {
+    paddingTop: 10,
+  },
+  speedDialButton: {
+    backgroundColor: theme.palette.secondary.main,
+    color: '#ffffff',
+    '&:hover': {
+      backgroundColor: theme.palette.secondary.main,
+    },
   },
 });
 
@@ -296,10 +318,10 @@ const stixCyberObservableRelationshipCreationFromEntityMutation = graphql`
 const stixCyberObservableRelationshipValidation = (t) => Yup.object().shape({
   relationship_type: Yup.string().required(t('This field is required')),
   start_time: Yup.date()
-    .typeError(t('The value must be a date (YYYY-MM-DD)'))
+    .typeError(t('The value must be a datetime (yyyy-MM-dd hh:mm (a|p)m)'))
     .required(t('This field is required')),
   stop_time: Yup.date()
-    .typeError(t('The value must be a date (YYYY-MM-DD)'))
+    .typeError(t('The value must be a datetime (yyyy-MM-dd hh:mm (a|p)m)'))
     .required(t('This field is required')),
 });
 
@@ -321,7 +343,32 @@ class StixCyberObservableRelationshipCreationFromEntity extends Component {
       step: 0,
       targetEntity: null,
       search: '',
+      openSpeedDial: false,
     };
+  }
+
+  handleOpenSpeedDial() {
+    this.setState({ openSpeedDial: true });
+  }
+
+  handleCloseSpeedDial() {
+    this.setState({ openSpeedDial: false });
+  }
+
+  handleOpenCreateEntity() {
+    this.setState({ openCreateEntity: true, openSpeedDial: false });
+  }
+
+  handleCloseCreateEntity() {
+    this.setState({ openCreateEntity: false, openSpeedDial: false });
+  }
+
+  handleOpenCreateObservable() {
+    this.setState({ openCreateObservable: true, openSpeedDial: false });
+  }
+
+  handleCloseCreateObservable() {
+    this.setState({ openCreateObservable: false, openSpeedDial: false });
   }
 
   handleOpen() {
@@ -390,13 +437,16 @@ class StixCyberObservableRelationshipCreationFromEntity extends Component {
   }
 
   renderSelectEntity() {
-    const { search } = this.state;
+    const {
+      search,
+      open,
+      openSpeedDial,
+      openCreateEntity,
+      openCreateObservable,
+    } = this.state;
     const { classes, t, entityType } = this.props;
-    const { fromTypes, toTypes } = resolveStixCyberObservableRelationshipsTargetTypes(entityType);
-    const allTypes = R.uniq([...fromTypes, ...toTypes]);
     const paginationOptions = {
       search,
-      types: allTypes,
       orderBy: search.length > 0 ? null : 'created_at',
       orderMode: search.length > 0 ? null : 'desc',
     };
@@ -486,13 +536,55 @@ class StixCyberObservableRelationshipCreationFromEntity extends Component {
               );
             }}
           />
-          <StixCyberObservableCreation
-            display={this.state.open}
+          <SpeedDial
+            className={classes.createButton}
+            ariaLabel="Create"
+            icon={<SpeedDialIcon />}
+            onClose={this.handleCloseSpeedDial.bind(this)}
+            onOpen={this.handleOpenSpeedDial.bind(this)}
+            open={openSpeedDial}
+            FabProps={{
+              color: 'secondary',
+            }}
+          >
+            <SpeedDialAction
+              title={t('Create an observable')}
+              icon={<HexagonOutline />}
+              tooltipTitle={t('Create an observable')}
+              onClick={this.handleOpenCreateObservable.bind(this)}
+              FabProps={{
+                classes: { root: classes.speedDialButton },
+              }}
+            />
+            <SpeedDialAction
+              title={t('Create an entity')}
+              icon={<GlobeModel />}
+              tooltipTitle={t('Create an entity')}
+              onClick={this.handleOpenCreateEntity.bind(this)}
+              FabProps={{
+                classes: { root: classes.speedDialButton },
+              }}
+            />
+          </SpeedDial>
+          <StixDomainObjectCreation
+            display={open}
             contextual={true}
-            inputValue={this.state.search}
-            paginationKey="Pagination_stixCyberObservables"
+            inputValue={search}
+            paginationKey="Pagination_stixCoreObjects"
             paginationOptions={paginationOptions}
-            targetStixDomainObjectTypes={allTypes}
+            speeddial={true}
+            open={openCreateEntity}
+            handleClose={this.handleCloseCreateEntity.bind(this)}
+          />
+          <StixCyberObservableCreation
+            display={open}
+            contextual={true}
+            inputValue={search}
+            paginationKey="Pagination_stixCoreObjects"
+            paginationOptions={paginationOptions}
+            speeddial={true}
+            open={openCreateObservable}
+            handleClose={this.handleCloseCreateObservable.bind(this)}
           />
         </div>
       </div>
@@ -578,7 +670,7 @@ class StixCyberObservableRelationshipCreationFromEntity extends Component {
                   </div>
                   <div className={classes.content}>
                     <span className={classes.name}>
-                      {truncate(fromEntity.observable_value, 20)}
+                      {truncate(defaultValue(fromEntity), 20)}
                     </span>
                   </div>
                 </div>
@@ -614,7 +706,7 @@ class StixCyberObservableRelationshipCreationFromEntity extends Component {
                   </div>
                   <div className={classes.content}>
                     <span className={classes.name}>
-                      {truncate(toEntity.observable_value, 20)}
+                      {truncate(defaultValue(toEntity), 20)}
                     </span>
                   </div>
                 </div>
@@ -637,9 +729,8 @@ class StixCyberObservableRelationshipCreationFromEntity extends Component {
                 )}
               </Field>
               <Field
-                component={DatePickerField}
+                component={DateTimePickerField}
                 name="start_time"
-                invalidDateMessage={t('The value must be a date (mm/dd/yyyy)')}
                 TextFieldProps={{
                   label: t('Start time'),
                   variant: 'standard',
@@ -648,9 +739,8 @@ class StixCyberObservableRelationshipCreationFromEntity extends Component {
                 }}
               />
               <Field
-                component={DatePickerField}
+                component={DateTimePickerField}
                 name="stop_time"
-                invalidDateMessage={t('The value must be a date (mm/dd/yyyy)')}
                 TextFieldProps={{
                   label: t('Stop time'),
                   variant: 'standard',

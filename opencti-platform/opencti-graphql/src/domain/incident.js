@@ -1,6 +1,6 @@
 import { assoc, pipe } from 'ramda';
-import { createEntity, loadById, timeSeriesEntities } from '../database/middleware';
-import { listEntities } from '../database/repository';
+import { createEntity, storeLoadById, timeSeriesEntities } from '../database/middleware';
+import { listEntities } from '../database/middleware-loader';
 import { BUS_TOPICS } from '../config/conf';
 import { notify } from '../database/redis';
 import { ENTITY_TYPE_INCIDENT } from '../schema/stixDomainObject';
@@ -8,7 +8,7 @@ import { ABSTRACT_STIX_DOMAIN_OBJECT } from '../schema/general';
 import { now } from '../utils/format';
 
 export const findById = (user, incidentId) => {
-  return loadById(user, incidentId, ENTITY_TYPE_INCIDENT);
+  return storeLoadById(user, incidentId, ENTITY_TYPE_INCIDENT);
 };
 
 export const findAll = (user, args) => {

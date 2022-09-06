@@ -88,6 +88,7 @@ const LIST = { key: 'list', name: 'List' };
 const visualizationTypesMapping = {
   all: [HORIZONTAL_BAR, DONUT, AREA, VERTICAL_BAR, TIMELINE, LIST],
   sectors: [HORIZONTAL_BAR, DONUT, AREA, VERTICAL_BAR, TIMELINE, LIST],
+  regions: [HORIZONTAL_BAR, DONUT, AREA, VERTICAL_BAR, TIMELINE, LIST],
   countries: [MAP, HORIZONTAL_BAR, DONUT, AREA, VERTICAL_BAR, TIMELINE, LIST],
   'intrusion-sets': [HORIZONTAL_BAR, DONUT, AREA, VERTICAL_BAR, TIMELINE, LIST],
   malwares: [HORIZONTAL_BAR, DONUT, AREA, VERTICAL_BAR, TIMELINE, LIST],
@@ -98,6 +99,7 @@ const visualizationTypesMapping = {
   indicators_lifecycle: [HORIZONTAL_BAR, DONUT, VERTICAL_BAR, AREA, LIST],
   indicators_detection: [HORIZONTAL_BAR, DONUT, VERTICAL_BAR, AREA, LIST],
   reports: [HORIZONTAL_BAR, DONUT, VERTICAL_BAR, AREA, LIST],
+  relationships_list: [LIST],
 };
 
 class WidgetCreation extends Component {
@@ -323,6 +325,22 @@ class WidgetCreation extends Component {
         <Grid item={true} xs="4">
           <Card variant="outlined" className={classes.card2}>
             <CardActionArea
+              onClick={this.handleSelectDataType.bind(this, 'regions')}
+              style={{ height: '100%' }}
+            >
+              <CardContent>
+                <Typography gutterBottom variant="h1" style={{ fontSize: 16 }}>
+                  {t('Victimology - Regions')}
+                </Typography>
+                <br />
+                <Typography variant="body1">{t('Targeted regions')}</Typography>
+              </CardContent>
+            </CardActionArea>
+          </Card>
+        </Grid>
+        <Grid item={true} xs="4">
+          <Card variant="outlined" className={classes.card2}>
+            <CardActionArea
               onClick={this.handleSelectDataType.bind(this, 'countries')}
               style={{ height: '100%' }}
             >
@@ -470,6 +488,27 @@ class WidgetCreation extends Component {
             </CardActionArea>
           </Card>
         </Grid>
+        <Grid item={true} xs="4">
+          <Card variant="outlined" className={classes.card2}>
+            <CardActionArea
+              onClick={this.handleSelectDataType.bind(
+                this,
+                'relationships_list',
+              )}
+              style={{ height: '100%' }}
+            >
+              <CardContent>
+                <Typography gutterBottom variant="h1" style={{ fontSize: 16 }}>
+                  {t('Activity - All relationships')}
+                </Typography>
+                <br />
+                <Typography variant="body1">
+                  {t('List of relationships with filters')}
+                </Typography>
+              </CardContent>
+            </CardActionArea>
+          </Card>
+        </Grid>
       </Grid>
     );
   }
@@ -512,6 +551,22 @@ class WidgetCreation extends Component {
                 </Typography>
                 <br />
                 <Typography variant="body1">{t('Targeted sectors')}</Typography>
+              </CardContent>
+            </CardActionArea>
+          </Card>
+        </Grid>
+        <Grid item={true} xs="4">
+          <Card variant="outlined" className={classes.card2}>
+            <CardActionArea
+              onClick={this.handleSelectDataType.bind(this, 'regions')}
+              style={{ height: '100%' }}
+            >
+              <CardContent>
+                <Typography gutterBottom variant="h1" style={{ fontSize: 16 }}>
+                  {t('Victimology - Regions')}
+                </Typography>
+                <br />
+                <Typography variant="body1">{t('Targeted regions')}</Typography>
               </CardContent>
             </CardActionArea>
           </Card>
@@ -787,7 +842,7 @@ class WidgetCreation extends Component {
                     <DatabaseOutline style={{ fontSize: 40 }} color="primary" />
                     <Typography
                       gutterBottom
-                      variant="h1"
+                      variant="h2"
                       style={{ marginTop: 20 }}
                     >
                       {t('Global')}
@@ -812,7 +867,7 @@ class WidgetCreation extends Component {
                     <FlaskOutline style={{ fontSize: 40 }} color="primary" />
                     <Typography
                       gutterBottom
-                      variant="h1"
+                      variant="h2"
                       style={{ marginTop: 20 }}
                     >
                       {t('Threat or arsenal item')}
@@ -840,7 +895,7 @@ class WidgetCreation extends Component {
                     />
                     <Typography
                       gutterBottom
-                      variant="h1"
+                      variant="h2"
                       style={{ marginTop: 20 }}
                     >
                       {t('Identity or location')}

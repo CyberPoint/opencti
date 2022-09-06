@@ -68,7 +68,7 @@ const createHttpServer = async () => {
     },
     {
       server: httpServer,
-      path: apolloServer.graphqlPath,
+      path: `${basePath}${apolloServer.graphqlPath}`,
     }
   );
   apolloServer.plugins.push({
@@ -81,7 +81,7 @@ const createHttpServer = async () => {
     },
   });
   await apolloServer.start();
-  const requestSizeLimit = nconf.get('app:max_payload_body_size') || '10mb';
+  const requestSizeLimit = nconf.get('app:max_payload_body_size') || '50mb';
   app.use(graphqlUploadExpress());
   apolloServer.applyMiddleware({
     app,
@@ -104,9 +104,8 @@ const listenServer = async () => {
         httpServer.on('close', () => {
           seeMiddleware.shutdown();
         });
-        httpServer.listen(PORT, () => {
-          resolve(httpServer);
-        });
+        const server = httpServer.listen(PORT);
+        resolve({ server });
       });
     } catch (e) {
       logApp.error('[OPENCTI] API start fail', { error: e });
@@ -115,12 +114,12 @@ const listenServer = async () => {
   });
 };
 
-const stopServer = async (httpServer) => {
+const stopServer = async ({ server }) => {
   return new Promise((resolve) => {
-    httpServer.close(() => {
+    server.close(() => {
       resolve();
     });
-    httpServer.emit('close'); // force server close
+    server.emit('close'); // force server close
   });
 };
 

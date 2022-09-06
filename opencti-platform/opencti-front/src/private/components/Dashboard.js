@@ -185,10 +185,7 @@ const TotalEntitiesCard = ({ title, options, Icon }) => {
     <CardContent>
       <div className={classes.title}>{t(title)}</div>
       <div className={classes.number}>{n(total)}</div>
-      <ItemNumberDifference
-        difference={difference}
-        description={t('24 hours')}
-      />
+      <ItemNumberDifference difference={difference} description={t('24 hours')}/>
       <div className={classes.icon}>
         <Icon color="inherit" fontSize="large" />
       </div>
@@ -311,6 +308,7 @@ const TopLabelsCard = ({ classes }) => {
   const data = useLazyLoadQuery(
     dashboardStixMetaRelationshipsDistributionQuery,
     queryOptions,
+    { fetchPolicy: 'network-only' },
   );
   const distribution = data.stixMetaRelationshipsDistribution;
   if (distribution.length === 0) {
@@ -368,11 +366,15 @@ const IngestedEntitiesGraph = () => {
     operation: 'count',
     startDate: yearsAgo(1),
     interval: 'month',
+  }, { fetchPolicy: 'network-only' });
+  const chartData = data.stixDomainObjectsTimeSeries.map((entry) => {
+    const date = new Date(entry.date);
+    date.setDate(date.getDate() + 15);
+    return {
+      x: date,
+      y: entry.value,
+    };
   });
-  const chartData = data.stixDomainObjectsTimeSeries.map((entry) => ({
-    x: new Date(entry.date),
-    y: entry.value,
-  }));
   return (
     <div className={classes.graphContainer}>
       <Chart
@@ -448,6 +450,7 @@ const TargetedCountries = ({ timeField }) => {
       dateAttribute: timeField === 'functional' ? 'start_time' : 'created_at',
       limit: 20,
     },
+    { fetchPolicy: 'network-only' },
   );
   const values = pluck('value', data.stixCoreRelationshipsDistribution);
   const countries = map(
@@ -491,14 +494,6 @@ const LastIngestedAnalysis = () => {
             ... on Report {
               name
             }
-            ... on Note {
-              attribute_abstract
-              content
-            }
-            ... on Opinion {
-              opinion
-              explanation
-            }
             createdBy {
               ... on Identity {
                 id
@@ -523,8 +518,8 @@ const LastIngestedAnalysis = () => {
     first: 8,
     orderBy: 'created_at',
     orderMode: 'desc',
-    types: ['Report', 'Note', 'Opinion'],
-  });
+    types: ['Report'],
+  }, { fetchPolicy: 'network-only' });
   const objects = data.stixDomainObjects;
   if (objects.edges.length === 0) {
     return <NoTableElement />;
@@ -613,6 +608,7 @@ const ObservablesDistribution = () => {
   const data = useLazyLoadQuery(
     dashboardStixCyberObservablesDistributionQuery,
     { field: 'entity_type', operation: 'count' },
+    { fetchPolicy: 'network-only' },
   );
   const distribution = data.stixCyberObservablesDistribution.map(
     (n) => n.value,
@@ -645,7 +641,7 @@ const WorkspaceDashboard = ({ dashboard, timeField }) => {
   `;
   const data = useLazyLoadQuery(dashboardCustomDashboardQuery, {
     id: dashboard,
-  });
+  }, { fetchPolicy: 'network-only' });
   if (data.workspace) {
     return (
       <DashboardView
@@ -761,7 +757,7 @@ const DefaultDashboard = ({ timeField }) => {
             style={{ height: 300 }}
           >
             <Suspense fallback={<Loader variant="inElement" />}>
-              <IngestedEntitiesGraph classes={classes} theme={theme} />
+              <IngestedEntitiesGraph />
             </Suspense>
           </Paper>
         </Grid>
@@ -778,6 +774,8 @@ const DefaultDashboard = ({ timeField }) => {
               'Malware',
               'Tool',
               'Vulnerability',
+              'Channel',
+              'Narrative',
             ]}
             title={t('Top 10 active entities (3 last months)')}
             field="internal_id"
@@ -812,7 +810,7 @@ const DefaultDashboard = ({ timeField }) => {
       <Grid container={true} spacing={3} style={{ marginTop: 5 }}>
         <Grid item={true} xs={8}>
           <Typography variant="h4" gutterBottom={true}>
-            {t('Last ingested analysis (creation date in the platform)')}
+            {t('Last ingested reports (creation date in the platform)')}
           </Typography>
           <Paper
             classes={{ root: classes.paper }}
@@ -820,7 +818,7 @@ const DefaultDashboard = ({ timeField }) => {
             style={{ height: 420 }}
           >
             <Suspense fallback={<Loader variant="inElement" />}>
-              <LastIngestedAnalysis classes={classes} theme={theme} />
+              <LastIngestedAnalysis />
             </Suspense>
           </Paper>
         </Grid>

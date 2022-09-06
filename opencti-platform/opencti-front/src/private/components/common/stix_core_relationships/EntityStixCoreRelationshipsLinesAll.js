@@ -72,7 +72,7 @@ EntityStixCoreRelationshipsLinesAll.propTypes = {
 
 export const entityStixCoreRelationshipsLinesAllQuery = graphql`
   query EntityStixCoreRelationshipsLinesAllPaginationQuery(
-    $elementId: String
+    $elementId: [String]
     $elementWithTargetTypes: [String]
     $relationship_type: [String]
     $search: String
@@ -80,6 +80,7 @@ export const entityStixCoreRelationshipsLinesAllQuery = graphql`
     $cursor: ID
     $orderBy: StixCoreRelationshipsOrdering
     $orderMode: OrderingMode
+    $filters: [StixCoreRelationshipsFiltering]
   ) {
     ...EntityStixCoreRelationshipsLinesAll_data
       @arguments(
@@ -91,6 +92,7 @@ export const entityStixCoreRelationshipsLinesAllQuery = graphql`
         cursor: $cursor
         orderBy: $orderBy
         orderMode: $orderMode
+        filters: $filters
       )
   }
 `;
@@ -101,7 +103,7 @@ export default createPaginationContainer(
     data: graphql`
       fragment EntityStixCoreRelationshipsLinesAll_data on Query
       @argumentDefinitions(
-        elementId: { type: "String" }
+        elementId: { type: "[String]" }
         elementWithTargetTypes: { type: "[String]" }
         relationship_type: { type: "[String]" }
         search: { type: "String" }
@@ -112,6 +114,7 @@ export default createPaginationContainer(
           defaultValue: start_time
         }
         orderMode: { type: "OrderingMode", defaultValue: asc }
+        filters: { type: "[StixCoreRelationshipsFiltering]" }
       ) {
         stixCoreRelationships(
           elementId: $elementId
@@ -122,6 +125,7 @@ export default createPaginationContainer(
           after: $cursor
           orderBy: $orderBy
           orderMode: $orderMode
+          filters: $filters
         ) @connection(key: "Pagination_stixCoreRelationships") {
           edges {
             node {
@@ -158,6 +162,7 @@ export default createPaginationContainer(
         cursor,
         orderBy: fragmentVariables.orderBy,
         orderMode: fragmentVariables.orderMode,
+        filters: fragmentVariables.filters,
       };
     },
     query: entityStixCoreRelationshipsLinesAllQuery,

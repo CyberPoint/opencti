@@ -193,7 +193,7 @@ class Incidents extends Component {
         width: '13%',
         isSortable: true,
       },
-      status: {
+      x_opencti_workflow_id: {
         label: 'Status',
         width: '10%',
         isSortable: true,
@@ -236,7 +236,7 @@ class Incidents extends Component {
             availableFilterKeys={[
               'labelledBy',
               'markedBy',
-              'status_id',
+              'x_opencti_workflow_id',
               'created_start_date',
               'created_end_date',
               'createdBy',

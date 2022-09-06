@@ -42,7 +42,7 @@ const styles = (theme) => ({
 
 const entityStixCoreRelationshipsTimelineStixCoreRelationshipQuery = graphql`
   query EntityStixCoreRelationshipsTimelineStixCoreRelationshipQuery(
-    $elementId: String
+    $elementId: [String]
     $elementWithTargetTypes: [String]
     $relationship_type: [String]
     $startTimeStart: DateTime
@@ -198,6 +198,21 @@ const entityStixCoreRelationshipsTimelineStixCoreRelationshipQuery = graphql`
             ... on Incident {
               name
               description
+            }
+            ... on Event {
+              name
+              description
+            }
+            ... on Channel {
+              name
+              description
+            }
+            ... on Narrative {
+              name
+              description
+            }
+            ... on Language {
+              name
             }
             ... on StixCyberObservable {
               id
@@ -1186,7 +1201,7 @@ class EntityStixCoreRelationshipsTimeline extends Component {
       entityId,
       toTypes,
       relationshipType,
-      md,
+      fldt,
       startDate,
       endDate,
       classes,
@@ -1233,10 +1248,11 @@ class EntityStixCoreRelationshipsTimeline extends Component {
                         }/knowledge/relations/${stixCoreRelationship.id}`;
                       return (
                         <TimelineItem key={stixCoreRelationship.id}>
-                          <TimelineOppositeContent>
-                            <Typography variant="body2" color="textSecondary">
-                              {md(stixCoreRelationship.created)}
-                            </Typography>
+                          <TimelineOppositeContent
+                            sx={{ paddingTop: '18px' }}
+                            color="text.secondary"
+                          >
+                            {fldt(stixCoreRelationship.created)}
                           </TimelineOppositeContent>
                           <TimelineSeparator>
                             <Link to={link}>

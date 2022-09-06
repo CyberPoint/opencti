@@ -8,10 +8,15 @@ import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
 import { GetAppOutlined } from '@mui/icons-material';
 import Button from '@mui/material/Button';
+import Divider from '@mui/material/Divider';
 import inject18n from '../../../../components/i18n';
 import ExpandableMarkdown from '../../../../components/ExpandableMarkdown';
-import { ignoredAttributes } from './StixCyberObservableCreation';
+import {
+  dateAttributes,
+  ignoredAttributes,
+} from './StixCyberObservableCreation';
 import { APP_BASE_PATH } from '../../../../relay/environment';
+import StixCyberObservableIndicators from './StixCyberObservableIndicators';
 
 const styles = () => ({
   paper: {
@@ -25,7 +30,7 @@ const styles = () => ({
 
 class StixCyberObservableDetailsComponent extends Component {
   render() {
-    const { t, b, classes, stixCyberObservable } = this.props;
+    const { t, b, fldt, classes, stixCyberObservable } = this.props;
     const observableAttributes = pipe(
       dissoc('id'),
       dissoc('entity_type'),
@@ -85,6 +90,9 @@ class StixCyberObservableDetailsComponent extends Component {
                 ));
               }
               let finalValue = observableAttribute.value;
+              if (includes(observableAttribute.key, dateAttributes)) {
+                finalValue = fldt(finalValue);
+              }
               if (finalValue === true) {
                 finalValue = 'TRUE';
               } else if (finalValue === false) {
@@ -103,6 +111,10 @@ class StixCyberObservableDetailsComponent extends Component {
               );
             })}
           </Grid>
+          <Divider />
+          <StixCyberObservableIndicators
+            stixCyberObservable={stixCyberObservable}
+          />
         </Paper>
       </div>
     );
@@ -210,6 +222,22 @@ const StixCyberObservableDetails = createFragmentContainer(
             algorithm
             hash
           }
+          basic_constraints
+          name_constraints
+          policy_constraints
+          key_usage
+          extended_key_usage
+          subject_key_identifier
+          authority_key_identifier
+          subject_alternative_name
+          issuer_alternative_name
+          subject_directory_attributes
+          crl_distribution_points
+          inhibit_any_policy
+          private_key_usage_period_not_before
+          private_key_usage_period_not_after
+          certificate_policies
+          policy_mappings
         }
         ... on IPv4Addr {
           value
@@ -283,39 +311,36 @@ const StixCyberObservableDetails = createFragmentContainer(
           data
           data_type
         }
-        ... on X509V3ExtensionsType {
-          basic_constraints
-          name_constraints
-          policy_constraints
-          key_usage
-          extended_key_usage
-          subject_key_identifier
-          authority_key_identifier
-          subject_alternative_name
-          issuer_alternative_name
-          subject_directory_attributes
-          crl_distribution_points
-          inhibit_any_policy
-          private_key_usage_period_not_before
-          private_key_usage_period_not_after
-          certificate_policies
-          policy_mappings
-        }
-        ... on XOpenCTIHostname {
+        ... on Hostname {
           value
         }
-        ... on XOpenCTICryptographicKey {
+        ... on CryptographicKey {
           value
         }
-        ... on XOpenCTICryptocurrencyWallet {
+        ... on CryptocurrencyWallet {
           value
         }
-        ... on XOpenCTIText {
+        ... on Text {
           value
         }
-        ... on XOpenCTIUserAgent {
+        ... on UserAgent {
           value
         }
+        ... on BankAccount {
+          iban
+          bic
+          account_number
+        }
+        ... on PhoneNumber {
+          value
+        }
+        ... on PaymentCard {
+          card_number
+          expiration_date   
+          cvv
+          holder_name
+        }
+        ...StixCyberObservableIndicators_stixCyberObservable
       }
     `,
   },

@@ -46,6 +46,8 @@ const styles = (theme) => ({
   },
 });
 
+const TYPE_SEARCH_SIZE = 200;
+
 class Search extends Component {
   constructor(props) {
     super(props);
@@ -152,7 +154,6 @@ class Search extends Component {
               'created_at_end_date',
             ]}
             handleAddFilter={this.handleAddFilter.bind(this)}
-            currentFilters={filters}
           />
           <div className={classes.filters}>
             {R.map((currentFilter) => {
@@ -203,7 +204,7 @@ class Search extends Component {
           variables={{
             search: keyword,
             filters: finalFilters,
-            count: 100,
+            count: TYPE_SEARCH_SIZE,
           }}
           render={({ props }) => {
             if (props) {
@@ -217,7 +218,7 @@ class Search extends Component {
           variables={{
             search: keyword,
             filters: finalFilters,
-            count: 100,
+            count: TYPE_SEARCH_SIZE,
           }}
           render={({ props }) => {
             if (props) {

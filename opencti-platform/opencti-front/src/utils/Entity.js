@@ -22,6 +22,8 @@ export const resolveLink = (type) => {
       return '/dashboard/entities/sectors';
     case 'System':
       return '/dashboard/entities/systems';
+    case 'Event':
+      return '/dashboard/entities/events';
     case 'Indicator':
       return '/dashboard/observations/indicators';
     case 'Infrastructure':
@@ -42,6 +44,12 @@ export const resolveLink = (type) => {
       return '/dashboard/threats/threat_actors';
     case 'Tool':
       return '/dashboard/arsenal/tools';
+    case 'Channel':
+      return '/dashboard/arsenal/channels';
+    case 'Narrative':
+      return '/dashboard/arsenal/narratives';
+    case 'Language':
+      return '/dashboard/arsenal/narratives/languages';
     case 'Vulnerability':
       return '/dashboard/arsenal/vulnerabilities';
     case 'Incident':
@@ -68,12 +76,14 @@ export const resolveLink = (type) => {
     case 'User-Account':
     case 'Windows-Registry-Key':
     case 'Windows-Registry-Value-Type':
-    case 'X509-V3-Extensions-Type':
-    case 'X-OpenCTI-Cryptographic-Key':
-    case 'X-OpenCTI-Cryptocurrency-Wallet':
-    case 'X-OpenCTI-Hostname':
-    case 'X-OpenCTI-Text':
-    case 'X-OpenCTI-User-Agent':
+    case 'Cryptographic-Key':
+    case 'Cryptocurrency-Wallet':
+    case 'Hostname':
+    case 'Text':
+    case 'User-Agent':
+    case 'Bank-Account':
+    case 'Phone-Number':
+    case 'Payment-Card':
       return '/dashboard/observations/observables';
     default:
       return null;
@@ -96,16 +106,6 @@ export const observableKeyToType = (key) => {
     type = 'IPv4-Addr';
   } else if (type.toLowerCase() === 'ipv6-addr') {
     type = 'IPv6-Addr';
-  } else if (type.toLowerCase() === 'x-opencti-hostname') {
-    type = 'X-OpenCTI-Hostname';
-  } else if (type.toLowerCase() === 'x-opencti-cryptocurrency-wallet') {
-    type = 'X-OpenCTI-Cryptocurrency-Wallet';
-  } else if (type.toLowerCase() === 'x-opencti-user-agent') {
-    type = 'X-OpenCTI-User-Agent';
-  } else if (type.toLowerCase() === 'x-opencti-cryptographic-key') {
-    type = 'X-OpenCTI-Cryptographic-Key';
-  } else if (type.toLowerCase() === 'x-opencti-text') {
-    type = 'X-OpenCTI-Text';
   }
   return type;
 };
@@ -243,8 +243,29 @@ export const openVocabularies = {
         'A self-replicating, self-contained program that usually executes itself without user intervention.',
     },
   ],
+  'event-type-ov': [
+    {
+      key: 'sport-competition',
+      description: 'Sport competition.',
+    },
+    {
+      key: 'local-election',
+      description: 'Local election.',
+    },
+    {
+      key: 'national-election',
+      description: 'National election.',
+    },
+    {
+      key: 'international-summit',
+      description: 'Internationals summit.',
+    },
+  ],
   'processor-architecture-ov': [
-    { key: 'alpha', description: 'Specifies the Alpha architecture.' },
+    {
+      key: 'alpha',
+      description: 'Specifies the Alpha architecture.',
+    },
     {
       key: 'arm',
       description: 'Specifies the ARM architecture.',
@@ -671,6 +692,152 @@ export const openVocabularies = {
       key: 'unknown',
       description:
         'There is not enough information available to determine the type of indicator.',
+    },
+  ],
+  'infrastructure-type-ov': [
+    {
+      key: 'amplification',
+      description:
+        'Specifies infrastructure used for conducting amplification attacks.',
+    },
+    {
+      key: 'anonymization',
+      description:
+        'Specific infrastructure used for anonymization, such as a proxy.',
+    },
+    {
+      key: 'botnet',
+      description:
+        'Specifies the membership/makeup of a botnet, in terms of the network addresses of the hosts that comprise the botnet.',
+    },
+    {
+      key: 'command-and-control',
+      description:
+        'Specifies infrastructure used for command and control (C2). This is typically a domain name or IP address.',
+    },
+    {
+      key: 'control-system',
+      description:
+        'Specifies equipment such as IoT, HMI, RTU, PLC or other ICS devices.',
+    },
+    {
+      key: 'exfiltration',
+      description:
+        'Specifies infrastructure used as an endpoint for data exfiltration.',
+    },
+    {
+      key: 'firewall',
+      description:
+        'Specifies a device that inspects network traffic and restricts it based upon defined policies.',
+    },
+    {
+      key: 'hosting-malware',
+      description: 'Specifies infrastructure used for hosting malware.',
+    },
+    {
+      key: 'hosting-target-lists',
+      description:
+        'Specifies infrastructure used for hosting a list of targets for DDOS attacks, phishing, and other malicious activities. This is typically a domain name or IP address.',
+    },
+    {
+      key: 'phishing',
+      description:
+        'Specifies infrastructure used for conducting phishing attacks.',
+    },
+    {
+      key: 'reconnaissance',
+      description:
+        'Specifies infrastructure used for conducting reconnaissance activities.',
+    },
+    {
+      key: 'routers-switches',
+      description:
+        'Specifies IT infrastructure used to connect devices to the network.',
+    },
+    {
+      key: 'staging',
+      description:
+        'Specifies infrastructure used for hosting a list of targets for DDOS attacks, phishing, and other malicious activities. This is typically a domain name or IP address.',
+    },
+    {
+      key: 'workstation',
+      description:
+        'Specifies an endpoint machine used for work by an organization that needs protection.',
+    },
+    {
+      key: 'unknown',
+      description: 'Specifies an infrastructure of some unknown type.',
+    },
+  ],
+  'threat-actor-role-ov': [
+    {
+      key: 'gent',
+      description:
+        'Threat actor executes attacks either on behalf of themselves or at the direction of someone else.',
+    },
+    {
+      key: 'director',
+      description:
+        'The threat actor who directs the activities, goals, and objectives of the malicious activities.',
+    },
+    {
+      key: 'independent',
+      description: 'A threat actor acting by themselves.',
+    },
+    {
+      key: 'infrastructure-architect',
+      description: 'Someone who designs the battle space.',
+    },
+    {
+      key: 'infrastructure-operator',
+      description:
+        'The threat actor who provides and supports the attack infrastructure that is used to deliver the attack (botnet providers, cloud services, etc.).',
+    },
+    {
+      key: 'malware-author',
+      description:
+        'The threat actor who authors malware or other malicious tools.',
+    },
+    {
+      key: 'sponsor',
+      description: 'The threat actor who funds the malicious activities.',
+    },
+  ],
+  'threat-actor-sophistication-ov': [
+    {
+      key: 'none',
+      description:
+        'Can carry out random acts of disruption or destruction by running tools they do not understand. Actors in this category have average computer skills.',
+    },
+    {
+      key: 'minimal',
+      description:
+        'Can minimally use existing and frequently well known and easy-to-find techniques and programs or scripts to search for and exploit weaknesses in other computers. Commonly referred to as a script-kiddie.',
+    },
+    {
+      key: 'intermediate',
+      description:
+        'Can proficiently use existing attack frameworks and toolkits to search for and exploit vulnerabilities in computers or systems. Actors in this category have computer skills equivalent to an IT professional and typically have a working knowledge of networks, operating systems, and possibly even defensive techniques and will typically exhibit some operational security.',
+    },
+    {
+      key: 'advanced',
+      description:
+        'Can develop their own tools or scripts from publicly known vulnerabilities to target systems and users. Actors in this category are very adept at IT systems and have a background in software development along with a solid understanding of defensive techniques and operational security.\n\nThese actors rely on others to find and identify weaknesses and vulnerabilities in systems, but are able to create their own tools, delivery mechanisms, and execution strategies.',
+    },
+    {
+      key: 'expert',
+      description:
+        'Can focus on the discovery and use of unknown malicious code, are is adept at installing user and kernel mode rootkits, frequently use data mining tools, target corporate executives and key users (government and industry) for the purpose of stealing personal and corporate data. Actors in this category are very adept at IT systems and software development and are experts with security systems, defensive techniques, attack methods, and operational security.',
+    },
+    {
+      key: 'innovator',
+      description:
+        'Typically, criminal or state actors who are organized, highly technical, proficient, well-funded professionals working in teams to discover new vulnerabilities and develop exploits.\n\nDemonstrates sophisticated capability. An innovator has the ability to create and script unique programs and codes targeting virtually any form of technology. At this level, this actor has a deep knowledge of networks, operating systems, programming languages, firmware, and infrastructure topologies and will demonstrate operational security when conducting his activities. Innovators are largely responsible for the discovery of 0-day vulnerabilities and the development of new attack techniques.',
+    },
+    {
+      key: 'strategic',
+      description:
+        'State actors who create vulnerabilities through an active program to "influence" commercial products and services during design, development or manufacturing, or with the ability to impact products while in the supply chain to enable exploitation of networks and systems of interest.',
     },
   ],
 };

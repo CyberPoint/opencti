@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React from 'react';
 import * as PropTypes from 'prop-types';
 import withStyles from '@mui/styles/withStyles';
 import Chip from '@mui/material/Chip';
@@ -66,93 +66,104 @@ const inlineStyles = {
     color: '#ef6c00',
     border: '1px solid #ef6c00',
   },
+  eql: {
+    backgroundColor: 'rgba(32, 201, 151, 0.10)',
+    color: '#007bff',
+    border: '1px solid #007bff',
+  },
 };
 
-class ItemPatternType extends Component {
-  render() {
-    const { classes, variant, label, t } = this.props;
-    const style = variant === 'inList' ? classes.chipInList : classes.chip;
-    if (this.props.color) {
+const ItemPatternType = (props) => {
+  const { classes, variant, label, t, color } = props;
+  const style = variant === 'inList' ? classes.chipInList : classes.chip;
+  if (color) {
+    return (
+      <Chip
+        classes={{ root: style }}
+        style={{
+          backgroundColor: color,
+          color: color === '#ffffff' ? '#2b2b2b' : 'inherit',
+        }}
+        label={t(label)}
+      />
+    );
+  }
+
+  switch (label) {
+    case 'stix':
       return (
         <Chip
           classes={{ root: style }}
-          style={{
-            backgroundColor: this.props.color,
-            color: this.props.color === '#ffffff' ? '#2b2b2b' : 'inherit',
-          }}
-          label={t(this.props.label)}
+          style={inlineStyles.stix}
+          label={t(label)}
         />
       );
-    }
-
-    switch (this.props.label) {
-      case 'stix':
-        return (
-          <Chip
-            classes={{ root: style }}
-            style={inlineStyles.stix}
-            label={t(label)}
-          />
-        );
-      case 'pcre':
-        return (
-          <Chip
-            classes={{ root: style }}
-            style={inlineStyles.pcre}
-            label={t(label)}
-          />
-        );
-      case 'sigma':
-        return (
-          <Chip
-            classes={{ root: style }}
-            style={inlineStyles.sigma}
-            label={t(label)}
-          />
-        );
-      case 'snort':
-        return (
-          <Chip
-            classes={{ root: style }}
-            style={inlineStyles.snort}
-            label={t(label)}
-          />
-        );
-      case 'suricata':
-        return (
-          <Chip
-            classes={{ root: style }}
-            style={inlineStyles.suricata}
-            label={t(label)}
-          />
-        );
-      case 'yara':
-        return (
-          <Chip
-            classes={{ root: style }}
-            style={inlineStyles.yara}
-            label={t(label)}
-          />
-        );
-      case 'tanium-signal':
-        return (
-          <Chip
-            classes={{ root: style }}
-            style={inlineStyles['tanium-signal']}
-            label={t(label)}
-          />
-        );
-      default:
-        return (
-          <Chip
-            classes={{ root: style }}
-            style={inlineStyles.stix}
-            label={t('Unknown')}
-          />
-        );
-    }
+    case 'pcre':
+      return (
+        <Chip
+          classes={{ root: style }}
+          style={inlineStyles.pcre}
+          label={t(label)}
+        />
+      );
+    case 'sigma':
+      return (
+        <Chip
+          classes={{ root: style }}
+          style={inlineStyles.sigma}
+          label={t(label)}
+        />
+      );
+    case 'snort':
+      return (
+        <Chip
+          classes={{ root: style }}
+          style={inlineStyles.snort}
+          label={t(label)}
+        />
+      );
+    case 'suricata':
+      return (
+        <Chip
+          classes={{ root: style }}
+          style={inlineStyles.suricata}
+          label={t(label)}
+        />
+      );
+    case 'yara':
+      return (
+        <Chip
+          classes={{ root: style }}
+          style={inlineStyles.yara}
+          label={t(label)}
+        />
+      );
+    case 'tanium-signal':
+      return (
+        <Chip
+          classes={{ root: style }}
+          style={inlineStyles['tanium-signal']}
+          label={t(label)}
+        />
+      );
+    case 'eql':
+      return (
+        <Chip
+          classes={{ root: style }}
+          style={inlineStyles.eql}
+          label={t(label)}
+        />
+      );
+    default:
+      return (
+        <Chip
+          classes={{ root: style }}
+          style={inlineStyles.stix}
+          label={t('Unknown')}
+        />
+      );
   }
-}
+};
 
 ItemPatternType.propTypes = {
   classes: PropTypes.object.isRequired,

@@ -3,106 +3,100 @@ import amqp from 'amqplib';
 import axios from 'axios';
 import * as R from 'ramda';
 import conf, { booleanConf, configureCA } from '../config/conf';
-import { DatabaseError } from '../config/errors';
+import { DatabaseError, UnknownError } from '../config/errors';
 
+export const INTERNAL_SYNC_QUEUE = 'sync';
 export const CONNECTOR_EXCHANGE = 'amqp.connector.exchange';
 export const WORKER_EXCHANGE = 'amqp.worker.exchange';
 
-export const EVENT_TYPE_SYNC = 'sync';
+export const EVENT_TYPE_DEPENDENCIES = 'init-dependencies';
+export const EVENT_TYPE_INIT = 'init-create';
+
 export const EVENT_TYPE_CREATE = 'create';
 export const EVENT_TYPE_UPDATE = 'update';
 export const EVENT_TYPE_MERGE = 'merge';
 export const EVENT_TYPE_DELETE = 'delete';
 
 const USE_SSL = booleanConf('rabbitmq:use_ssl', false);
+const QUEUE_TYPE = conf.get('rabbitmq:queue_type');
 const RABBITMQ_CA = conf.get('rabbitmq:ca').map((path) => readFileSync(path));
+const HOSTNAME = conf.get('rabbitmq:hostname');
+const PORT = conf.get('rabbitmq:port');
+const USERNAME = conf.get('rabbitmq:username');
+const PASSWORD = conf.get('rabbitmq:password');
+const VHOST = conf.get('rabbitmq:vhost');
+const VHOST_PATH = VHOST === '/' ? '' : `/${VHOST}`;
+const USE_SSL_MGMT = booleanConf('rabbitmq:management_ssl', false);
+const HOSTNAME_MGMT = conf.get('rabbitmq:hostname_management') || HOSTNAME;
+const PORT_MGMT = conf.get('rabbitmq:port_management');
 
 const amqpUri = () => {
-  const host = conf.get('rabbitmq:hostname');
-  const port = conf.get('rabbitmq:port');
-  return `amqp${USE_SSL ? 's' : ''}://${host}:${port}`;
+  const ssl = USE_SSL ? 's' : '';
+  return `amqp${ssl}://${HOSTNAME}:${PORT}${VHOST_PATH}`;
 };
 
 const amqpCred = () => {
-  const user = conf.get('rabbitmq:username');
-  const pass = conf.get('rabbitmq:password');
-  return { credentials: amqp.credentials.plain(user, pass) };
+  return { credentials: amqp.credentials.plain(USERNAME, PASSWORD) };
 };
 
 export const config = () => {
   return {
-    host: conf.get('rabbitmq:hostname'),
-    use_ssl: booleanConf('rabbitmq:use_ssl', false),
-    port: conf.get('rabbitmq:port'),
-    user: conf.get('rabbitmq:username'),
-    pass: conf.get('rabbitmq:password'),
+    host: HOSTNAME,
+    vhost: VHOST,
+    use_ssl: USE_SSL,
+    port: PORT,
+    user: USERNAME,
+    pass: PASSWORD,
   };
 };
 
-const amqpExecute = (execute) => {
-  return new Promise((resolve, reject) => {
-    amqp
-      .connect(amqpUri(), USE_SSL ? { ...amqpCred(), ...configureCA(RABBITMQ_CA) } : amqpCred())
-      .then((connection) => {
-        return connection
-          .createConfirmChannel()
-          .then((channel) => {
-            const commandExecution = execute(channel);
-            return commandExecution
-              .then((response) => {
-                channel.close();
-                connection.close();
-                resolve(response);
-                return true;
-              })
-              .catch(/* istanbul ignore next */ (e) => reject(e));
-          })
-          .catch(/* istanbul ignore next */ (e) => reject(e));
-      })
-      .catch(/* istanbul ignore next */ (e) => reject(e));
-  });
+const amqpExecute = async (execute) => {
+  try {
+    const amqpConnection = await amqp.connect(amqpUri(), USE_SSL ? {
+      ...amqpCred(),
+      tls: {
+        ...configureCA(RABBITMQ_CA),
+        servername: HOSTNAME,
+      }
+    } : amqpCred());
+    const channel = await amqpConnection.createConfirmChannel();
+    const response = await execute(channel);
+    await channel.close();
+    await amqpConnection.close();
+    return response;
+  } catch (err) {
+    throw UnknownError('Error in amqp command execution', { error: err });
+  }
 };
 
+// { deliveryMode: 2 } = persistent message
 export const send = (exchangeName, routingKey, message) => {
-  return amqpExecute(
-    (channel) => new Promise((resolve, reject) => {
-      channel.publish(
-        exchangeName,
-        routingKey,
-        Buffer.from(message),
-        { deliveryMode: 2 }, // Make message persistent
-        (err, ok) => {
-          if (err) reject(err);
-          resolve(ok);
-        }
-      );
-    })
-  );
+  return amqpExecute((channel) => channel.publish(exchangeName, routingKey, Buffer.from(message), { deliveryMode: 2 }));
 };
 
 export const metrics = async () => {
-  const baseURL = `http${conf.get('rabbitmq:management_ssl') === true ? 's' : ''}://${conf.get(
-    'rabbitmq:hostname'
-  )}:${conf.get('rabbitmq:port_management')}`;
+  const ssl = USE_SSL_MGMT ? 's' : '';
+  const baseURL = `http${ssl}://${HOSTNAME_MGMT}:${PORT_MGMT}`;
+
   const overview = await axios
     .get('/api/overview', {
       baseURL,
       withCredentials: true,
       auth: {
-        username: conf.get('rabbitmq:username'),
-        password: conf.get('rabbitmq:password'),
+        username: USERNAME,
+        password: PASSWORD,
       },
     })
     .then((response) => {
       return response.data;
     });
   const queues = await axios
-    .get('/api/queues', {
+    .get(`/api/queues${VHOST_PATH}`, {
       baseURL,
       withCredentials: true,
       auth: {
-        username: conf.get('rabbitmq:username'),
-        password: conf.get('rabbitmq:password'),
+        username: USERNAME,
+        password: PASSWORD,
       },
     })
     .then((response) => {
@@ -127,35 +121,31 @@ export const listenRouting = (connectorId) => `listen_routing_${connectorId}`;
 export const pushRouting = (connectorId) => `push_routing_${connectorId}`;
 
 export const registerConnectorQueues = async (id, name, type, scope) => {
-  // 01. Ensure exchange exists
-  await amqpExecute((channel) => channel.assertExchange(CONNECTOR_EXCHANGE, 'direct', { durable: true }));
-  await amqpExecute((channel) => channel.assertExchange(WORKER_EXCHANGE, 'direct', { durable: true }));
-  // 02. Ensure listen queue exists
   const listenQueue = `listen_${id}`;
-  await amqpExecute((channel) => channel.assertQueue(listenQueue, {
-    exclusive: false,
-    durable: true,
-    autoDelete: false,
-    arguments: {
-      name,
-      config: { id, type, scope },
-    },
-  }));
-  // 03. bind queue for the each connector scope
-  await amqpExecute((c) => c.bindQueue(listenQueue, CONNECTOR_EXCHANGE, listenRouting(id)));
-  // 04. Create stix push queue
   const pushQueue = `push_${id}`;
-  await amqpExecute((channel) => channel.assertQueue(pushQueue, {
-    exclusive: false,
-    durable: true,
-    autoDelete: false,
-    arguments: {
-      name,
-      config: { id, type, scope },
-    },
-  }));
-  // 05. Bind push queue to direct default exchange
-  await amqpExecute((channel) => channel.bindQueue(pushQueue, WORKER_EXCHANGE, pushRouting(id)));
+  await amqpExecute(async (channel) => {
+    // 01. Ensure exchange exists
+    await channel.assertExchange(CONNECTOR_EXCHANGE, 'direct', { durable: true });
+    await channel.assertExchange(WORKER_EXCHANGE, 'direct', { durable: true });
+    // 02. Ensure listen queue exists
+    await channel.assertQueue(listenQueue, {
+      exclusive: false,
+      durable: true,
+      autoDelete: false,
+      arguments: { name, config: { id, type, scope }, 'x-queue-type': QUEUE_TYPE },
+    });
+    // 03. bind queue for each connector scope
+    await channel.bindQueue(listenQueue, CONNECTOR_EXCHANGE, listenRouting(id));
+    // 04. Create stix push queue
+    await channel.assertQueue(pushQueue, {
+      exclusive: false,
+      durable: true,
+      autoDelete: false,
+      arguments: { name, config: { id, type, scope }, 'x-queue-type': QUEUE_TYPE },
+    });
+    // 05. Bind push queue to direct default exchange
+    await channel.bindQueue(pushQueue, WORKER_EXCHANGE, pushRouting(id));
+  });
   return connectorConfig(id);
 };
 
@@ -174,6 +164,12 @@ export const rabbitMQIsAlive = async () => {
       throw DatabaseError('RabbitMQ seems down', { error: e.message });
     }
   );
+  // 02. Ensure sync queue exists
+  await registerConnectorQueues(INTERNAL_SYNC_QUEUE, 'Internal sync manager', 'internal', 'sync');
+};
+
+export const pushToSync = (message) => {
+  return send(WORKER_EXCHANGE, pushRouting('sync'), JSON.stringify(message));
 };
 
 export const pushToConnector = (connector, message) => {

@@ -11,6 +11,7 @@ import ContainerStixCyberObservablesLines, {
 } from './ContainerStixCyberObservablesLines';
 import {
   buildViewParamsFromUrlAndStorage,
+  convertFilters,
   saveViewParameters,
 } from '../../../../utils/ListParameters';
 import inject18n from '../../../../components/i18n';
@@ -18,6 +19,7 @@ import StixCyberObservablesRightBar from '../../observations/stix_cyber_observab
 import ToolBar from '../../data/ToolBar';
 import { defaultValue } from '../../../../utils/Graph';
 import { UserContext } from '../../../../utils/Security';
+import { isUniqFilter } from '../lists/Filters';
 
 const styles = () => ({
   container: {
@@ -38,10 +40,12 @@ class ContainerStixCyberObservablesComponent extends Component {
       sortBy: propOr('created_at', 'sortBy', params),
       orderAsc: propOr(false, 'orderAsc', params),
       searchTerm: propOr('', 'searchTerm', params),
-      types: [],
+      filters: R.propOr({}, 'filters', params),
+      types: propOr([], 'types', params),
       openExports: false,
       numberOfElements: { number: 0, symbol: '' },
       selectedElements: null,
+      deSelectedElements: null,
       selectAll: false,
     };
   }
@@ -85,12 +89,26 @@ class ContainerStixCyberObservablesComponent extends Component {
   handleToggleSelectEntity(entity, event) {
     event.stopPropagation();
     event.preventDefault();
-    const { selectedElements } = this.state;
+    const { selectedElements, deSelectedElements, selectAll } = this.state;
     if (entity.id in (selectedElements || {})) {
       const newSelectedElements = R.omit([entity.id], selectedElements);
       this.setState({
         selectAll: false,
         selectedElements: newSelectedElements,
+      });
+    } else if (selectAll && entity.id in (deSelectedElements || {})) {
+      const newDeSelectedElements = R.omit([entity.id], deSelectedElements);
+      this.setState({
+        deSelectedElements: newDeSelectedElements,
+      });
+    } else if (selectAll) {
+      const newDeSelectedElements = R.assoc(
+        entity.id,
+        entity,
+        deSelectedElements || {},
+      );
+      this.setState({
+        deSelectedElements: newDeSelectedElements,
       });
     } else {
       const newSelectedElements = R.assoc(
@@ -106,11 +124,54 @@ class ContainerStixCyberObservablesComponent extends Component {
   }
 
   handleToggleSelectAll() {
-    this.setState({ selectAll: !this.state.selectAll, selectedElements: null });
+    this.setState({
+      selectAll: !this.state.selectAll,
+      selectedElements: null,
+      deSelectedElements: null,
+    });
   }
 
   handleClearSelectedElements() {
-    this.setState({ selectAll: false, selectedElements: null });
+    this.setState({
+      selectAll: false,
+      selectedElements: null,
+      deSelectedElements: null,
+    });
+  }
+
+  handleAddFilter(key, id, value, event = null) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    if (this.state.filters[key] && this.state.filters[key].length > 0) {
+      this.setState(
+        {
+          filters: R.assoc(
+            key,
+            isUniqFilter(key)
+              ? [{ id, value }]
+              : R.uniqBy(R.prop('id'), [
+                { id, value },
+                ...this.state.filters[key],
+              ]),
+            this.state.filters,
+          ),
+        },
+        () => this.saveView(),
+      );
+    } else {
+      this.setState(
+        {
+          filters: R.assoc(key, [{ id, value }], this.state.filters),
+        },
+        () => this.saveView(),
+      );
+    }
+  }
+
+  handleRemoveFilter(key) {
+    this.setState({ filters: R.dissoc(key, this.state.filters) }, () => this.saveView());
   }
 
   setNumberOfElements(numberOfElements) {
@@ -128,8 +189,13 @@ class ContainerStixCyberObservablesComponent extends Component {
       },
       observable_value: {
         label: 'Value',
-        width: '40%',
+        width: '30%',
         isSortable: isRuntimeSort,
+      },
+      objectLabel: {
+        label: 'Labels',
+        width: '20%',
+        isSortable: false,
       },
       createdBy: {
         label: 'Creator',
@@ -138,7 +204,7 @@ class ContainerStixCyberObservablesComponent extends Component {
       },
       created_at: {
         label: 'Creation date',
-        width: '15%',
+        width: '10%',
         isSortable: true,
       },
       objectMarking: {
@@ -157,22 +223,27 @@ class ContainerStixCyberObservablesComponent extends Component {
       openExports,
       numberOfElements,
       selectedElements,
+      deSelectedElements,
       selectAll,
       types,
+      filters,
     } = this.state;
-
+    const finalFilters = convertFilters(filters);
     const paginationOptions = {
       types: types.length > 0 ? types : ['Stix-Cyber-Observable'],
       search: searchTerm,
+      filters: finalFilters,
       orderBy: sortBy,
       orderMode: orderAsc ? 'asc' : 'desc',
     };
-    const filters = [{ key: 'containedBy', values: [container.id] }];
-    if (types.length > 0) {
-      filters.push({ key: 'entity_type', values: types });
-    }
+    const exportFilters = {
+      containedBy: [{ id: container.id, value: defaultValue(container) }],
+      entity_type: types.length > 0 ? R.map((n) => ({ id: n, value: n }), types) : [],
+      ...filters,
+    };
+    const exportFinalFilters = convertFilters(exportFilters);
     const exportPaginationOptions = {
-      filters,
+      filters: exportFinalFilters,
       orderBy: sortBy,
       orderMode: orderAsc ? 'asc' : 'desc',
       search: searchTerm,
@@ -181,13 +252,6 @@ class ContainerStixCyberObservablesComponent extends Component {
     if (selectAll) {
       numberOfSelectedElements = numberOfElements.original;
     }
-    const finalFilters = {
-      entity_type:
-        types.length > 0
-          ? R.map((n) => ({ id: n, value: n }), types)
-          : [{ id: 'Stix-Cyber-Observable', value: 'Stix-Cyber-Observable' }],
-      containedBy: [{ id: container.id, value: defaultValue(container) }],
-    };
     return (
       <UserContext.Consumer>
         {({ helper }) => (
@@ -200,6 +264,8 @@ class ContainerStixCyberObservablesComponent extends Component {
               handleSearch={this.handleSearch.bind(this)}
               secondaryAction={true}
               numberOfElements={numberOfElements}
+              handleAddFilter={this.handleAddFilter.bind(this)}
+              handleRemoveFilter={this.handleRemoveFilter.bind(this)}
               handleToggleSelectAll={this.handleToggleSelectAll.bind(this)}
               selectAll={selectAll}
               iconExtension={true}
@@ -207,6 +273,17 @@ class ContainerStixCyberObservablesComponent extends Component {
               exportEntityType="Stix-Cyber-Observable"
               openExports={openExports}
               exportContext={`of-container-${container.id}`}
+              filters={filters}
+              availableFilterKeys={[
+                'labelledBy',
+                'markedBy',
+                'created_at_start_date',
+                'created_at_end_date',
+                'x_opencti_score_gt',
+                'x_opencti_score_lte',
+                'createdBy',
+                'sightedBy',
+              ]}
               paginationOptions={exportPaginationOptions}
             >
               <QueryRenderer
@@ -226,6 +303,7 @@ class ContainerStixCyberObservablesComponent extends Component {
                     onTypesChange={this.handleToggle.bind(this)}
                     openExports={openExports}
                     selectedElements={selectedElements}
+                    deSelectedElements={deSelectedElements}
                     onToggleEntity={this.handleToggleSelectEntity.bind(this)}
                     selectAll={selectAll}
                   />
@@ -234,6 +312,7 @@ class ContainerStixCyberObservablesComponent extends Component {
             </ListLines>
             <ToolBar
               selectedElements={selectedElements}
+              deSelectedElements={deSelectedElements}
               numberOfSelectedElements={numberOfSelectedElements}
               selectAll={selectAll}
               search={searchTerm}

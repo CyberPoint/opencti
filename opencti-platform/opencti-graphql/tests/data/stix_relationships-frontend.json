@@ -218,19 +218,19 @@
         "windows-service-ext": [
             "based-on"
         ],
-        "x-opencti-cryptocurrency-wallet": [
+        "cryptocurrency-wallet": [
             "based-on"
         ],
-        "x-opencti-cryptographic-key": [
+        "cryptographic-key": [
             "based-on"
         ],
-        "x-opencti-hostname": [
+        "hostname": [
             "based-on"
         ],
-        "x-opencti-text": [
+        "text": [
             "based-on"
         ],
-        "x-opencti-user-agent": [
+        "user-agent": [
             "based-on"
         ],
         "x509-certificate": [
@@ -365,19 +365,19 @@
         "windows-service-ext": [
             "consists-of"
         ],
-        "x-opencti-cryptocurrency-wallet": [
+        "cryptocurrency-wallet": [
             "consists-of"
         ],
-        "x-opencti-cryptographic-key": [
+        "cryptographic-key": [
             "consists-of"
         ],
-        "x-opencti-hostname": [
+        "hostname": [
             "consists-of"
         ],
-        "x-opencti-text": [
+        "text": [
             "consists-of"
         ],
-        "x-opencti-user-agent": [
+        "user-agent": [
             "consists-of"
         ],
         "x509-certificate": [
@@ -435,9 +435,6 @@
         ]
     },
     "software": {
-        "malware": [
-            "operating-system"
-        ],
         "malware-analysis": [
             "host-vm",
             "operating-system",
@@ -445,11 +442,7 @@
         ]
     },
     "file": {
-        "malware": [
-            "sample"
-        ],
         "malware-analysis": [
-            "sample",
             "contains"
         ],
         "email-mime-part-type": [
@@ -561,19 +554,19 @@
             "contains",
             "service-dll"
         ],
-        "x-opencti-cryptocurrency-wallet": [
+        "cryptocurrency-wallet": [
             "contains"
         ],
-        "x-opencti-cryptographic-key": [
+        "cryptographic-key": [
             "contains"
         ],
-        "x-opencti-hostname": [
+        "hostname": [
             "contains"
         ],
-        "x-opencti-text": [
+        "text": [
             "contains"
         ],
-        "x-opencti-user-agent": [
+        "user-agent": [
             "contains"
         ],
         "x509-certificate": [
@@ -584,12 +577,6 @@
         ]
     },
     "artifact": {
-        "malware": [
-            "sample"
-        ],
-        "malware-analysis": [
-            "sample"
-        ],
         "email-message": [
             "raw-email"
         ],
@@ -646,7 +633,8 @@
         ],
         "file": [
             "downloads",
-            "drops"
+            "drops",
+            "sample"
         ],
         "vulnerability": [
             "exploits",
@@ -664,6 +652,12 @@
         ],
         "system": [
             "targets"
+        ],
+        "artifact": [
+            "sample"
+        ],
+        "software": [
+            "operating-system"
         ]
     },
     "malware-analysis": {
@@ -775,19 +769,19 @@
         "windows-service-ext": [
             "analysis-sco"
         ],
-        "x-opencti-cryptocurrency-wallet": [
+        "cryptocurrency-wallet": [
             "analysis-sco"
         ],
-        "x-opencti-cryptographic-key": [
+        "cryptographic-key": [
             "analysis-sco"
         ],
-        "x-opencti-hostname": [
+        "hostname": [
             "analysis-sco"
         ],
-        "x-opencti-text": [
+        "text": [
             "analysis-sco"
         ],
-        "x-opencti-user-agent": [
+        "user-agent": [
             "analysis-sco"
         ],
         "x509-certificate": [
@@ -798,9 +792,6 @@
         ]
     },
     "network-traffic": {
-        "malware-analysis": [
-            "sample"
-        ],
         "network-traffic": [
             "encapsulates",
             "encapsulated-by"
@@ -858,7 +849,9 @@
             "targets"
         ],
         "attack-pattern": [
-            "uses"
+            "uses",
+            "drops",
+            "delivers"
         ]
     },
     "directory": {
@@ -987,6 +980,29 @@
             "x509-v3-extensions"
         ]
     },
+    "city": {
+        "country": [
+            "located-at"
+        ],
+        "region": [
+            "located-at"
+        ]
+    },
+    "country": {
+        "region": [
+            "located-at"
+        ]
+    },
+    "observed-data": {
+        "file": [
+            "content"
+        ]
+    },
+    "incident": {
+        "campaign": [
+            "attributed-to"
+        ]
+    },
     "individual": {
         "individual": [
             "part-of"
@@ -1003,6 +1019,16 @@
             "part-of"
         ]
     },
+    "position": {
+        "city": [
+            "located-at"
+        ]
+    },
+    "region": {
+        "region": [
+            "located-at"
+        ]
+    },
     "sector": {
         "sector": [
             "part-of"
@@ -1016,42 +1042,29 @@
             "located-at"
         ]
     },
-    "incident": {
-        "campaign": [
-            "attributed-to"
-        ]
-    },
-    "observed-data": {
-        "file": [
-            "content"
-        ]
-    },
-    "city": {
-        "country": [
-            "located-at"
-        ],
-        "region": [
-            "located-at"
-        ]
-    },
-    "country": {
-        "region": [
-            "located-at"
-        ]
-    },
-    "position": {
-        "city": [
-            "located-at"
-        ]
-    },
-    "region": {
-        "region": [
-            "located-at"
-        ]
-    },
     "targets": {
         "location": [
             "located-at"
+        ]
+    },
+    "hostname": {
+        "attack-pattern": [
+            "uses"
+        ],
+        "artifact": [
+            "drops"
+        ],
+        "file": [
+            "drops"
+        ],
+        "ipv4-addr": [
+            "communicates-with"
+        ],
+        "ipv6-addr": [
+            "communicates-with"
+        ],
+        "domain-name": [
+            "communicates-with"
         ]
     }
 }

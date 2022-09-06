@@ -1,6 +1,8 @@
 import * as R from 'ramda';
 
 // General
+export const KNOWLEDGE_DELETE = 'KNDELETE';
+
 export const ID_INTERNAL = 'internal_id';
 export const ID_STANDARD = 'standard_id';
 export const INTERNAL_IDS_ALIASES = 'i_aliases_ids';
@@ -15,6 +17,8 @@ export const INPUT_CREATED_BY = 'createdBy'; // created_by_ref
 export const INPUT_LABELS = 'objectLabel'; // labels
 export const INPUT_MARKINGS = 'objectMarking'; // object_marking_refs
 export const INPUT_OBJECTS = 'objects'; // object_refs
+export const INPUT_DOMAIN_FROM = 'from'; // source_ref
+export const INPUT_DOMAIN_TO = 'to'; // target_ref
 
 export const MULTIPLE_META_RELATIONSHIPS_INPUTS = [
   INPUT_MARKINGS,
@@ -91,6 +95,7 @@ export const isAbstract = (type) => R.includes(type, ABSTRACT_TYPES);
 export const schemaTypes = {
   types: {},
   attributes: {},
+  upsertAttributes: {},
   relationshipsMapping: {},
   // eslint-disable-next-line object-shorthand,func-names
   register: function (type, children) {
@@ -98,7 +103,15 @@ export const schemaTypes = {
   },
   // eslint-disable-next-line object-shorthand,func-names
   get: function (type) {
-    return this.types[type] || [];
+    return this.types[type] ?? [];
+  },
+  // eslint-disable-next-line object-shorthand,func-names
+  registerUpsertAttributes: function (type, children) {
+    this.upsertAttributes[type] = children;
+  },
+  // eslint-disable-next-line object-shorthand,func-names
+  getUpsertAttributes: function (type) {
+    return this.upsertAttributes[type] ?? [];
   },
   // eslint-disable-next-line object-shorthand,func-names
   registerAttributes: function (type, children) {
@@ -106,7 +119,7 @@ export const schemaTypes = {
   },
   // eslint-disable-next-line object-shorthand,func-names
   getAttributes: function (type) {
-    return this.attributes[type] || [];
+    return this.attributes[type] ?? [];
   },
 };
 // region utils
